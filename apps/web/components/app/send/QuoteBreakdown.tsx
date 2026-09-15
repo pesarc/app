@@ -20,7 +20,7 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
       value: `1 ${sendC.code} = ${formatNumber(quote.effectiveRate, quote.receiveCurrency)} ${recvC.code}`,
     },
     {
-      label: "Luberty fee",
+      label: "Pesarc fee",
       value: `${(quote.feePct * 100).toFixed(2)}% · ${formatMoney(quote.feeAmount, quote.sendCurrency)}`,
     },
     { label: "Max slippage", value: `${quote.slippagePct.toFixed(2)}%` },

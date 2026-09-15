@@ -20,7 +20,7 @@ type Ctx = {
 };
 
 const UIModeContext = createContext<Ctx | null>(null);
-const STORAGE_KEY = "luberty.ui-mode";
+const STORAGE_KEY = "pesarc.ui-mode";
 
 export function UIModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<UIMode>("basic");

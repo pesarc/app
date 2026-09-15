@@ -141,7 +141,7 @@ export function Corridor() {
 
           <p className="text-base md:text-lg text-zinc-400 font-light leading-relaxed">
             Sending money into Sub-Saharan Africa averages ~8.78% in fees, the
-            highest of any region, settled in days, not seconds. Luberty routes
+            highest of any region, settled in days, not seconds. Pesarc routes
             the same transfer over stablecoin rails for a fraction of a percent,
             credits the recipient instantly from local liquidity, and settles
             behind the scenes.
@@ -381,7 +381,7 @@ export function EngineCTA() {
                 $33T
               </div>
               <p className="text-sm text-zinc-400 font-light leading-relaxed">
-                More than Visa and Mastercard combined. Luberty is the
+                More than Visa and Mastercard combined. Pesarc is the
                 money-first app on top of a rail that has already won.
               </p>
             </div>
