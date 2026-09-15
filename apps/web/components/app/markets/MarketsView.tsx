@@ -151,6 +151,8 @@ export default function MarketsView() {
           <StakeSheet
             key="stake-sheet"
             market={ticket.market}
+            marketId={ticket.live?.id ?? MARKETS.indexOf(ticket.market)}
+            venueKind={venueKind}
             side={ticket.side}
             prices={displayPrices(ticket.market, ticket.live)}
             onClose={() => setTicket(null)}
