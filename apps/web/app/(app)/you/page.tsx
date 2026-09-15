@@ -88,20 +88,20 @@ export default function YouPage() {
           <div className="text-[12.5px] font-medium text-slate mb-3">
             The currency you send in — set once, no picking every time.
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {SEND_CURRENCIES.map((code: CurrencyCode) => {
               const active = code === sendCurrency;
               return (
                 <button
                   key={code}
                   onClick={() => setSendCurrency(code)}
-                  className={`flex-1 rounded-[14px] border px-0 py-3 text-sm font-bold transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 rounded-[14px] border py-2.5 text-sm font-bold transition-colors ${
                     active
                       ? "bg-sky-tint/50 border-sky text-sky-deep"
                       : "bg-snow border-fog text-harbor hover:border-slate/50"
                   }`}
                 >
-                  <span className="numerals">{CURRENCIES[code].symbol}</span> {code}
+                  <span>{CURRENCIES[code].flag}</span> {code}
                 </button>
               );
             })}
