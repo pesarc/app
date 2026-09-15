@@ -21,7 +21,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald/40 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]";
+    "inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]";
   const sizes = {
     md: "px-5 py-2.5 text-sm",
     lg: "px-7 py-4 text-base",
@@ -60,7 +60,7 @@ export function Card({
   return (
     <div
       className={cx(
-        "bg-white rounded-card shadow-soft border border-black/[0.04]",
+        "bg-snow rounded-card shadow-card-flat border border-black/[0.04]",
         className
       )}
       {...props}
@@ -105,8 +105,8 @@ export function Segmented<T extends string>({
               "rounded-full font-medium transition-all",
               size === "sm" ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm",
               active
-                ? "bg-white text-deepink shadow-soft"
-                : "text-muted hover:text-deepink"
+                ? "bg-snow text-ink shadow-card-flat"
+                : "text-slate hover:text-ink"
             )}
           >
             {opt.label}
@@ -127,15 +127,15 @@ export function StatusBeacon({
   label: string;
 }) {
   const colors = {
-    active: "bg-emerald",
-    pending: "bg-gold",
+    active: "bg-sky",
+    pending: "bg-harbor",
     done: "bg-success",
     alert: "bg-alert",
   };
   return (
     <span className="inline-flex items-center gap-2">
       <span className={cx("w-2 h-2 rounded-full", colors[status])} />
-      <span className="text-xs font-medium text-muted">{label}</span>
+      <span className="text-xs font-medium text-slate">{label}</span>
     </span>
   );
 }

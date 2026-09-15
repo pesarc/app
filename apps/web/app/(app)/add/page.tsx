@@ -90,10 +90,10 @@ export default function AddMoneyPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Add money
       </h1>
-      <p className="text-muted mb-6">
+      <p className="text-slate mb-6">
         Deposit native USDC from another chain — it arrives on the hub over
         Circle CCTP V2 in under a minute.
       </p>
@@ -106,8 +106,8 @@ export default function AddMoneyPage() {
             onClick={() => setChainId(c.id)}
             className={`rounded-field border px-3.5 py-3 text-sm font-medium text-left transition ${
               c.id === chainId
-                ? "border-emerald bg-emerald-50 text-deepink"
-                : "border-black/10 bg-white text-muted hover:border-black/20"
+                ? "border-sky bg-sky-tint text-ink"
+                : "border-fog bg-snow text-slate hover:border-black/20"
             }`}
           >
             {c.label}
@@ -121,8 +121,8 @@ export default function AddMoneyPage() {
       {/* Instructions */}
       <Card className="p-5 mb-4 space-y-3 text-sm">
         <div className="flex items-center gap-2 mb-1">
-          <Landmark className="w-4 h-4 text-emerald" />
-          <span className="font-semibold text-deepink">
+          <Landmark className="w-4 h-4 text-sky" />
+          <span className="font-semibold text-ink">
             Deposit from {corridor.label}
           </span>
         </div>
@@ -160,7 +160,7 @@ export default function AddMoneyPage() {
           onChange={(e) => setTxHash(e.target.value)}
           placeholder="0x… burn transaction hash"
           aria-label="Burn transaction hash"
-          className="flex-1 bg-white rounded-field border border-black/10 px-4 py-3 text-sm font-mono text-deepink placeholder:text-muted/60 shadow-soft focus:outline-none focus:border-emerald/50"
+          className="flex-1 bg-snow rounded-field border border-fog px-4 py-3 text-sm font-mono text-ink placeholder:text-slate/60 shadow-card-flat focus:outline-none focus:border-sky/50"
         />
         <Button
           onClick={relay}
@@ -181,11 +181,11 @@ export default function AddMoneyPage() {
         >
           {result.ok ? (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 font-semibold text-deepink">
-                <Check className="w-4 h-4 text-emerald" />
+              <div className="flex items-center gap-2 font-semibold text-ink">
+                <Check className="w-4 h-4 text-sky" />
                 {result.amountUsdc} USDC arrived from {result.corridor}
               </div>
-              <div className="text-muted">
+              <div className="text-slate">
                 {result.converted
                   ? "Auto-converted to cNGN and delivered."
                   : "Credited as hub tUSD."}{" "}
@@ -194,7 +194,7 @@ export default function AddMoneyPage() {
                     href={explorerTxUrl(result.processTx)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+                    className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
                   >
                     View delivery <ExternalLink className="w-3 h-3" />
                   </a>
@@ -213,10 +213,10 @@ export default function AddMoneyPage() {
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="flex gap-2.5">
-      <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+      <span className="w-5 h-5 rounded-full bg-sky-tint text-sky text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
         {n}
       </span>
-      <p className="text-muted">{children}</p>
+      <p className="text-slate">{children}</p>
     </div>
   );
 }
@@ -237,14 +237,14 @@ function AddrRow({
       onClick={() => onCopy(label, value)}
       className="w-full flex items-center justify-between gap-2 rounded-field bg-black/[0.03] px-3 py-2 hover:bg-black/[0.05] transition text-left"
     >
-      <span className="text-[11px] font-semibold text-muted uppercase tracking-widest shrink-0">
+      <span className="text-[11px] font-semibold text-slate uppercase tracking-widest shrink-0">
         {label}
       </span>
-      <span className="font-mono text-xs text-deepink truncate">{value}</span>
+      <span className="font-mono text-xs text-ink truncate">{value}</span>
       {copied === label ? (
-        <Check className="w-3.5 h-3.5 text-emerald shrink-0" />
+        <Check className="w-3.5 h-3.5 text-sky shrink-0" />
       ) : (
-        <Copy className="w-3.5 h-3.5 text-muted shrink-0" />
+        <Copy className="w-3.5 h-3.5 text-slate shrink-0" />
       )}
     </button>
   );
