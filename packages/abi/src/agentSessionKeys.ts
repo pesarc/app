@@ -1,5 +1,5 @@
 // AgentSessionKeys — bounded agent authority (spend cap + expiry + allowlist).
-// Synced from StableArc/contracts evm/src/AgentSessionKeys.sol.
+// Synced from Pesarc/contracts evm/src/AgentSessionKeys.sol.
 export const agentSessionKeysAbi = [
   {
     type: "function",

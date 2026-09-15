@@ -2,17 +2,18 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { neon } from "@neondatabase/serverless";
 import { DEMO_ACCOUNT } from "@pesarc/sdk/api/auth";
+import { getRampAdapter, type PayoutStatus as RampPayoutStatus } from "./ramp";
 
 // Fiat payout orchestration (testnet sandbox). The crypto leg is real — the
 // swapped cNGN lands in the ramp escrow wallet on-chain — and this module
-// tracks the fiat leg the way a ramp partner integration would: a payout
-// record that advances initiated → processing → paid. Statuses are derived
-// from elapsed time (stateless partner simulation); a real RampAdapter swaps
-// in webhook-driven updates without touching callers.
+// tracks the fiat leg. Status comes from the active RampAdapter (see ramp.ts):
+// the simulated adapter advances initiated → processing → paid on a timeline,
+// and a real off-ramp partner swaps in webhook-driven status without touching
+// callers.
 
 export type PayoutMethod = "bank" | "mobile_money";
 
-export type PayoutStatus = "initiated" | "processing" | "paid";
+export type PayoutStatus = RampPayoutStatus;
 
 export type PayoutInput = {
   /** Transfer reference (SARC-… / QRP-…) this payout settles. */
@@ -33,17 +34,6 @@ export type PayoutRow = PayoutInput & {
   /** Simulated partner payout reference. */
   partnerRef: string;
 };
-
-// Sandbox partner SLA: ~20s to accept, ~45s to pay out.
-const PROCESSING_AFTER_MS = 8_000;
-const PAID_AFTER_MS = 45_000;
-
-function statusFor(createdAt: string): PayoutStatus {
-  const age = Date.now() - new Date(createdAt).getTime();
-  if (age >= PAID_AFTER_MS) return "paid";
-  if (age >= PROCESSING_AFTER_MS) return "processing";
-  return "initiated";
-}
 
 const hasNeon = () => Boolean(process.env.DATABASE_URL);
 
@@ -154,7 +144,7 @@ export async function getPayout(
         txHash: (r.tx_hash as string) ?? undefined,
         partnerRef: String(r.partner_ref),
         createdAt,
-        status: statusFor(createdAt),
+        status: await getRampAdapter().statusFor(createdAt, String(r.partner_ref)),
       };
     } catch {
       /* fall through */
@@ -167,7 +157,8 @@ export async function getPayout(
     rows.reverse().find(
       (r) => r.reference === reference && (r.account ?? DEMO_ACCOUNT) === account,
     ) ?? null;
-  return row ? { ...row, status: statusFor(row.createdAt) } : null;
+  if (!row) return null;
+  return { ...row, status: await getRampAdapter().statusFor(row.createdAt, row.partnerRef) };
 }
 
 /* ---- local JSONL fallback (zero-config dev) ---- */

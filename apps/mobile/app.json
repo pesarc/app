@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "StableArc",
-    "slug": "stablearc",
-    "scheme": "stablearc",
+    "name": "Pesarc",
+    "slug": "pesarc",
+    "scheme": "pesarc",
     "version": "0.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
