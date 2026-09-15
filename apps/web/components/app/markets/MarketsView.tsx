@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio } from "lucide-react";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
   fetchLiveMarketsFor,
   availableVenues,
@@ -39,6 +40,26 @@ export default function MarketsView() {
   const [selected, setSelected] = useState<Selection>(() => activeVenue().kind);
   const [liveByVenue, setLiveByVenue] = useState<Record<string, LiveMarket[] | null>>({});
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
+  // Catalog from the admin store (falls back to the static list), so
+  // admin-created markets show up on the board.
+  const [catalog, setCatalog] = useState<Market[]>(MARKETS);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/catalog?kind=markets")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!alive || !j.ok) return;
+        const mapped = (j.items as { data: Record<string, unknown> }[])
+          .map((it, i) => toMarket(it.data, i))
+          .filter(Boolean) as Market[];
+        if (mapped.length) setCatalog(mapped);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const venuesInScope = useMemo(
     () => (selected === "all" ? venues : venues.filter((v) => v.kind === selected)),
@@ -61,15 +82,15 @@ export default function MarketsView() {
   const soleVenue = venuesInScope.length === 1 ? venuesInScope[0] : null;
 
   const filtered = useMemo(
-    () => (cat === "all" ? MARKETS : MARKETS.filter((m) => m.kind === cat)),
-    [cat]
+    () => (cat === "all" ? catalog : catalog.filter((m) => m.kind === cat)),
+    [cat, catalog]
   );
 
   const cards = useMemo(
     () =>
       venuesInScope.flatMap((v) =>
         filtered.map((m) => {
-          const index = MARKETS.indexOf(m);
+          const index = catalog.indexOf(m);
           const live = overlay(liveByVenue[v.kind] ?? null, index) ?? undefined;
           return {
             key: `${v.kind}-${m.id}`,
@@ -82,7 +103,7 @@ export default function MarketsView() {
           };
         })
       ),
-    [venuesInScope, filtered, liveByVenue]
+    [venuesInScope, filtered, liveByVenue, catalog]
   );
 
   async function handleClaim(venueKind: VenueKind, marketId: number, key: string) {

@@ -11,11 +11,11 @@ import { TrendingUp, TrendingDown, X, Check, Search, Loader2 } from "lucide-reac
 import {
   INSTRUMENTS,
   MARKETS,
-  filterInstruments,
   marketOf,
   type Instrument,
   type InstrumentFilter,
 } from "@pesarc/sdk/invest";
+import { toInstrument } from "@pesarc/sdk/catalog-map";
 import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { getBroker } from "@pesarc/sdk/broker";
@@ -48,8 +48,27 @@ export default function InvestView() {
   const [query, setQuery] = useState("");
   const [ticket, setTicket] = useState<Instrument | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  // Instruments come from the admin catalog store (falls back to the static
+  // catalog if the store is empty/unreachable), so admin edits show up here.
+  const [instruments, setInstruments] = useState<Instrument[]>(INSTRUMENTS);
 
   useEffect(() => setHoldings(loadHoldings()), []);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/catalog?kind=stocks")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!alive || !j.ok) return;
+        const mapped = (j.items as { data: Record<string, unknown> }[])
+          .map((it) => toInstrument(it.data))
+          .filter(Boolean) as Instrument[];
+        if (mapped.length) setInstruments(mapped);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const buy = async (inst: Instrument, shares: number) => {
     const m = marketOf(inst);
@@ -80,26 +99,45 @@ export default function InvestView() {
     setTicket(null);
   };
 
+  // Cash out a position: sell all shares via the broker and clear the holding.
+  const cashOut = async (h: Holding) => {
+    await getBroker().placeOrder({ symbol: h.symbol, shares: h.shares, side: "sell" }).catch(() => {});
+    setHoldings((prev) => {
+      const next = prev.filter((x) => x.symbol !== h.symbol);
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   // Portfolio value in the user's default currency (cross-FX via midMarketRate).
   const portfolio = useMemo(() => {
     let value = 0;
     for (const h of holdings) {
-      const inst = INSTRUMENTS.find((i) => i.symbol === h.symbol);
+      const inst = instruments.find((i) => i.symbol === h.symbol);
       if (!inst) continue;
       const m = marketOf(inst);
       value += h.shares * inst.price * midMarketRate(m.currency, sendCurrency);
     }
     return value;
-  }, [holdings, sendCurrency]);
+  }, [holdings, sendCurrency, instruments]);
 
   const list = useMemo(() => {
-    const base = filterInstruments(filter);
+    const base =
+      filter === "all"
+        ? instruments
+        : filter === "stock" || filter === "etf"
+        ? instruments.filter((i) => i.type === filter)
+        : instruments.filter((i) => i.market === filter);
     if (!query.trim()) return base;
     const q = query.toLowerCase();
     return base.filter(
       (i) => i.symbol.toLowerCase().includes(q) || i.name.toLowerCase().includes(q)
     );
-  }, [filter, query]);
+  }, [filter, query, instruments]);
 
   return (
     <div className="mx-auto w-full max-w-md lg:max-w-5xl px-4 sm:px-6 py-6 md:py-10">
@@ -136,7 +174,7 @@ export default function InvestView() {
           {holdings.length > 0 && (
             <div className="grid grid-cols-2 gap-2.5 mb-6">
               {holdings.map((h) => {
-                const inst = INSTRUMENTS.find((i) => i.symbol === h.symbol);
+                const inst = instruments.find((i) => i.symbol === h.symbol);
                 if (!inst) return null;
                 const m = marketOf(inst);
                 return (
@@ -151,6 +189,12 @@ export default function InvestView() {
                     <div className="text-[13px] font-bold text-ink numerals mt-1">
                       {formatMoney(h.shares * inst.price, m.currency)}
                     </div>
+                    <button
+                      onClick={() => cashOut(h)}
+                      className="mt-2 w-full rounded-full border border-fog text-harbor text-[12px] font-bold py-1.5 hover:border-slate/50 transition-colors"
+                    >
+                      Cash out
+                    </button>
                   </div>
                 );
               })}

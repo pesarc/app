@@ -49,7 +49,6 @@ const MONEY: Item[] = [
   { label: "Add money", href: "/add", icon: Plus },
   { label: "Business", href: "/business", icon: Building2 },
   { label: "Local", href: "/corridor", icon: MapPin },
-  { label: "Admin", href: "/admin", icon: Settings2 },
 ];
 
 function isActive(pathname: string, href: string): boolean {
