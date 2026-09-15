@@ -1,0 +1,21 @@
+{
+  "name": "@stablearc/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "build": "eas build",
+    "lint": "echo ok",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stablearc/sdk": "workspace:*",
+    "@stablearc/abi": "workspace:*",
+    "@stablearc/ui": "workspace:*",
+    "expo": "~52.0.0",
+    "expo-router": "~4.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5"
+  }
+}
