@@ -6,7 +6,7 @@
 // with any OpenAI-compatible provider (Cencori, OpenAI, Groq, Ollama…) or
 // native Anthropic — chosen entirely by env. No hard dependency on one model.
 
-import { extractTool, type ToolSpec } from "@/lib/llm/extract";
+import { extractTool, type ToolSpec } from "@stablearc/sdk/llm/extract";
 import { celoCurrencies } from "./config";
 
 export type ParsedIntent = {

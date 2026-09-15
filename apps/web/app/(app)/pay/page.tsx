@@ -13,22 +13,22 @@ import {
   ScanLine,
   Zap,
 } from "lucide-react";
-import { ACCOUNT } from "@/lib/account";
-import { formatMoney, formatNumber } from "@/lib/money";
-import { applyLivePool, getQuote, type Quote } from "@/lib/quote";
+import { ACCOUNT } from "@stablearc/sdk/account";
+import { formatMoney, formatNumber } from "@stablearc/sdk/money";
+import { applyLivePool, getQuote, type Quote } from "@stablearc/sdk/quote";
 import {
   fetchLivePoolQuote,
   livePoolQuoteAvailable,
   type LivePoolQuote,
-} from "@/lib/chain/liveQuote";
-import { executeCorridorSend } from "@/lib/chain/sendCorridor";
-import { explorerTxUrl } from "@/lib/chain/chains";
-import { CONTRACTS_READY } from "@/lib/chain/contracts";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
+} from "@stablearc/sdk/chain/liveQuote";
+import { executeCorridorSend } from "@stablearc/sdk/chain/sendCorridor";
+import { explorerTxUrl } from "@stablearc/sdk/chain/chains";
+import { CONTRACTS_READY } from "@stablearc/sdk/chain/contracts";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
 import { Button, Card } from "@/components/app/ui";
-import { authedPostJson } from "@/lib/api/client";
-import { payReference } from "@/lib/reference";
+import { authedPostJson } from "@stablearc/sdk/api/client";
+import { payReference } from "@stablearc/sdk/reference";
 
 type Target = {
   /** Payout address (when the QR carried one). */

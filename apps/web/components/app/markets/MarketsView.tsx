@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Shield, Radio } from "lucide-react";
 import { Card } from "@/components/app/ui";
-import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@/lib/markets";
-import { fetchLiveMarkets, type LiveMarket } from "@/lib/markets.live";
-import { CELO, celoExplorerAddress } from "@/lib/celo/config";
+import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@stablearc/sdk/markets";
+import { fetchLiveMarkets, type LiveMarket } from "@stablearc/sdk/markets.live";
+import { CELO, celoExplorerAddress } from "@stablearc/sdk/celo/config";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";

@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useMemo } from "react";
 import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
-import { HUB_CHAIN } from "@/lib/chain/chains";
-import { ALIAS } from "@/lib/account";
+import { HUB_CHAIN } from "@stablearc/sdk/chain/chains";
+import { ALIAS } from "@stablearc/sdk/account";
 import { PRIVY_APP_ID, isWalletConfigured } from "./config";
 import {
   LiveSmartWalletProvider,

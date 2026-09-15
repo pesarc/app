@@ -20,12 +20,12 @@
 //    USD-referenced cross-rate and counts as dollar-priced.
 
 import { formatUnits, parseAbiItem } from "viem";
-import { getLogsClient } from "@/lib/chain/chains";
-import { CONTRACTS } from "@/lib/chain/contracts";
-import { intentMatcherAbi, realizedRateOracleAbi } from "@/lib/chain/abi/intentMatcher";
-import { fetchUsdRate } from "@/lib/oracle/fx";
-import { currencyByAddress, localCurrencies } from "@/lib/chain/localCorridors";
-import { HUB_BRIDGE_RECEIVER } from "@/lib/chain/corridors";
+import { getLogsClient } from "@stablearc/sdk/chain/chains";
+import { CONTRACTS } from "@stablearc/sdk/chain/contracts";
+import { intentMatcherAbi, realizedRateOracleAbi } from "@stablearc/abi";
+import { fetchUsdRate } from "@stablearc/sdk/oracle/fx";
+import { currencyByAddress, localCurrencies } from "@stablearc/sdk/chain/localCorridors";
+import { HUB_BRIDGE_RECEIVER } from "@stablearc/sdk/chain/corridors";
 
 export type Independence = {
   /** USD-equivalent value settled with no dollar in the path. */

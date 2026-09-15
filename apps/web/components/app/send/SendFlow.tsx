@@ -13,32 +13,32 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@/lib/account";
-import { CURRENCIES, formatMoney, formatNumber } from "@/lib/money";
+import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@stablearc/sdk/account";
+import { CURRENCIES, formatMoney, formatNumber } from "@stablearc/sdk/money";
 import {
   applyLivePool,
   getQuote,
   PAYOUT_METHODS,
   type PayoutMethod,
   type Quote,
-} from "@/lib/quote";
+} from "@stablearc/sdk/quote";
 import {
   fetchLivePoolQuote,
   livePoolQuoteAvailable,
   type LivePoolQuote,
-} from "@/lib/chain/liveQuote";
-import { useUIMode } from "@/lib/ui-mode";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
-import { TEST_RECIPIENT, RAMP_ESCROW } from "@/lib/wallet/config";
-import { CONTRACTS_READY } from "@/lib/chain/contracts";
-import { explorerTxUrl } from "@/lib/chain/chains";
-import { executeCorridorSend } from "@/lib/chain/sendCorridor";
+} from "@stablearc/sdk/chain/liveQuote";
+import { useUIMode } from "@stablearc/sdk/ui-mode";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
+import { TEST_RECIPIENT, RAMP_ESCROW } from "@stablearc/sdk/wallet/config";
+import { CONTRACTS_READY } from "@stablearc/sdk/chain/contracts";
+import { explorerTxUrl } from "@stablearc/sdk/chain/chains";
+import { executeCorridorSend } from "@stablearc/sdk/chain/sendCorridor";
 import { Avatar, Button, Card } from "@/components/app/ui";
 import { QuoteBreakdown, formatEta } from "./QuoteBreakdown";
 import { PayoutStatus } from "./PayoutStatus";
-import { authedPostJson } from "@/lib/api/client";
-import { sendReference } from "@/lib/reference";
+import { authedPostJson } from "@stablearc/sdk/api/client";
+import { sendReference } from "@stablearc/sdk/reference";
 
 type Step = "recipient" | "amount" | "confirm" | "settling" | "success";
 

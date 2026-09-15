@@ -1,10 +1,10 @@
 "use client";
 
 import { formatUnits } from "viem";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
-import { CONTRACTS } from "@/lib/chain/contracts";
-import { useErc20Balance } from "@/lib/chain/useErc20Balance";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
+import { CONTRACTS } from "@stablearc/sdk/chain/contracts";
+import { useErc20Balance } from "@stablearc/sdk/chain/useErc20Balance";
 
 /**
  * Shows the live on-chain balances of the smart wallet in live mode

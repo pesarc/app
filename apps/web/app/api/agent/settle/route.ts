@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimit } from "@/lib/api/guard";
-import { parseSettlementRequest } from "@/lib/celo/agent";
-import { llmConfigured } from "@/lib/llm/extract";
+import { rateLimit } from "@stablearc/sdk/api/guard";
+import { parseSettlementRequest } from "@stablearc/sdk/celo/agent";
+import { llmConfigured } from "@stablearc/sdk/llm/extract";
 import {
   agentAddress,
   runCeloSolver,
   submitIntent,
-} from "@/lib/celo/solver";
+} from "@stablearc/sdk/celo/solver";
 import {
   celoAgentReady,
   celoCurrencyByCode,
   celoExplorerTx,
   celoPublicClient,
   CELO,
-} from "@/lib/celo/config";
-import { realizedRateOracleAbi } from "@/lib/chain/abi/intentMatcher";
+} from "@stablearc/sdk/celo/config";
+import { realizedRateOracleAbi } from "@stablearc/abi";
 import { formatUnits } from "viem";
 
 export const runtime = "nodejs";

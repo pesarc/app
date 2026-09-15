@@ -14,10 +14,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button, Card } from "@/components/app/ui";
-import { CORRIDORS, SOLANA_CORRIDOR } from "@/lib/chain/corridors";
-import { explorerTxUrl } from "@/lib/chain/chains";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
+import { CORRIDORS, SOLANA_CORRIDOR } from "@stablearc/sdk/chain/corridors";
+import { explorerTxUrl } from "@stablearc/sdk/chain/chains";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
 
 type RelayResult = {
   ok: boolean;

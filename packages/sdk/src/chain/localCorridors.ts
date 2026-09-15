@@ -5,7 +5,7 @@
 import { formatUnits } from "viem";
 import { getPublicClient } from "./chains";
 import { CONTRACTS } from "./contracts";
-import { intentMatcherAbi, realizedRateOracleAbi } from "./abi/intentMatcher";
+import { intentMatcherAbi, realizedRateOracleAbi } from "@stablearc/abi";
 
 export type LocalCurrency = {
   code: string;

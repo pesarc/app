@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { site } from "@/lib/site";
+import { site } from "@stablearc/sdk/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
