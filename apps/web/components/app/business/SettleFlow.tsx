@@ -170,7 +170,7 @@ export default function SettleFlow() {
   if (!nettingAvailable()) {
     return (
       <Shell>
-        <Card className="p-6 text-muted text-sm">
+        <Card className="p-6 text-slate text-sm">
           The settlement contract isn&apos;t configured on this deployment yet
           (set <code>NEXT_PUBLIC_ARB_SETTLEMENT_NETTING</code>).
         </Card>
@@ -202,14 +202,14 @@ export default function SettleFlow() {
 
       {notice && (
         <Card className="p-3.5 mb-4 flex items-center gap-2 text-sm">
-          <Check className="w-4 h-4 text-emerald shrink-0" />
-          <span className="text-deepink flex-1">{notice.text}</span>
+          <Check className="w-4 h-4 text-sky shrink-0" />
+          <span className="text-ink flex-1">{notice.text}</span>
           {notice.tx && (
             <a
               href={explorerTxUrl(notice.tx)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+              className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
             >
               tx <ExternalLink className="w-3.5 h-3.5" />
             </a>
@@ -224,7 +224,7 @@ export default function SettleFlow() {
             <button
               onClick={refresh}
               aria-label="Refresh"
-              className="text-muted hover:text-deepink transition"
+              className="text-slate hover:text-ink transition"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
@@ -237,17 +237,17 @@ export default function SettleFlow() {
                 <div
                   key={m.address}
                   className={`flex items-center justify-between rounded-field border px-3.5 py-2.5 text-sm ${
-                    mine ? "border-emerald/40 bg-emerald-50/50" : "border-black/[0.06] bg-white"
+                    mine ? "border-sky/40 bg-sky-tint/50" : "border-black/[0.06] bg-snow"
                   }`}
                 >
                   <div className="min-w-0">
-                    <span className="font-mono text-deepink">{shortAddr(m.address)}</span>
+                    <span className="font-mono text-ink">{shortAddr(m.address)}</span>
                     {mine && <Badge>You</Badge>}
                     {m.isOperator && <Badge>Operator</Badge>}
                   </div>
                   <span
                     className={`font-semibold numerals ${
-                      m.net > 0 ? "text-success" : m.net < 0 ? "text-alert" : "text-muted"
+                      m.net > 0 ? "text-success" : m.net < 0 ? "text-alert" : "text-slate"
                     }`}
                   >
                     {m.net > 0 ? "+" : ""}
@@ -257,7 +257,7 @@ export default function SettleFlow() {
               );
             })}
             {snap && snap.members.length === 0 && (
-              <p className="text-sm text-muted">No members yet.</p>
+              <p className="text-sm text-slate">No members yet.</p>
             )}
           </div>
 
@@ -272,7 +272,7 @@ export default function SettleFlow() {
             </Button>
           )}
           {!live && (
-            <p className="text-xs text-muted mt-4">
+            <p className="text-xs text-slate mt-4">
               Sign in with a live wallet to join the set and record invoices.
             </p>
           )}
@@ -283,14 +283,14 @@ export default function SettleFlow() {
           {live && isMember && (
             <Card className="p-5">
               <SectionTitle icon={FileText} title="Record invoice" />
-              <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-1.5">
+              <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
                 Owed to
               </label>
               <select
                 value={creditor}
                 onChange={(e) => setCreditor(e.target.value)}
                 aria-label="Creditor"
-                className="w-full bg-white rounded-field border border-black/10 px-3.5 py-2.5 text-sm text-deepink mb-3 focus:outline-none focus:border-emerald/50"
+                className="w-full bg-snow rounded-field border border-fog px-3.5 py-2.5 text-sm text-ink mb-3 focus:outline-none focus:border-sky/50"
               >
                 <option value="">Select member…</option>
                 {otherMembers.map((m) => (
@@ -307,14 +307,14 @@ export default function SettleFlow() {
                   inputMode="decimal"
                   placeholder="Amount (tUSD)"
                   aria-label="Invoice amount"
-                  className="flex-1 bg-white rounded-field border border-black/10 px-3.5 py-2.5 text-sm text-deepink numerals focus:outline-none focus:border-emerald/50"
+                  className="flex-1 bg-snow rounded-field border border-fog px-3.5 py-2.5 text-sm text-ink numerals focus:outline-none focus:border-sky/50"
                 />
                 <input
                   value={ref}
                   onChange={(e) => setRef(e.target.value)}
                   placeholder="Ref (INV-042)"
                   aria-label="Invoice reference"
-                  className="w-32 bg-white rounded-field border border-black/10 px-3.5 py-2.5 text-sm text-deepink focus:outline-none focus:border-emerald/50"
+                  className="w-32 bg-snow rounded-field border border-fog px-3.5 py-2.5 text-sm text-ink focus:outline-none focus:border-sky/50"
                 />
               </div>
               <Button
@@ -335,7 +335,7 @@ export default function SettleFlow() {
           <Card className="p-5">
             <SectionTitle icon={Shuffle} title="Open obligations" />
             {(snap?.obligations ?? []).length === 0 ? (
-              <p className="text-sm text-muted">
+              <p className="text-sm text-slate">
                 None this cycle — record an invoice to see netting in action.
               </p>
             ) : (
@@ -345,10 +345,10 @@ export default function SettleFlow() {
                     key={i}
                     className="flex items-center justify-between text-sm rounded-field bg-black/[0.03] px-3.5 py-2"
                   >
-                    <span className="font-mono text-deepink/80">
+                    <span className="font-mono text-ink/80">
                       {shortAddr(o.debtor)} → {shortAddr(o.creditor)}
                     </span>
-                    <span className="font-semibold text-deepink numerals">
+                    <span className="font-semibold text-ink numerals">
                       {fmt(o.amount)}
                     </span>
                   </div>
@@ -385,13 +385,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 md:py-12">
       <div className="mb-6">
-        <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+        <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
           Corporate / SME
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
           Settle
         </h1>
-        <p className="text-muted">
+        <p className="text-slate">
           Record invoices between members, then settle the whole web in one
           cycle — only net positions move on-chain.
         </p>
@@ -414,16 +414,16 @@ function Stat({
 }) {
   return (
     <Card className="p-4">
-      <div className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1">
+      <div className="text-[11px] font-semibold text-slate uppercase tracking-widest mb-1">
         {label}
       </div>
       <div
         className={`text-2xl font-semibold numerals ${
-          accent ? "text-emerald" : "text-deepink"
+          accent ? "text-sky" : "text-ink"
         }`}
       >
         {value}
-        {sub && <span className="text-xs font-medium text-muted ml-1">{sub}</span>}
+        {sub && <span className="text-xs font-medium text-slate ml-1">{sub}</span>}
       </div>
     </Card>
   );
@@ -441,8 +441,8 @@ function SectionTitle({
   return (
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-emerald" />
-        <h2 className="text-sm font-semibold text-deepink">{title}</h2>
+        <Icon className="w-4 h-4 text-sky" />
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
       </div>
       {children}
     </div>
@@ -451,7 +451,7 @@ function SectionTitle({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="ml-2 inline-block rounded-full bg-emerald-50 text-emerald text-[10px] font-semibold px-2 py-0.5 align-middle">
+    <span className="ml-2 inline-block rounded-full bg-sky-tint text-sky text-[10px] font-semibold px-2 py-0.5 align-middle">
       {children}
     </span>
   );

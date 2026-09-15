@@ -178,7 +178,7 @@ export default function CorridorFlow() {
   if (!localCorridorsReady()) {
     return (
       <Shell>
-        <Card className="p-6 text-sm text-muted">
+        <Card className="p-6 text-sm text-slate">
           Local corridors aren&apos;t configured on this deployment yet (needs
           <code className="mx-1">NEXT_PUBLIC_ARB_INTENT_MATCHER</code> and at
           least two local stables).
@@ -190,11 +190,11 @@ export default function CorridorFlow() {
   return (
     <Shell>
       {/* The claim, up front */}
-      <Card className="p-4 mb-5 flex items-start gap-3 bg-emerald-50/60 border-emerald/20">
-        <ShieldCheck className="w-5 h-5 text-emerald shrink-0 mt-0.5" />
+      <Card className="p-4 mb-5 flex items-start gap-3 bg-sky-tint/60 border-sky/20">
+        <ShieldCheck className="w-5 h-5 text-sky shrink-0 mt-0.5" />
         <div className="text-sm">
-          <div className="font-semibold text-deepink">No dollar in the path</div>
-          <div className="text-muted">
+          <div className="font-semibold text-ink">No dollar in the path</div>
+          <div className="text-slate">
             Your send is matched against someone going the other way and settles
             directly, local currency to local currency — no pool, no bridge, no
             USD.
@@ -214,7 +214,7 @@ export default function CorridorFlow() {
               if (i === toIdx) setToIdx((i + 1) % currencies.length);
             }}
           />
-          <div className="pb-3 text-muted">
+          <div className="pb-3 text-slate">
             <ArrowRight className="w-4 h-4" />
           </div>
           <CurrencyPicker
@@ -228,11 +228,11 @@ export default function CorridorFlow() {
           />
         </div>
 
-        <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-1.5">
+        <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
           Amount
         </label>
-        <div className="flex items-center gap-2 bg-white rounded-field border border-black/10 px-4 py-3 mb-3">
-          <span className="text-lg font-semibold text-deepink/50">
+        <div className="flex items-center gap-2 bg-snow rounded-field border border-fog px-4 py-3 mb-3">
+          <span className="text-lg font-semibold text-ink/50">
             {from?.symbol}
           </span>
           <input
@@ -241,11 +241,11 @@ export default function CorridorFlow() {
             inputMode="decimal"
             placeholder="0"
             aria-label="Amount to send"
-            className="flex-1 bg-transparent text-lg font-semibold text-deepink outline-none numerals placeholder:text-deepink/25"
+            className="flex-1 bg-transparent text-lg font-semibold text-ink outline-none numerals placeholder:text-ink/25"
           />
         </div>
 
-        <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-1.5">
+        <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
           Recipient address {smart.address && "(blank = yourself)"}
         </label>
         <input
@@ -253,35 +253,35 @@ export default function CorridorFlow() {
           onChange={(e) => setRecipient(e.target.value)}
           placeholder="0x…"
           aria-label="Recipient address"
-          className="w-full bg-white rounded-field border border-black/10 px-4 py-3 text-sm font-mono text-deepink placeholder:text-muted/60 mb-4"
+          className="w-full bg-snow rounded-field border border-fog px-4 py-3 text-sm font-mono text-ink placeholder:text-slate/60 mb-4"
         />
 
         {/* Rate — from our own flow */}
         <div className="rounded-field bg-black/[0.03] px-4 py-3 text-sm mb-4">
           {rate === null ? (
-            <span className="text-muted">
+            <span className="text-slate">
               No realized rate for {from?.code}/{to?.code} yet — it appears once
               this corridor settles once.
             </span>
           ) : (
             <>
               <div className="flex justify-between mb-1">
-                <span className="text-muted">Realized rate</span>
-                <span className="font-medium text-deepink numerals">
+                <span className="text-slate">Realized rate</span>
+                <span className="font-medium text-ink numerals">
                   1 {from.code} = {fmt(rate)} {to.code}
                 </span>
               </div>
               {expectedOut !== null && amount > 0 && (
                 <div className="flex justify-between mb-1">
-                  <span className="text-muted">They receive ≈</span>
-                  <span className="font-semibold text-emerald numerals">
+                  <span className="text-slate">They receive ≈</span>
+                  <span className="font-semibold text-sky numerals">
                     {to.symbol}
                     {fmt(expectedOut)}
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 text-xs text-muted pt-1">
-                <Sparkles className="w-3.5 h-3.5 text-emerald" />
+              <div className="flex items-center gap-1.5 text-xs text-slate pt-1">
+                <Sparkles className="w-3.5 h-3.5 text-sky" />
                 Discovered from settled flow on {chainLabel()} — not a price feed
               </div>
             </>
@@ -298,7 +298,7 @@ export default function CorridorFlow() {
           Submit intent
         </Button>
         {!live && (
-          <p className="text-xs text-muted mt-3 text-center">
+          <p className="text-xs text-slate mt-3 text-center">
             Sign in with a live wallet to send on the local corridor.
           </p>
         )}
@@ -307,9 +307,9 @@ export default function CorridorFlow() {
       {notice && (
         <Card className={`p-3.5 mb-4 flex items-center gap-2 text-sm ${notice.ok ? "" : "border-alert/40"}`}>
           {notice.ok ? (
-            <Check className="w-4 h-4 text-emerald shrink-0" />
+            <Check className="w-4 h-4 text-sky shrink-0" />
           ) : null}
-          <span className={notice.ok ? "text-deepink flex-1" : "text-alert flex-1"}>
+          <span className={notice.ok ? "text-ink flex-1" : "text-alert flex-1"}>
             {notice.text}
           </span>
           {notice.tx && (
@@ -317,7 +317,7 @@ export default function CorridorFlow() {
               href={explorerTxUrl(notice.tx)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+              className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
             >
               tx <ExternalLink className="w-3.5 h-3.5" />
             </a>
@@ -327,20 +327,20 @@ export default function CorridorFlow() {
 
       {/* Your intents */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-widest">
+        <h2 className="text-sm font-semibold text-slate uppercase tracking-widest">
           Your sends
         </h2>
         <button
           onClick={refresh}
           aria-label="Refresh"
-          className="text-muted hover:text-deepink transition"
+          className="text-slate hover:text-ink transition"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
       {intents.length === 0 ? (
-        <Card className="p-5 text-sm text-muted">
+        <Card className="p-5 text-sm text-slate">
           No sends yet. Submit an intent above — it settles as soon as someone
           goes the other way.
         </Card>
@@ -372,16 +372,16 @@ function IntentRow({
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-2">
-        <div className="font-semibold text-deepink">
+        <div className="font-semibold text-ink">
           {from?.flag} {fmt(intent.amountIn)} {from?.code}
-          <span className="text-muted font-normal mx-1.5">→</span>
+          <span className="text-slate font-normal mx-1.5">→</span>
           {to?.flag} {to?.code}
         </div>
         <StatusBadge status={intent.status} pct={pct} />
       </div>
 
       {intent.status === "settled" ? (
-        <div className="flex items-center gap-1.5 text-xs text-emerald font-medium">
+        <div className="flex items-center gap-1.5 text-xs text-sky font-medium">
           <ShieldCheck className="w-3.5 h-3.5" />
           Matched peer-to-peer · settled in local currency · zero USD
         </div>
@@ -389,10 +389,10 @@ function IntentRow({
         <>
           {pct > 0 && (
             <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden mb-2">
-              <div className="h-full bg-emerald" style={{ width: `${pct}%` }} />
+              <div className="h-full bg-sky" style={{ width: `${pct}%` }} />
             </div>
           )}
-          <div className="flex items-center justify-between text-xs text-muted">
+          <div className="flex items-center justify-between text-xs text-slate">
             <span className="inline-flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               {pct > 0
@@ -402,19 +402,19 @@ function IntentRow({
             <button
               onClick={() => onCancel(intent.id)}
               disabled={busy}
-              className="font-medium text-muted hover:text-alert transition disabled:opacity-50"
+              className="font-medium text-slate hover:text-alert transition disabled:opacity-50"
             >
               Cancel &amp; refund
             </button>
           </div>
         </>
       ) : (
-        <div className="flex items-center justify-between text-xs text-muted">
+        <div className="flex items-center justify-between text-xs text-slate">
           <span>Expired — funds are refundable</span>
           <button
             onClick={() => onCancel(intent.id)}
             disabled={busy}
-            className="font-medium text-emerald hover:underline disabled:opacity-50"
+            className="font-medium text-sky hover:underline disabled:opacity-50"
           >
             Refund
           </button>
@@ -426,9 +426,9 @@ function IntentRow({
 
 function StatusBadge({ status, pct }: { status: string; pct: number }) {
   const map: Record<string, string> = {
-    settled: "bg-emerald-50 text-emerald",
-    open: "bg-gold/15 text-gold",
-    expired: "bg-black/[0.06] text-muted",
+    settled: "bg-sky-tint text-sky",
+    open: "bg-harbor/15 text-harbor",
+    expired: "bg-black/[0.06] text-slate",
   };
   const label =
     status === "settled" ? "Settled" : status === "open" ? (pct > 0 ? "Partly matched" : "Matching") : "Expired";
@@ -452,14 +452,14 @@ function CurrencyPicker({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-1.5">
+      <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
         {label}
       </label>
       <select
         value={idx}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
-        className="w-full bg-white rounded-field border border-black/10 px-3 py-3 text-sm font-medium text-deepink focus:outline-none focus:border-emerald/50"
+        className="w-full bg-snow rounded-field border border-fog px-3 py-3 text-sm font-medium text-ink focus:outline-none focus:border-sky/50"
       >
         {list.map((c, i) => (
           <option key={c.code} value={i}>
@@ -475,13 +475,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       <div className="mb-6">
-        <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+        <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
           Local corridor
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
           Send locally
         </h1>
-        <p className="text-muted">
+        <p className="text-slate">
           Naira to cedis, cedis to shillings — matched against real flow going
           the other way.
         </p>
