@@ -54,3 +54,9 @@ export function svmExplorerAccount(address: string, cfg = svmConfig()): string {
   const suffix = cfg.cluster === "mainnet-beta" ? "" : `?cluster=${cfg.cluster}`;
   return `${cfg.explorer}/address/${address}${suffix}`;
 }
+
+/** Explorer URL for a transaction signature on the active cluster. */
+export function svmExplorerTx(signature: string, cfg = svmConfig()): string {
+  const suffix = cfg.cluster === "mainnet-beta" ? "" : `?cluster=${cfg.cluster}`;
+  return `${cfg.explorer}/tx/${signature}${suffix}`;
+}

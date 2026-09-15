@@ -10,6 +10,8 @@ import { currencyOf } from "@pesarc/sdk/stablecoins";
 import { activeChain, explorerTxUrl } from "@pesarc/sdk/chain/registry";
 import { evmStake } from "@pesarc/sdk/market-write";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
+import { svmExplorerTx } from "@pesarc/sdk/svm/config";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { type Side } from "./display";
 import { type VenueKind } from "@pesarc/sdk/markets.venue";
@@ -31,6 +33,7 @@ export default function StakeSheet({
   onClose: () => void;
 }) {
   const smart = useSmartWallet();
+  const solanaSigner = useSolanaSigner();
   const [amount, setAmount] = useState("");
   const [payWith, setPayWith] = useState<string>(market.collateral); // default: the market's own stablecoin
   const [done, setDone] = useState(false);
@@ -57,7 +60,7 @@ export default function StakeSheet({
   const confirm = async () => {
     setBusy(true);
     try {
-      if (canEvm && collateralToken) {
+      if (venueKind === "evm" && canEvm && collateralToken) {
         const tx = await evmStake(smart, {
           predictionMarket: chain.predictionMarket as `0x${string}`,
           collateralToken,
@@ -66,14 +69,28 @@ export default function StakeSheet({
           amount: stakeInCollateral,
         });
         if (tx) setTxHash(tx);
+      } else if (venueKind === "svm" && solanaSigner) {
+        const { svmStake } = await import("@pesarc/sdk/svm/write");
+        const sig = await svmStake(solanaSigner, {
+          marketId,
+          isYes: side === "yes",
+          amount: stakeInCollateral,
+        });
+        setTxHash(sig);
       }
-      // SVM real stake needs a connected Solana wallet (Privy Solana) — demo for now.
+      // No signer for the active venue → demo confirmation (house live-vs-mock rule).
     } catch {
       /* never hard-fail the demo; fall through to the confirmation */
     }
     setDone(true);
     setBusy(false);
   };
+
+  const txUrl = txHash
+    ? venueKind === "svm"
+      ? svmExplorerTx(txHash)
+      : explorerTxUrl(chain, txHash)
+    : "";
 
   return (
     <motion.div
@@ -129,7 +146,7 @@ export default function StakeSheet({
             </p>
             {txHash && (
               <a
-                href={explorerTxUrl(chain, txHash)}
+                href={txUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-sky hover:underline"
