@@ -1,0 +1,40 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.nm_trash
+.nm_old
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+/.nm_trash
+
+# local env files
+.env*.local
+.env
+
+# local waitlist fallback store
+/.data
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# deploy targets / misc
+.vercel
+coverage/
+*.log

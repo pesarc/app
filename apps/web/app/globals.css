@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-color: #09090b;
+  color: #fafafa;
+  letter-spacing: -0.018em;
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Range sliders (system calibration widget) */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  background: #2e96ff;
+  border: 2px solid #09090b;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-top: -5px;
+  box-shadow: 0 0 10px rgba(46, 150, 255, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 15px rgba(46, 150, 255, 0.8);
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px;
+  cursor: pointer;
+  background: #27272a;
+}
+input[type="range"]:focus {
+  outline: none;
+}
+
+.tech-glass {
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(63, 63, 70, 0.4);
+  box-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.5);
+}
+
+.grid-overlay {
+  background-size: 32px 32px;
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 1.2s ease-out forwards;
+}
+
+@keyframes flow {
+  0% {
+    stroke-dashoffset: 20;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+.animate-flow {
+  animation: flow 1s linear infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.bg-animated-gradient {
+  background: linear-gradient(-45deg, #020617, #0a192f, #1e3a8a, #422006, #020617);
+  background-size: 300% 300%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.gold-glow {
+  box-shadow: 0 0 40px -10px rgba(251, 191, 36, 0.4);
+}
+
+::selection {
+  background: rgba(46, 150, 255, 0.3);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
+/* Consumer app surface — Relief light theme (cream canvas, harbor     */
+/* navy, sky accent, Manrope). Scoped to the (app) route group so the  */
+/* dark marketing landing is left untouched.                          */
+/* ------------------------------------------------------------------ */
+.app-surface {
+  background-color: #f9f7f0;
+  color: #333333;
+  min-height: 100vh;
+  color-scheme: light;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.018em;
+}
+.app-surface ::selection {
+  background: rgba(46, 150, 255, 0.22);
+  color: #13426f;
+}
+
+/* Oversized, legible amount numerals */
+.numerals {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Calm fade/slide used between Send steps */
+@keyframes stepIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-step-in {
+  animation: stepIn 0.35s ease-out forwards;
+}
+
+/* Settlement progress shimmer */
+@keyframes progressPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.animate-progress-pulse {
+  animation: progressPulse 1.4s ease-in-out infinite;
+}
