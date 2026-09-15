@@ -4,9 +4,17 @@
 // Tell it what to send in plain language; it turns that into an on-chain
 // intent and settles it peer-to-peer in local currency, no dollar in the path.
 
-import { useCallback, useRef, useState } from "react";
-import { ArrowUp, Check, ExternalLink, Loader2, Sparkles, Bot } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp, Check, ExternalLink, Loader2, Sparkles, Bot, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/app/ui";
+import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
+
+/** Pull the first amount out of a message, e.g. "send 50,000 naira" → 50000. */
+function parseAmount(text: string): number {
+  const m = text.replace(/,/g, "").match(/\d+(\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
 
 type Msg =
   | { role: "user"; text: string }
@@ -35,7 +43,16 @@ export default function AgentChat() {
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [budget, setBudget] = useState<AgentBudget | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchAgentBudget().then((b) => alive && setBudget(b));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const send = useCallback(
     async (text: string) => {
@@ -62,6 +79,15 @@ export default function AgentChat() {
             pending: data.ok && !data.matched && !data.needsInput,
           },
         ]);
+        // Reflect the spend against the on-chain session-key cap.
+        if (data.ok && !data.needsInput) {
+          const amt = parseAmount(text);
+          if (amt > 0) {
+            setBudget((b) =>
+              b ? { ...b, remaining: Math.max(0, b.remaining - amt) } : b,
+            );
+          }
+        }
       } catch {
         setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network — try again." }]);
       }
@@ -86,16 +112,68 @@ export default function AgentChat() {
         </p>
       </div>
 
+      {budget && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="p-4 mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-harbor">
+                <ShieldCheck className="w-4 h-4 text-sky" /> Agent budget · today
+              </span>
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${
+                  budget.live ? "bg-sky-tint text-sky-deep" : "bg-black/[0.05] text-muted"
+                }`}
+              >
+                {budget.live ? "Live" : "Demo"}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-semibold numerals text-harbor">
+                {budget.token} {Math.round(budget.remaining).toLocaleString()}
+              </span>
+              <span className="text-xs text-muted">
+                of {budget.token} {budget.cap.toLocaleString()} cap
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden mt-2">
+              <motion.div
+                className="h-full bg-sky rounded-full"
+                initial={false}
+                animate={{
+                  width: `${Math.max(0, Math.min(100, (budget.remaining / budget.cap) * 100))}%`,
+                }}
+                transition={{ type: "spring", stiffness: 200, damping: 26 }}
+              />
+            </div>
+            <p className="text-[11px] text-muted mt-2">
+              The agent can only spend up to this cap — enforced on-chain by your session key.
+            </p>
+          </Card>
+        </motion.div>
+      )}
+
       <div className="space-y-3 mb-4">
         {msgs.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <div className="bg-emerald text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-[15px]">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex justify-end"
+            >
+              <div className="bg-sky text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-[15px]">
                 {m.text}
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div key={i} className="flex justify-start">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex justify-start"
+            >
               <div className="max-w-[90%]">
                 <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-deepink">
                   {m.text}
@@ -136,7 +214,7 @@ export default function AgentChat() {
                   )}
                 </Card>
               </div>
-            </div>
+            </motion.div>
           ),
         )}
         {busy && (
