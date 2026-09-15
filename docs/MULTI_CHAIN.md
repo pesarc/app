@@ -50,9 +50,17 @@ The SVM programs live in the `contracts/svm` Anchor workspace:
 Solana a first-class home (in progress):
 
 - **VM-neutral SDK core.** `@pesarc/sdk` exposes the market + P2P surface behind
-  a `ChainAdapter` so the UI is identical whether the active venue is EVM
-  (`viem`) or SVM (`@solana/kit`). The EVM adapter is the `chain/registry` path
-  above; the SVM adapter targets the Anchor programs.
+  one venue-neutral entry point (`markets.venue.ts`: `fetchLiveMarkets()` +
+  `activeVenue()`), so the UI is identical whether the active home is an EVM
+  chain (`viem`, via `chain/registry`) or Solana (`@solana/web3.js`, via
+  `svm/`). Select the venue with `NEXT_PUBLIC_ACTIVE_CHAIN` (`solana*` → SVM).
+- **Solana adapter (done).** `svm/config.ts` (web3.js-free, env-driven) +
+  `svm/markets.live.ts` read the `prediction_market` program's Market accounts
+  by `getProgramAccounts` and decode them at fixed offsets (Anchor 8-byte
+  discriminator + borsh layout) into the same `LiveMarket` shape the EVM path
+  returns. Loaded lazily so `@solana/web3.js` never weighs down the EVM bundle.
+  Offsets are derived from `contracts/svm/target/idl/prediction_market.json`;
+  re-derive if the `Market` struct changes.
 - **Prediction markets.** Parimutuel pools + oracle-CPI resolution already exist
   on both VMs (EVM `PredictionMarket.sol`; SVM `prediction-market` +
   `realized-rate-oracle`, closed-loop via CPI). Next: a shared market-id scheme
@@ -67,8 +75,9 @@ Solana a first-class home (in progress):
 
 - [x] EVM chain registry (any-chain, config-only) driving markets + agent reads
 - [x] LLM via OpenRouter (OpenAI-compatible) for the settlement agent
-- [ ] `ChainAdapter` interface unifying EVM + SVM reads/writes
-- [ ] SVM adapter for prediction-market + oracle reads (mirror `markets.live`)
-- [ ] Unified multi-venue `fetchLiveMarkets()` (fan-out + merge)
+- [x] Venue-neutral market read (`markets.venue`: `fetchLiveMarkets`/`activeVenue`)
+- [x] SVM adapter for prediction-market reads (mirror `markets.live`, lazy-loaded)
+- [ ] SVM oracle (realized-rate) reads + SVM write path (stake/claim)
+- [ ] Multi-venue `fetchLiveMarkets()` that fans out and merges across homes
 - [ ] Cross-venue P2P intent matching (EVM ↔ SVM via spoke-gateway / CCTP)
 - [ ] Liquidity-provision UX for P2P pools on both VMs

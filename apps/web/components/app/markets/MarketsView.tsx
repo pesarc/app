@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio } from "lucide-react";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
-import { fetchLiveMarkets, type LiveMarket } from "@pesarc/sdk/markets.live";
-import { activeChain, explorerAddressUrl } from "@pesarc/sdk/chain/registry";
+import { fetchLiveMarkets, activeVenue, type LiveMarket } from "@pesarc/sdk/markets.venue";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
@@ -29,7 +28,7 @@ export default function MarketsView() {
   }, []);
 
   const isLive = Boolean(live && live.length > 0);
-  const chain = activeChain();
+  const venue = activeVenue();
 
   const list = useMemo(
     () =>
@@ -47,13 +46,13 @@ export default function MarketsView() {
           <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Markets</h1>
           {isLive && (
             <a
-              href={explorerAddressUrl(chain, chain.predictionMarket)}
+              href={venue.explorerUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-extrabold px-2.5 py-1 hover:bg-sky-tint transition-colors"
-              aria-label="View the prediction market contract on the block explorer"
+              aria-label="View the prediction market on the block explorer"
             >
-              <Radio className="w-3 h-3" /> Live · {chain.label}
+              <Radio className="w-3 h-3" /> Live · {venue.label}
             </a>
           )}
         </div>
