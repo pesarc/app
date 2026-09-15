@@ -24,6 +24,41 @@ export const maxDuration = 60;
 
 const schema = z.object({ message: z.string().trim().min(1).max(500) });
 
+// Rule-based understanding for demo mode (no LLM / agent key configured). The
+// agent still reads the request and replies; it just doesn't submit on-chain.
+function ruleReply(message: string) {
+  const amt = (message.replace(/,/g, "").match(/\d+(\.\d+)?/) || [])[0];
+  const cur = /naira|ngn/i.test(message)
+    ? "naira"
+    : /cedi|ghs/i.test(message)
+    ? "cedis"
+    : /shilling|kes/i.test(message)
+    ? "shillings"
+    : "";
+  const dest = /ghana/i.test(message)
+    ? "Ghana"
+    : /kenya/i.test(message)
+    ? "Kenya"
+    : /nigeria/i.test(message)
+    ? "Nigeria"
+    : "";
+  if (!amt) {
+    return {
+      ok: true,
+      matched: false,
+      reply:
+        "Tell me an amount and where to send — e.g. “send 50,000 naira to Ghana” — and I'll settle it peer-to-peer in local currency.",
+    };
+  }
+  return {
+    ok: true,
+    matched: false,
+    reply: `Got it — I'd settle ${Number(amt).toLocaleString()} ${cur}${
+      dest ? ` to ${dest}` : ""
+    } peer-to-peer in local currency, no dollar in the path. (Demo mode — set LLM_API_KEY and the agent key to execute this on-chain.)`,
+  };
+}
+
 // Slippage the agent accepts vs the realized rate when it has one.
 const TOLERANCE = 0.03;
 
@@ -39,19 +74,6 @@ export async function POST(request: Request) {
   const limited = rateLimit(request, "agent", 20, 60_000);
   if (limited) return limited;
 
-  if (!celoAgentReady() || !process.env.CELO_AGENT_PK) {
-    return NextResponse.json(
-      { ok: false, reply: "The Celo agent isn't deployed on this environment yet." },
-      { status: 501 },
-    );
-  }
-  if (!llmConfigured()) {
-    return NextResponse.json(
-      { ok: false, reply: "The agent's language model isn't configured (set LLM_API_KEY / LLM_BASE_URL)." },
-      { status: 501 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -61,6 +83,12 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, reply: "Say what you'd like to send." }, { status: 400 });
+  }
+
+  // Usable without keys: when the agent can't act on-chain (no LLM or agent
+  // key), still understand the request and reply (demo mode) instead of 501.
+  if (!celoAgentReady() || !process.env.CELO_AGENT_PK || !llmConfigured()) {
+    return NextResponse.json(ruleReply(parsed.data.message));
   }
 
   // 1. Understand the request.
