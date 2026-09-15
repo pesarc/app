@@ -4,7 +4,7 @@
 // breaks (house live-vs-mock rule).
 
 import { formatUnits } from "viem";
-import { celoPublicClient, CELO } from "./celo/config";
+import { activeChain, publicClientFor } from "./chain/registry";
 import { agentSessionKeysAbi } from "@pesarc/abi";
 
 export type AgentBudget = {
@@ -18,11 +18,12 @@ const MOCK: AgentBudget = { cap: 50_000, remaining: 50_000, token: "cNGN", live:
 const DECIMALS = 18;
 
 export async function fetchAgentBudget(key?: `0x${string}`): Promise<AgentBudget> {
-  const addr = CELO.agentSessionKeys;
-  const agentKey = key ?? CELO.agentKey; // demo/default agent key from env
+  const chain = activeChain();
+  const addr = chain.agentSessionKeys;
+  const agentKey = key ?? chain.agentKey; // demo/default agent key from env
   if (!addr || !agentKey) return MOCK;
   try {
-    const client = celoPublicClient();
+    const client = publicClientFor(chain);
     const [rem, session] = await Promise.all([
       client.readContract({
         address: addr,

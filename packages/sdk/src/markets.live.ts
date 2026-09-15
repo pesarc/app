@@ -1,10 +1,10 @@
-// Live read of the on-chain PredictionMarket (Celo Sepolia). Overlays real
-// pools + implied odds onto the market catalog. Fails soft: any RPC/decoding
-// error returns null and the UI stays on the mock catalog (house live-vs-mock
-// rule — the screen never hard-fails).
+// Live read of the on-chain PredictionMarket on the active EVM chain. Overlays
+// real pools + implied odds onto the market catalog. Fails soft: any RPC/
+// decoding error returns null and the UI stays on the mock catalog (house
+// live-vs-mock rule — the screen never hard-fails).
 
 import { formatUnits } from "viem";
-import { celoPublicClient, CELO } from "@pesarc/sdk/celo/config";
+import { activeChain, publicClientFor } from "@pesarc/sdk/chain/registry";
 import { predictionMarketAbi } from "@pesarc/abi";
 
 export type LiveMarket = {
@@ -19,11 +19,12 @@ export type LiveMarket = {
 const COLLATERAL_DECIMALS = 18; // test stables are 18-dec
 
 export async function fetchLiveMarkets(): Promise<LiveMarket[] | null> {
-  const address = CELO.predictionMarket;
+  const chain = activeChain();
+  const address = chain.predictionMarket;
   if (!address) return null;
 
   try {
-    const client = celoPublicClient();
+    const client = publicClientFor(chain);
     const count = Number(
       await client.readContract({
         address,
