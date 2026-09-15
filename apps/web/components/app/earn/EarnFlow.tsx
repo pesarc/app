@@ -12,9 +12,12 @@ import {
 } from "lucide-react";
 import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
 import { ACCOUNT } from "@pesarc/sdk/account";
-import { formatMoney } from "@pesarc/sdk/money";
+import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
+import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
+import { usePrefs } from "@pesarc/sdk/prefs";
 import { Button, Card } from "@/components/app/ui";
+import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 
 type Position = { poolId: string; principal: number };
 
@@ -248,9 +251,12 @@ function DepositPanel({
   onBack: () => void;
   onConfirm: (amount: number) => void;
 }) {
+  const { sendCurrency } = usePrefs();
   const [amountStr, setAmountStr] = useState("");
+  const [payWith, setPayWith] = useState(defaultStablecoin(sendCurrency).symbol);
+  const payCcy = currencyOf(payWith);
   const amount = parseFloat(amountStr) || 0;
-  const insufficient = amount > ACCOUNT.balance;
+  const insufficient = false; // demo: balances are per-stablecoin, not enforced here
   const valid = amount > 0 && !insufficient;
   const projected = useMemo(
     () => (amount * poolApy(pool)) / 100,
@@ -287,12 +293,16 @@ function DepositPanel({
         </div>
       </Card>
 
+      <div className="mb-4">
+        <StablecoinSelect value={payWith} onChange={setPayWith} label="Deposit with" />
+      </div>
+
       <div className="text-center py-4">
         <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-3">
           Amount to deposit
         </label>
         <div className="flex items-center justify-center gap-1">
-          <span className="text-4xl font-semibold text-ink/40">£</span>
+          <span className="text-4xl font-semibold text-ink/40">{CURRENCIES[payCcy].symbol}</span>
           <input
             value={amountStr}
             onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9.]/g, ""))}
@@ -302,15 +312,7 @@ function DepositPanel({
             className="w-[6ch] bg-transparent text-6xl font-semibold text-ink text-center outline-none numerals placeholder:text-ink/25"
           />
         </div>
-        <p
-          className={`mt-2 text-sm ${
-            insufficient ? "text-alert font-medium" : "text-slate"
-          }`}
-        >
-          {insufficient
-            ? `Balance is ${formatMoney(ACCOUNT.balance, ACCOUNT.currency)}`
-            : `Balance ${formatMoney(ACCOUNT.balance, ACCOUNT.currency)}`}
-        </p>
+        <p className="mt-2 text-sm text-slate">Deposit in {payWith}</p>
       </div>
 
       {valid && (
@@ -318,7 +320,7 @@ function DepositPanel({
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate">Projected earnings</span>
             <span className="font-semibold text-sky numerals">
-              ≈ {formatMoney(projected, ACCOUNT.currency)} / year
+              ≈ {formatMoney(projected, payCcy)} / year
             </span>
           </div>
         </Card>
