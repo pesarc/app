@@ -208,7 +208,7 @@ function Progress({ step }: { step: Step }) {
         <span
           key={i}
           className={`h-1.5 rounded-full transition-all duration-300 ${
-            i <= idx ? "bg-emerald w-8" : "bg-black/10 w-4"
+            i <= idx ? "bg-sky w-8" : "bg-black/10 w-4"
           }`}
         />
       ))}
@@ -236,21 +236,21 @@ function RecipientStep({ onSelect }: { onSelect: (r: Recipient) => void }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Who are you sending to?
       </h1>
-      <p className="text-muted mb-6">
+      <p className="text-slate mb-6">
         Pick someone recent, or enter a phone number or @alias.
       </p>
 
       <div className="relative mb-6">
-        <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-slate absolute left-4 top-1/2 -translate-y-1/2" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Name, phone, or @alias"
           aria-label="Search recipients"
-          className="w-full bg-white rounded-field border border-black/10 pl-11 pr-4 py-3.5 text-[15px] text-deepink placeholder:text-muted/70 shadow-soft focus:outline-none focus:border-emerald/50 focus:ring-2 focus:ring-emerald/15 transition"
+          className="w-full bg-snow rounded-field border border-fog pl-11 pr-4 py-3.5 text-[15px] text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
         />
       </div>
 
@@ -269,20 +269,20 @@ function RecipientStep({ onSelect }: { onSelect: (r: Recipient) => void }) {
           }
           className="w-full mb-6"
         >
-          <Card className="flex items-center gap-3 p-4 hover:border-emerald/40 transition">
-            <span className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald">
+          <Card className="flex items-center gap-3 p-4 hover:border-sky/40 transition">
+            <span className="w-10 h-10 rounded-full bg-sky-tint flex items-center justify-center text-sky">
               <ArrowRight className="w-5 h-5" />
             </span>
             <div className="text-left">
-              <div className="font-semibold text-deepink">Send to {query}</div>
-              <div className="text-sm text-muted">New recipient</div>
+              <div className="font-semibold text-ink">Send to {query}</div>
+              <div className="text-sm text-slate">New recipient</div>
             </div>
           </Card>
         </button>
       )}
 
       {!query && (
-        <p className="text-xs font-semibold text-muted uppercase tracking-widest mb-3">
+        <p className="text-xs font-semibold text-slate uppercase tracking-widest mb-3">
           Recent
         </p>
       )}
@@ -295,7 +295,7 @@ function RecipientStep({ onSelect }: { onSelect: (r: Recipient) => void }) {
 
       {!query && (
         <>
-          <p className="text-xs font-semibold text-muted uppercase tracking-widest mt-6 mb-3">
+          <p className="text-xs font-semibold text-slate uppercase tracking-widest mt-6 mb-3">
             All contacts
           </p>
           <div className="space-y-2">
@@ -318,15 +318,15 @@ function RecipientRow({
 }) {
   return (
     <button onClick={() => onSelect(r)} className="w-full">
-      <Card className="flex items-center gap-3 p-3.5 hover:border-emerald/40 hover:shadow-soft-lg transition">
+      <Card className="flex items-center gap-3 p-3.5 hover:border-sky/40 hover:shadow-pop-sm transition">
         <Avatar initials={initials(r.name)} color={r.initialsColor} />
         <div className="text-left flex-1 min-w-0">
-          <div className="font-semibold text-deepink truncate">{r.name}</div>
-          <div className="text-sm text-muted truncate">
+          <div className="font-semibold text-ink truncate">{r.name}</div>
+          <div className="text-sm text-slate truncate">
             {r.flag} {r.handle}
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-muted shrink-0" />
+        <ChevronRight className="w-5 h-5 text-slate shrink-0" />
       </Card>
     </button>
   );
@@ -404,14 +404,14 @@ function AmountStep({
           </div>
 
           <div className="flex flex-col items-center gap-1.5 pt-1">
-            <span className="w-11 h-11 rounded-full bg-white/[0.12] flex items-center justify-center text-[22px]">
+            <span className="w-11 h-11 rounded-full bg-snow/[0.12] flex items-center justify-center text-[22px]">
               {flagFor(sendCurrency)}
             </span>
             <svg width="16" height="30" viewBox="0 0 16 30" fill="none">
               <path d="M8 2 V 28" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="2 4" />
               <polyline points="4 22 8 28 12 22" stroke="#50a7ff" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="w-11 h-11 rounded-full bg-white/[0.12] flex items-center justify-center text-[22px]">
+            <span className="w-11 h-11 rounded-full bg-snow/[0.12] flex items-center justify-center text-[22px]">
               {recipient.flag}
             </span>
           </div>
@@ -550,19 +550,19 @@ function ConfirmStep({
       <Card className="p-6 mb-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+            <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
               You pay
             </div>
-            <div className="text-3xl font-semibold text-deepink numerals">
+            <div className="text-3xl font-semibold text-ink numerals">
               {formatMoney(quote.sendAmount, quote.sendCurrency)}
             </div>
           </div>
-          <ArrowRight className="w-5 h-5 text-muted" />
+          <ArrowRight className="w-5 h-5 text-slate" />
           <div className="text-right">
-            <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+            <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
               They get
             </div>
-            <div className="text-3xl font-semibold text-emerald numerals">
+            <div className="text-3xl font-semibold text-sky numerals">
               {formatMoney(quote.receiveAmount, quote.receiveCurrency)}
             </div>
           </div>
@@ -595,8 +595,8 @@ function ConfirmStep({
         </div>
       </Card>
 
-      <div className="flex items-center gap-2 text-sm text-muted mb-5 px-1">
-        <ShieldCheck className="w-4 h-4 text-emerald shrink-0" />
+      <div className="flex items-center gap-2 text-sm text-slate mb-5 px-1">
+        <ShieldCheck className="w-4 h-4 text-sky shrink-0" />
         Recipient screened · no scam flags · gasless, no network fee
       </div>
 
@@ -616,8 +616,8 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between py-3 text-[15px]">
-      <span className="text-muted">{label}</span>
-      <span className="font-medium text-deepink">{children}</span>
+      <span className="text-slate">{label}</span>
+      <span className="font-medium text-ink">{children}</span>
     </div>
   );
 }
@@ -690,10 +690,10 @@ function SettlingStep({
   return (
     <div className="py-6">
       <div className="text-center mb-8">
-        <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-2">
+        <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-2">
           Sending to {recipient.name}
         </div>
-        <div className="text-4xl font-semibold text-deepink numerals">
+        <div className="text-4xl font-semibold text-ink numerals">
           {formatMoney(quote.receiveAmount, quote.receiveCurrency)}
         </div>
       </div>
@@ -707,10 +707,10 @@ function SettlingStep({
               <span
                 className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition ${
                   done
-                    ? "bg-emerald text-white"
+                    ? "bg-sky text-white"
                     : current
-                    ? "bg-emerald-50 text-emerald animate-progress-pulse"
-                    : "bg-black/[0.06] text-muted"
+                    ? "bg-sky-tint text-sky animate-progress-pulse"
+                    : "bg-black/[0.06] text-slate"
                 }`}
               >
                 {done ? (
@@ -722,12 +722,12 @@ function SettlingStep({
               <div>
                 <div
                   className={`text-[15px] font-medium ${
-                    done || current ? "text-deepink" : "text-muted"
+                    done || current ? "text-ink" : "text-slate"
                   }`}
                 >
                   {s.label}
                 </div>
-                <div className="text-xs text-muted">{s.sub}</div>
+                <div className="text-xs text-slate">{s.sub}</div>
               </div>
             </div>
           );
@@ -815,14 +815,14 @@ function SuccessStep({
 
   return (
     <div className="py-4 text-center">
-      <div className="mx-auto w-16 h-16 rounded-full bg-emerald flex items-center justify-center mb-5 shadow-soft-lg">
+      <div className="mx-auto w-16 h-16 rounded-full bg-sky flex items-center justify-center mb-5 shadow-pop-sm">
         <Check className="w-8 h-8 text-white" strokeWidth={2.5} />
       </div>
 
-      <h1 className="text-2xl font-semibold text-deepink mb-1">
+      <h1 className="text-2xl font-semibold text-ink mb-1">
         {formatMoney(quote.receiveAmount, quote.receiveCurrency)} on its way
       </h1>
-      <p className="text-muted mb-1">
+      <p className="text-slate mb-1">
         to {recipient.name} · {recipient.flag} {payoutLabel}
       </p>
       <p className="inline-flex items-center gap-1.5 text-sm text-success font-medium mb-7">
@@ -864,7 +864,7 @@ function SuccessStep({
                 href={explorerTxUrl(txHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+                className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
               >
                 View tx <ExternalLink className="w-3.5 h-3.5" />
               </a>
@@ -879,7 +879,7 @@ function SuccessStep({
                 href={explorerTxUrl(payoutTxHash)}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+                className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
               >
                 Recipient tx <ExternalLink className="w-3.5 h-3.5" />
               </a>
@@ -921,11 +921,11 @@ function StepNav({ onBack, title }: { onBack: () => void; title: string }) {
       <button
         onClick={onBack}
         aria-label="Back"
-        className="w-9 h-9 rounded-full bg-white border border-black/10 flex items-center justify-center text-deepink hover:border-black/20 transition shadow-soft"
+        className="w-9 h-9 rounded-full bg-snow border border-fog flex items-center justify-center text-ink hover:border-black/20 transition shadow-card-flat"
       >
         <ArrowLeft className="w-4 h-4" />
       </button>
-      <h1 className="text-2xl font-semibold tracking-tight text-deepink">
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">
         {title}
       </h1>
     </div>

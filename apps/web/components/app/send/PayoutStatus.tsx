@@ -54,7 +54,7 @@ export function PayoutStatus({
   return (
     <div
       className={`flex items-center gap-2.5 rounded-field px-3.5 py-2.5 text-sm ${
-        paid ? "bg-emerald-50 text-emerald" : "bg-black/[0.04] text-deepink"
+        paid ? "bg-sky-tint text-sky" : "bg-black/[0.04] text-ink"
       }`}
     >
       <Icon className="w-4 h-4 shrink-0" />

@@ -52,11 +52,11 @@ export default function EarnFlow() {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       <div className="flex items-center gap-3 mb-1.5">
-        <h1 className="text-3xl font-semibold tracking-tight text-deepink">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">
           Earn
         </h1>
       </div>
-      <p className="text-muted mb-6">
+      <p className="text-slate mb-6">
         Put your money to work earning fees on a corridor. Bounded, insured
         risk — withdraw anytime.
       </p>
@@ -111,10 +111,10 @@ function BasicChoices({ onPick }: { onPick: (p: Pool) => void }) {
         recommended
         onPick={onPick}
       />
-      <p className="text-xs text-muted leading-relaxed pt-2 px-1">
+      <p className="text-xs text-slate leading-relaxed pt-2 px-1">
         Returns come from corridor fees, not interest on your balance. Each
         option is covered by the Safety Module. Switch to{" "}
-        <span className="font-medium text-deepink">Advanced</span> to choose
+        <span className="font-medium text-ink">Advanced</span> to choose
         specific pools and see the full rate breakdown.
       </p>
     </div>
@@ -138,31 +138,31 @@ function ChoiceCard({
 }) {
   return (
     <button onClick={() => onPick(pool)} className="w-full text-left">
-      <Card className="p-5 hover:border-emerald/40 hover:shadow-soft-lg transition">
+      <Card className="p-5 hover:border-sky/40 hover:shadow-pop-sm transition">
         <div className="flex items-center gap-3 mb-3">
-          <span className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald">
+          <span className="w-11 h-11 rounded-2xl bg-sky-tint flex items-center justify-center text-sky">
             <Icon className="w-5 h-5" strokeWidth={1.75} />
           </span>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-deepink text-lg">{title}</span>
+              <span className="font-semibold text-ink text-lg">{title}</span>
               {recommended && (
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald bg-emerald-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-sky bg-sky-tint px-2 py-0.5 rounded-full">
                   Popular
                 </span>
               )}
             </div>
-            <div className="text-sm text-muted">{subtitle}</div>
+            <div className="text-sm text-slate">{subtitle}</div>
           </div>
-          <ArrowRight className="w-5 h-5 text-muted" />
+          <ArrowRight className="w-5 h-5 text-slate" />
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-black/[0.06]">
           <InsuredBadge />
           <div className="text-right">
-            <span className="text-2xl font-semibold text-emerald numerals">
+            <span className="text-2xl font-semibold text-sky numerals">
               {poolApy(pool)}%
             </span>
-            <span className="text-xs text-muted ml-1">/ year</span>
+            <span className="text-xs text-slate ml-1">/ year</span>
           </div>
         </div>
       </Card>
@@ -176,29 +176,29 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-widest">
+        <h2 className="text-sm font-semibold text-slate uppercase tracking-widest">
           All corridors
         </h2>
-        <span className="text-xs text-muted">APY = fee + spread + rewards</span>
+        <span className="text-xs text-slate">APY = fee + spread + rewards</span>
       </div>
 
       {POOLS.map((pool) => (
         <Card key={pool.id} className="p-5">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <div className="font-semibold text-deepink flex items-center gap-2">
+              <div className="font-semibold text-ink flex items-center gap-2">
                 <span>{pool.flags}</span> {pool.corridor}
               </div>
-              <div className="text-xs text-muted mt-0.5">
+              <div className="text-xs text-slate mt-0.5">
                 {pool.venue} · TVL ${(pool.tvlUsd / 1_000_000).toFixed(2)}M ·{" "}
                 {pool.risk} risk
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-semibold text-emerald numerals">
+              <div className="text-2xl font-semibold text-sky numerals">
                 {poolApy(pool)}%
               </div>
-              <div className="text-[11px] text-muted">APY</div>
+              <div className="text-[11px] text-slate">APY</div>
             </div>
           </div>
 
@@ -218,7 +218,7 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
         </Card>
       ))}
 
-      <p className="text-xs text-muted leading-relaxed pt-1 px-1">
+      <p className="text-xs text-slate leading-relaxed pt-1 px-1">
         Variable APY. Corridor pools carry residual peg risk, backstopped by the
         Safety Module up to its coverage. Withdrawals are never frozen.
       </p>
@@ -229,8 +229,8 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
 function Breakdown({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-field bg-black/[0.03] py-2">
-      <div className="text-sm font-semibold text-deepink numerals">{value}%</div>
-      <div className="text-[10px] text-muted uppercase tracking-wide">{label}</div>
+      <div className="text-sm font-semibold text-ink numerals">{value}%</div>
+      <div className="text-[10px] text-slate uppercase tracking-wide">{label}</div>
     </div>
   );
 }
@@ -261,48 +261,48 @@ function DepositPanel({
         <button
           onClick={onBack}
           aria-label="Back"
-          className="w-9 h-9 rounded-full bg-white border border-black/10 flex items-center justify-center text-deepink hover:border-black/20 transition shadow-soft"
+          className="w-9 h-9 rounded-full bg-snow border border-fog flex items-center justify-center text-ink hover:border-black/20 transition shadow-card-flat"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-2xl font-semibold tracking-tight text-deepink">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
           Deposit
         </h1>
       </div>
 
       <Card className="p-4 mb-5 flex items-center justify-between">
         <div>
-          <div className="font-semibold text-deepink">
+          <div className="font-semibold text-ink">
             {pool.flags} {pool.corridor}
           </div>
-          <div className="text-xs text-muted">{pool.venue}</div>
+          <div className="text-xs text-slate">{pool.venue}</div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-semibold text-emerald numerals">
+          <div className="text-xl font-semibold text-sky numerals">
             {poolApy(pool)}%
           </div>
-          <div className="text-[11px] text-muted">APY</div>
+          <div className="text-[11px] text-slate">APY</div>
         </div>
       </Card>
 
       <div className="text-center py-4">
-        <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-3">
+        <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-3">
           Amount to deposit
         </label>
         <div className="flex items-center justify-center gap-1">
-          <span className="text-4xl font-semibold text-deepink/40">£</span>
+          <span className="text-4xl font-semibold text-ink/40">£</span>
           <input
             value={amountStr}
             onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9.]/g, ""))}
             inputMode="decimal"
             placeholder="0"
             aria-label="Deposit amount"
-            className="w-[6ch] bg-transparent text-6xl font-semibold text-deepink text-center outline-none numerals placeholder:text-deepink/25"
+            className="w-[6ch] bg-transparent text-6xl font-semibold text-ink text-center outline-none numerals placeholder:text-ink/25"
           />
         </div>
         <p
           className={`mt-2 text-sm ${
-            insufficient ? "text-alert font-medium" : "text-muted"
+            insufficient ? "text-alert font-medium" : "text-slate"
           }`}
         >
           {insufficient
@@ -314,16 +314,16 @@ function DepositPanel({
       {valid && (
         <Card className="p-4 mb-5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">Projected earnings</span>
-            <span className="font-semibold text-emerald numerals">
+            <span className="text-slate">Projected earnings</span>
+            <span className="font-semibold text-sky numerals">
               ≈ {formatMoney(projected, ACCOUNT.currency)} / year
             </span>
           </div>
         </Card>
       )}
 
-      <div className="flex items-center gap-2 text-sm text-muted mb-5 px-1">
-        <ShieldCheck className="w-4 h-4 text-emerald shrink-0" />
+      <div className="flex items-center gap-2 text-sm text-slate mb-5 px-1">
+        <ShieldCheck className="w-4 h-4 text-sky shrink-0" />
         Covered by the Safety Module · withdraw anytime
       </div>
 
@@ -349,27 +349,27 @@ function PositionCard({
 }) {
   const projected = (principal * poolApy(pool)) / 100;
   return (
-    <Card className="p-5 border-emerald/30">
+    <Card className="p-5 border-sky/30">
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-emerald" />
-        <span className="text-xs font-semibold text-emerald uppercase tracking-widest">
+        <Sparkles className="w-4 h-4 text-sky" />
+        <span className="text-xs font-semibold text-sky uppercase tracking-widest">
           Earning
         </span>
       </div>
       <div className="flex items-end justify-between mb-4">
         <div>
-          <div className="text-xs text-muted mb-0.5">
+          <div className="text-xs text-slate mb-0.5">
             {pool.flags} {pool.corridor}
           </div>
-          <div className="text-3xl font-semibold text-deepink numerals">
+          <div className="text-3xl font-semibold text-ink numerals">
             {formatMoney(principal, ACCOUNT.currency)}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-lg font-semibold text-emerald numerals">
+          <div className="text-lg font-semibold text-sky numerals">
             {poolApy(pool)}%
           </div>
-          <div className="text-[11px] text-muted">
+          <div className="text-[11px] text-slate">
             ≈ {formatMoney(projected, ACCOUNT.currency)}/yr
           </div>
         </div>
@@ -388,7 +388,7 @@ function PositionCard({
 
 function InsuredBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-sky">
       <Check className="w-3.5 h-3.5" /> Insured
     </span>
   );

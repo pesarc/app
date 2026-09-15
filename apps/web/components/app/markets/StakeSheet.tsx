@@ -47,17 +47,17 @@ export default function StakeSheet({
       >
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-muted">
+            <div className="text-xs font-semibold uppercase tracking-widest text-slate">
               {side === "yes" ? "Backing Yes" : "Backing No"} · {price}¢
             </div>
-            <p className="font-semibold text-deepink leading-snug mt-1">
+            <p className="font-semibold text-ink leading-snug mt-1">
               {market.question}
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-muted hover:text-deepink p-1"
+            className="text-slate hover:text-ink p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -65,13 +65,13 @@ export default function StakeSheet({
 
         {done ? (
           <div className="py-6 text-center">
-            <span className="inline-flex w-12 h-12 rounded-full bg-emerald/15 items-center justify-center text-emerald mb-3">
+            <span className="inline-flex w-12 h-12 rounded-full bg-sky/15 items-center justify-center text-sky mb-3">
               <Check className="w-6 h-6" />
             </span>
-            <p className="font-semibold text-deepink">
+            <p className="font-semibold text-ink">
               {side === "yes" ? "Yes" : "No"} position placed
             </p>
-            <p className="text-sm text-muted mt-1">
+            <p className="text-sm text-slate mt-1">
               {market.collateral} {stake.toLocaleString()} staked · settles{" "}
               {market.resolves} from{" "}
               {market.resolver.kind === "oracle"
@@ -85,18 +85,18 @@ export default function StakeSheet({
           </div>
         ) : (
           <>
-            <label className="block text-xs font-medium text-muted mb-1.5">
+            <label className="block text-xs font-medium text-slate mb-1.5">
               Amount ({market.collateral})
             </label>
-            <div className="flex items-center rounded-xl border border-black/10 bg-white px-4 py-3 mb-2">
-              <span className="text-muted mr-2 text-sm">{market.collateral}</span>
+            <div className="flex items-center rounded-xl border border-fog bg-snow px-4 py-3 mb-2">
+              <span className="text-slate mr-2 text-sm">{market.collateral}</span>
               <input
                 inputMode="decimal"
                 autoFocus
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder="0"
-                className="flex-1 bg-transparent outline-none text-xl font-semibold text-deepink numerals"
+                className="flex-1 bg-transparent outline-none text-xl font-semibold text-ink numerals"
               />
             </div>
 
@@ -105,7 +105,7 @@ export default function StakeSheet({
                 <button
                   key={q}
                   onClick={() => setAmount(String(q))}
-                  className="flex-1 rounded-lg bg-black/[0.04] hover:bg-black/[0.07] py-1.5 text-xs font-medium text-deepink transition-colors"
+                  className="flex-1 rounded-lg bg-black/[0.04] hover:bg-black/[0.07] py-1.5 text-xs font-medium text-ink transition-colors"
                 >
                   {q.toLocaleString()}
                 </button>
@@ -125,8 +125,8 @@ export default function StakeSheet({
             </div>
 
             {market.hedge && (
-              <p className="flex items-start gap-2 text-[11px] text-muted mb-4">
-                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald" />
+              <p className="flex items-start gap-2 text-[11px] text-slate mb-4">
+                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-sky" />
                 This is a hedge, not a bet — it pays out to offset the real-world
                 move, in your own currency.
               </p>
@@ -162,10 +162,10 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-muted">{label}</span>
+      <span className="text-slate">{label}</span>
       <span
         className={`font-semibold numerals ${
-          accent ? "text-emerald" : "text-deepink"
+          accent ? "text-sky" : "text-ink"
         }`}
       >
         {value}

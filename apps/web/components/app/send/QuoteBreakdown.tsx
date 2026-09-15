@@ -31,8 +31,8 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
       <div className="grid gap-2">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between text-sm">
-            <span className="text-muted">{r.label}</span>
-            <span className="font-medium text-deepink numerals">{r.value}</span>
+            <span className="text-slate">{r.label}</span>
+            <span className="font-medium text-ink numerals">{r.value}</span>
           </div>
         ))}
       </div>
@@ -55,8 +55,8 @@ function Chip({
   text: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-white border border-black/[0.06] px-3 py-1 text-xs font-medium text-deepink/80">
-      <Icon className="w-3.5 h-3.5 text-emerald" strokeWidth={2} />
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-snow border border-black/[0.06] px-3 py-1 text-xs font-medium text-ink/80">
+      <Icon className="w-3.5 h-3.5 text-sky" strokeWidth={2} />
       {text}
     </span>
   );
