@@ -41,6 +41,6 @@ in one Anchor workspace, so the prediction-market ↔ oracle CPI test is local.
 1. Create the `stablearc` org (manual).
 2. Push these two scaffolds as the new repos.
 3. Move contracts first (self-contained, testable in isolation).
-4. Lift `luberty` into `apps/web` + `packages/sdk`; wire `@stablearc/abi`.
+4. Lift `luberty` into `apps/web` + `packages/sdk`; wire `@pesarc/abi`.
 5. Split keepers into `apps/worker`; stand up `apps/mobile` from the web routes.
 6. Point Vercel at `apps/web`; archive the old repos.

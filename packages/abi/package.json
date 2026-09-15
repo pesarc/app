@@ -1,13 +1,9 @@
 {
-  "name": "@stablearc/abi",
+  "name": "@pesarc/abi",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*" },
   "types": "./src/index.ts",
-  "scripts": {
-    "sync": "node ./scripts/sync-from-contracts.mjs",
-    "lint": "echo ok",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
-  }
+  "scripts": { "lint": "echo ok", "typecheck": "tsc --noEmit -p tsconfig.json" }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@stablearc/config",
+  "name": "@pesarc/config",
   "version": "0.0.0",
   "private": true,
   "files": ["tsconfig.base.json"]

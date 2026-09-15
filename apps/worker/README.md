@@ -1,4 +1,4 @@
-# @stablearc/worker
+# @pesarc/worker
 
 The keepers/relayers: settlement solver, CCTP relay, oracle recorder, market
 resolver (`proposeFromOracle` / attested finalize), x402 settlement. Anything

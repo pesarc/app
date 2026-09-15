@@ -1,4 +1,4 @@
-# @stablearc/api
+# @pesarc/api
 
 Backend request/response surface: agent endpoint, quote/settle intents, x402
 metering, waitlist. Zod-validated, fail-closed on money (guards/auth carried

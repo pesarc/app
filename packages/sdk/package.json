@@ -1,10 +1,29 @@
 {
-  "name": "@stablearc/sdk",
+  "name": "@pesarc/sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
   "types": "./src/index.ts",
-  "scripts": { "lint": "echo ok", "typecheck": "tsc --noEmit -p tsconfig.json" },
-  "dependencies": { "@stablearc/abi": "workspace:*" }
+  "scripts": {
+    "lint": "echo ok",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@pesarc/abi": "workspace:*",
+    "@alchemy/wallet-apis": "^5.0.6",
+    "@neondatabase/serverless": "^0.10.4",
+    "@privy-io/react-auth": "^3.32.0",
+    "@privy-io/server-auth": "^1.32.5",
+    "next": "15.2.8",
+    "react": "18.3.1",
+    "viem": "^2.30.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "@types/node": "^20"
+  }
 }
