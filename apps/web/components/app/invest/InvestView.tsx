@@ -16,8 +16,10 @@ import {
   type Instrument,
   type InstrumentFilter,
 } from "@pesarc/sdk/invest";
-import { formatMoney, formatNumber, midMarketRate, CURRENCIES } from "@pesarc/sdk/money";
+import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
+import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { usePrefs } from "@pesarc/sdk/prefs";
+import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { Stagger, StaggerItem } from "@/components/motion";
 
 type Holding = { symbol: string; shares: number; costCcy: string; cost: number };
@@ -193,7 +195,14 @@ export default function InvestView() {
       </div>
 
       <AnimatePresence>
-        {ticket && <BuySheet inst={ticket} onClose={() => setTicket(null)} onBuy={buy} />}
+        {ticket && (
+          <BuySheet
+            inst={ticket}
+            defaultCoin={defaultStablecoin(sendCurrency).symbol}
+            onClose={() => setTicket(null)}
+            onBuy={buy}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -240,18 +249,23 @@ function InstrumentCard({ inst, onBuy }: { inst: Instrument; onBuy: () => void }
 
 function BuySheet({
   inst,
+  defaultCoin,
   onClose,
   onBuy,
 }: {
   inst: Instrument;
+  defaultCoin: string;
   onClose: () => void;
   onBuy: (inst: Instrument, shares: number) => void;
 }) {
   const m = marketOf(inst);
   const [sharesStr, setSharesStr] = useState("1");
+  const [payWith, setPayWith] = useState(defaultCoin);
   const shares = parseFloat(sharesStr) || 0;
   const cost = shares * inst.price;
   const valid = shares > 0;
+  const payCcy = currencyOf(payWith);
+  const payAmount = cost * midMarketRate(m.currency, payCcy);
 
   return (
     <>
@@ -303,9 +317,21 @@ function BuySheet({
           className="w-full bg-snow rounded-field border border-fog px-4 py-3 text-[15px] text-ink numerals focus:outline-none focus:border-sky mb-4"
         />
 
-        <div className="flex items-center justify-between rounded-2xl bg-harbor/5 px-4 py-3.5 mb-5">
-          <span className="text-[13.5px] font-semibold text-harbor">Estimated cost</span>
-          <span className="text-lg font-extrabold text-harbor numerals">{formatMoney(cost, m.currency)}</span>
+        <div className="mb-4">
+          <StablecoinSelect value={payWith} onChange={setPayWith} label="Pay with" />
+        </div>
+
+        <div className="rounded-2xl bg-harbor/5 px-4 py-3.5 mb-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[13.5px] font-semibold text-harbor">Estimated cost</span>
+            <span className="text-lg font-extrabold text-harbor numerals">
+              {payWith} {formatNumber(payAmount, payCcy)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-1 text-[12px] text-slate">
+            <span>Market price</span>
+            <span className="numerals">{formatMoney(cost, m.currency)}</span>
+          </div>
         </div>
 
         <button
