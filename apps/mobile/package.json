@@ -1,5 +1,5 @@
 {
-  "name": "@stablearc/mobile",
+  "name": "@pesarc/mobile",
   "version": "0.0.0",
   "private": true,
   "main": "expo-router/entry",

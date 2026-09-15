@@ -58,7 +58,7 @@ export const SOLANA_CORRIDOR = {
   chainId: SOLANA_CHAIN_ID,
   label: "Solana Devnet",
   domain: 5,
-  /** StableArc spoke-gateway Anchor program. */
+  /** Pesarc spoke-gateway Anchor program. */
   gateway:
     process.env.NEXT_PUBLIC_SOLANA_GATEWAY ||
     "Gi1uEn2LbSm8xM9LXpyZ5ZSbiqhLsqQ7ntgM33pbT2Ki",

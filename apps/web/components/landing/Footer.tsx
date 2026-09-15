@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { site } from "@stablearc/sdk/site";
+import { site } from "@pesarc/sdk/site";
 
 const COLUMNS = [
   {

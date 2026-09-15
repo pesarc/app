@@ -5,7 +5,7 @@
 // The wedge: collateral is the LOCAL currency (cNGN / cKES), not USDC — so the
 // stake, the payout, and the thing being hedged are the same money. A naira
 // holder who is long the "USD/NGN goes up" side is *hedged* against their own
-// currency sliding, settled from StableArc's own realized FX rate. No dollar in
+// currency sliding, settled from Pesarc's own realized FX rate. No dollar in
 // the path, no external feed to deny or compel.
 
 export type MarketKind = "fx" | "macro" | "sports" | "politics";

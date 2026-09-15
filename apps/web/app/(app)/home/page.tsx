@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Plus, QrCode } from "lucide-react";
-import { ACCOUNT, ACTIVITY } from "@stablearc/sdk/account";
-import { listTransfers } from "@stablearc/sdk/transfers";
-import { formatMoney } from "@stablearc/sdk/money";
-import type { CurrencyCode } from "@stablearc/sdk/money";
+import { ACCOUNT, ACTIVITY } from "@pesarc/sdk/account";
+import { listTransfers } from "@pesarc/sdk/transfers";
+import { formatMoney } from "@pesarc/sdk/money";
+import type { CurrencyCode } from "@pesarc/sdk/money";
 import { Card } from "@/components/app/ui";
 import { LiveBalance } from "@/components/app/LiveBalance";
 import { ActivityFeed, type FallbackItem } from "@/components/app/ActivityFeed";
@@ -12,7 +12,7 @@ import { ActivityFeed, type FallbackItem } from "@/components/app/ActivityFeed";
 export const metadata: Metadata = {
   title: "Home",
   description:
-    "Your StableArc balance, with one tap to send or receive money across borders.",
+    "Your Pesarc balance, with one tap to send or receive money across borders.",
 };
 
 export const dynamic = "force-dynamic";

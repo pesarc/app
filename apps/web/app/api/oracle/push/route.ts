@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { HUB_CHAIN, hubRpcUrl } from "@stablearc/sdk/chain/chains";
-import { requireOperator, rateLimit } from "@stablearc/sdk/api/guard";
-import { fetchUsdRate } from "@stablearc/sdk/oracle/fx";
+import { HUB_CHAIN, hubRpcUrl } from "@pesarc/sdk/chain/chains";
+import { requireOperator, rateLimit } from "@pesarc/sdk/api/guard";
+import { fetchUsdRate } from "@pesarc/sdk/oracle/fx";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import AppNav from "@/components/AppNav";
-import { UIModeProvider } from "@stablearc/sdk/ui-mode";
-import { WalletProvider } from "@stablearc/sdk/wallet/WalletProvider";
+import { UIModeProvider } from "@pesarc/sdk/ui-mode";
+import { WalletProvider } from "@pesarc/sdk/wallet/WalletProvider";
 
 export default function AppLayout({
   children,

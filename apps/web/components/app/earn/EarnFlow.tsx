@@ -10,10 +10,10 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { POOLS, poolApy, type Pool } from "@stablearc/sdk/earn";
-import { ACCOUNT } from "@stablearc/sdk/account";
-import { formatMoney } from "@stablearc/sdk/money";
-import { useUIMode } from "@stablearc/sdk/ui-mode";
+import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
+import { ACCOUNT } from "@pesarc/sdk/account";
+import { formatMoney } from "@pesarc/sdk/money";
+import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { Button, Card } from "@/components/app/ui";
 
 type Position = { poolId: string; principal: number };

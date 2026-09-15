@@ -16,10 +16,10 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./*"],
-      "@stablearc/sdk": ["../../packages/sdk/src/index.ts"],
-      "@stablearc/sdk/*": ["../../packages/sdk/src/*"],
-      "@stablearc/abi": ["../../packages/abi/src/index.ts"],
-      "@stablearc/abi/*": ["../../packages/abi/src/*"]
+      "@pesarc/sdk": ["../../packages/sdk/src/index.ts"],
+      "@pesarc/sdk/*": ["../../packages/sdk/src/*"],
+      "@pesarc/abi": ["../../packages/abi/src/index.ts"],
+      "@pesarc/abi/*": ["../../packages/abi/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

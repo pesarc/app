@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { listTransfers, recordTransfer } from "@stablearc/sdk/transfers";
-import { getAccount } from "@stablearc/sdk/api/auth";
-import { rateLimit } from "@stablearc/sdk/api/guard";
+import { listTransfers, recordTransfer } from "@pesarc/sdk/transfers";
+import { getAccount } from "@pesarc/sdk/api/auth";
+import { rateLimit } from "@pesarc/sdk/api/guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

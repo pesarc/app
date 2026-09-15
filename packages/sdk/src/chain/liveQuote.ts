@@ -6,8 +6,8 @@
 import { parseUnits, formatUnits } from "viem";
 import { getPublicClient, chainLabel } from "./chains";
 import { CONTRACTS, CONTRACTS_READY } from "./contracts";
-import { oracleAdapterAbi } from "@stablearc/abi";
-import { quoterAbi } from "@stablearc/abi";
+import { oracleAdapterAbi } from "@pesarc/abi";
+import { quoterAbi } from "@pesarc/abi";
 
 export type LivePoolQuote = {
   /** Oracle mid-market rate (NGN per USD). */

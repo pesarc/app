@@ -1,4 +1,4 @@
-// Pure matching logic for the StableArc solver (docs/LOCAL_CURRENCY_SETTLEMENT.md §2.1).
+// Pure matching logic for the Pesarc solver (docs/LOCAL_CURRENCY_SETTLEMENT.md §2.1).
 //
 // Given the open intents, find settlements that clear **local-to-local with no
 // outside liquidity**: direct 2-party pairs first, then longer rings

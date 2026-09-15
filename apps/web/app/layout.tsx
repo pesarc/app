@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { site } from "@stablearc/sdk/site";
+import { site } from "@pesarc/sdk/site";
 
 const inter = Inter({
   variable: "--font-inter",

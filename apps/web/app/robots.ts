@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { site } from "@stablearc/sdk/site";
+import { site } from "@pesarc/sdk/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {

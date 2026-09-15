@@ -14,9 +14,9 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@stablearc/sdk/*": ["./src/*"],
-      "@stablearc/abi": ["../abi/src/index.ts"],
-      "@stablearc/abi/*": ["../abi/src/*"]
+      "@pesarc/sdk/*": ["./src/*"],
+      "@pesarc/abi": ["../abi/src/index.ts"],
+      "@pesarc/abi/*": ["../abi/src/*"]
     }
   },
   "include": ["src"]

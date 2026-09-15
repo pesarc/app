@@ -1,6 +1,6 @@
 // Read-only ERC-20 helpers via the hub public client. Safe in client or server.
 import { getPublicClient } from "./chains";
-import { erc20Abi } from "@stablearc/abi";
+import { erc20Abi } from "@pesarc/abi";
 
 export async function readBalance(
   token: `0x${string}`,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Info, Check } from "lucide-react";
 import { Button } from "@/components/app/ui";
-import { type Market } from "@stablearc/sdk/markets";
+import { type Market } from "@pesarc/sdk/markets";
 import { type Side } from "./display";
 
 export default function StakeSheet({

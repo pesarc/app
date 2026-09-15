@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimit } from "@stablearc/sdk/api/guard";
-import { parseSettlementRequest } from "@stablearc/sdk/celo/agent";
-import { llmConfigured } from "@stablearc/sdk/llm/extract";
+import { rateLimit } from "@pesarc/sdk/api/guard";
+import { parseSettlementRequest } from "@pesarc/sdk/celo/agent";
+import { llmConfigured } from "@pesarc/sdk/llm/extract";
 import {
   agentAddress,
   runCeloSolver,
   submitIntent,
-} from "@stablearc/sdk/celo/solver";
+} from "@pesarc/sdk/celo/solver";
 import {
   celoAgentReady,
   celoCurrencyByCode,
   celoExplorerTx,
   celoPublicClient,
   CELO,
-} from "@stablearc/sdk/celo/config";
-import { realizedRateOracleAbi } from "@stablearc/abi";
+} from "@pesarc/sdk/celo/config";
+import { realizedRateOracleAbi } from "@pesarc/abi";
 import { formatUnits } from "viem";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ const schema = z.object({ message: z.string().trim().min(1).max(500) });
 const TOLERANCE = 0.03;
 
 /**
- * The StableArc settlement agent (Celo "Agents at Work" submission).
+ * The Pesarc settlement agent (Celo "Agents at Work" submission).
  *
  * One turn: understand a plain-language request, turn it into an on-chain
  * cross-border intent, and let the autonomous solver settle it peer-to-peer in

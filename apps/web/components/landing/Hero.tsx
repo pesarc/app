@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Server, Settings } from "lucide-react";
 import Globe, { type GlobeControls } from "./Globe";
-import { site } from "@stablearc/sdk/site";
+import { site } from "@pesarc/sdk/site";
 
 const COLORS = ["#35E39C", "#F5C451", "#7C9CFF"];
 

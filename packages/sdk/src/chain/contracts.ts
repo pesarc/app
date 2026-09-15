@@ -3,7 +3,7 @@
 // - Sepolia (11155111): REAL addresses from the existing deployment
 //   (goldgard-hookathon/frontend/app/config/demoConfig.sepolia.json).
 //   token0/token1 act as the test USDC / test-cNGN pair.
-// - Arbitrum Sepolia (421614): REAL addresses from the StableArc hub
+// - Arbitrum Sepolia (421614): REAL addresses from the Pesarc hub
 //   deployment (contracts/deployments/frontend.421614.env), read from env.
 
 import { HUB_CHAIN_ID } from "./chains";
@@ -69,7 +69,7 @@ const SEPOLIA: ContractSet = {
   bridgeDeployBlock: 0n,
 };
 
-// StableArc hub deployment (contracts/ → DeployStableArcHub.s.sol), via env.
+// Pesarc hub deployment (contracts/ → DeployPesarcHub.s.sol), via env.
 const ARBITRUM_SEPOLIA: ContractSet = {
   poolManager: (process.env.NEXT_PUBLIC_ARB_POOL_MANAGER as `0x${string}`) || "",
   hook: (process.env.NEXT_PUBLIC_ARB_HOOK as `0x${string}`) || "",

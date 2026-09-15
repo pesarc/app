@@ -19,7 +19,7 @@ packages/
 
 ## Why a monorepo
 Web, mobile, backend and keepers share the *same* TypeScript — chain clients,
-the settlement SDK, ABIs, types. A contract change regenerates `@stablearc/abi`
+the settlement SDK, ABIs, types. A contract change regenerates `@pesarc/abi`
 and every surface updates atomically, in one PR. No internal-SDK version dance,
 no ABI hand-copied into the frontend, no cross-repo path hacks.
 
@@ -27,8 +27,8 @@ no ABI hand-copied into the frontend, no cross-repo path hacks.
 ```bash
 pnpm install
 pnpm dev            # all apps (turbo)
-pnpm --filter @stablearc/web dev
-pnpm --filter @stablearc/mobile dev
+pnpm --filter @pesarc/web dev
+pnpm --filter @pesarc/mobile dev
 ```
 
 ## Conventions

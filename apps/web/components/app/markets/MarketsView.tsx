@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Shield, Radio } from "lucide-react";
 import { Card } from "@/components/app/ui";
-import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@stablearc/sdk/markets";
-import { fetchLiveMarkets, type LiveMarket } from "@stablearc/sdk/markets.live";
-import { CELO, celoExplorerAddress } from "@stablearc/sdk/celo/config";
+import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { fetchLiveMarkets, type LiveMarket } from "@pesarc/sdk/markets.live";
+import { CELO, celoExplorerAddress } from "@pesarc/sdk/celo/config";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
@@ -68,7 +68,7 @@ export default function MarketsView() {
         </span>
         <div className="text-sm text-deepink">
           <span className="font-semibold">A hedge, not a bet.</span> FX and macro markets
-          resolve from StableArc&apos;s own realized rate. Back the side that offsets your
+          resolve from Pesarc&apos;s own realized rate. Back the side that offsets your
           real-world risk and you&apos;re insured, in your own currency.
         </div>
       </Card>

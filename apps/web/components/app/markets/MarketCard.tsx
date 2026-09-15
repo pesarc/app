@@ -1,7 +1,7 @@
 import { Shield, TrendingUp } from "lucide-react";
 import { Card } from "@/components/app/ui";
-import { type Market } from "@stablearc/sdk/markets";
-import { type LiveMarket } from "@stablearc/sdk/markets.live";
+import { type Market } from "@pesarc/sdk/markets";
+import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Side } from "./display";
 
 export default function MarketCard({

@@ -1,5 +1,5 @@
 // Single source of truth for on-chain interfaces (EVM ABIs + Anchor IDLs).
-// Consumed by web / mobile / api / worker. Synced from StableArc/contracts.
+// Consumed by web / mobile / api / worker. Synced from Pesarc/contracts.
 export * from "./erc20";
 export * from "./intentMatcher";
 export * from "./oracleAdapter";

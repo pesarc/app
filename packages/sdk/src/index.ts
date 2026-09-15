@@ -1,4 +1,4 @@
-// StableArc SDK — the VM-neutral, reusable core. This is where the crown-jewel
+// Pesarc SDK — the VM-neutral, reusable core. This is where the crown-jewel
 // TS lands (migrated from stablearc-agent + luberty/lib):
 //   - matching / ring-netting solver
 //   - RealizedRateOracle client + FX quoting

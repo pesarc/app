@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireOperator, rateLimit } from "@stablearc/sdk/api/guard";
-import { previewSolver, runSolver, solverConfigured } from "@stablearc/sdk/solver/execute";
+import { requireOperator, rateLimit } from "@pesarc/sdk/api/guard";
+import { previewSolver, runSolver, solverConfigured } from "@pesarc/sdk/solver/execute";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

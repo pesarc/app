@@ -18,12 +18,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button, Card } from "@/components/app/ui";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
-import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
-import { CONTRACTS } from "@stablearc/sdk/chain/contracts";
-import { chainLabel, explorerTxUrl } from "@stablearc/sdk/chain/chains";
-import { erc20Abi } from "@stablearc/abi";
-import { intentMatcherAbi } from "@stablearc/abi";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
+import { chainLabel, explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { erc20Abi } from "@pesarc/abi";
+import { intentMatcherAbi } from "@pesarc/abi";
 import {
   currencyByAddress,
   fetchRealizedRate,
@@ -32,7 +32,7 @@ import {
   localCurrencies,
   type LocalCurrency,
   type UserIntent,
-} from "@stablearc/sdk/chain/localCorridors";
+} from "@pesarc/sdk/chain/localCorridors";
 
 /** Slippage the maker accepts vs the reference rate when setting their floor. */
 const LIMIT_TOLERANCE = 0.02; // 2%

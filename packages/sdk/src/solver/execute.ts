@@ -7,9 +7,9 @@
 
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { HUB_CHAIN, hubRpcUrl } from "@stablearc/sdk/chain/chains";
-import { CONTRACTS } from "@stablearc/sdk/chain/contracts";
-import { intentMatcherAbi } from "@stablearc/abi";
+import { HUB_CHAIN, hubRpcUrl } from "@pesarc/sdk/chain/chains";
+import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
+import { intentMatcherAbi } from "@pesarc/abi";
 import { findPlans, type Intent, type RingPlan } from "./matching";
 
 export type SolveResult = {

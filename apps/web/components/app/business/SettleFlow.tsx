@@ -19,19 +19,19 @@ import {
   Shuffle,
 } from "lucide-react";
 import { Button, Card } from "@/components/app/ui";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
-import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
-import { CONTRACTS } from "@stablearc/sdk/chain/contracts";
-import { chainLabel, explorerTxUrl } from "@stablearc/sdk/chain/chains";
-import { settlementNettingAbi } from "@stablearc/abi";
-import { erc20Abi } from "@stablearc/abi";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
+import { chainLabel, explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { settlementNettingAbi } from "@pesarc/abi";
+import { erc20Abi } from "@pesarc/abi";
 import {
   fetchNettingSnapshot,
   nettingAvailable,
   shortAddr,
   NETTING_SET_ID,
   type NettingSnapshot,
-} from "@stablearc/sdk/chain/netting";
+} from "@pesarc/sdk/chain/netting";
 
 export default function SettleFlow() {
   const { mode, authenticated } = useWallet();

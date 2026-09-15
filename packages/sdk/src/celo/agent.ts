@@ -6,7 +6,7 @@
 // with any OpenAI-compatible provider (Cencori, OpenAI, Groq, Ollama…) or
 // native Anthropic — chosen entirely by env. No hard dependency on one model.
 
-import { extractTool, type ToolSpec } from "@stablearc/sdk/llm/extract";
+import { extractTool, type ToolSpec } from "@pesarc/sdk/llm/extract";
 import { celoCurrencies } from "./config";
 
 export type ParsedIntent = {
@@ -24,7 +24,7 @@ export type AgentReply =
   | { ok: true; intent: ParsedIntent }
   | { ok: false; message: string };
 
-const SYSTEM = `You are StableArc's settlement agent on Celo. You move money
+const SYSTEM = `You are Pesarc's settlement agent on Celo. You move money
 between African local currencies (stablecoins) with no US dollar in the path —
 matched peer-to-peer against opposing flow.
 

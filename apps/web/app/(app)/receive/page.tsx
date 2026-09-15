@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, Share2 } from "lucide-react";
-import { ACCOUNT, ALIAS } from "@stablearc/sdk/account";
-import { CURRENCIES } from "@stablearc/sdk/money";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
-import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
-import { chainLabel } from "@stablearc/sdk/chain/chains";
+import { ACCOUNT, ALIAS } from "@pesarc/sdk/account";
+import { CURRENCIES } from "@pesarc/sdk/money";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { chainLabel } from "@pesarc/sdk/chain/chains";
 import { Button, Card } from "@/components/app/ui";
 
 export default function ReceivePage() {
@@ -27,7 +27,7 @@ export default function ReceivePage() {
   // alias for display, `to` for the real on-chain payout, `amount` to
   // pre-fill — so paying it is a single tap.
   const link = useMemo(() => {
-    const base = `https://stablearc.app/pay/${ALIAS.replace("@", "")}`;
+    const base = `https://pesarc.money/pay/${ALIAS.replace("@", "")}`;
     const params = new URLSearchParams();
     if (live && address) params.set("to", address);
     if (amount) params.set("amount", amount);
@@ -69,7 +69,7 @@ export default function ReceivePage() {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: "Pay me on StableArc",
+          title: "Pay me on Pesarc",
           text: live ? link : undefined,
           url: live ? undefined : link,
         });
