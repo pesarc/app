@@ -6,7 +6,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Check, ExternalLink, Loader2, Sparkles, Bot, ShieldCheck } from "lucide-react";
+import {
+  ArrowUp,
+  Check,
+  ExternalLink,
+  Loader2,
+  Sparkles,
+  Bot,
+  ShieldCheck,
+  Plus,
+  Trash2,
+  MessageSquare,
+} from "lucide-react";
 import { Card } from "@/components/app/ui";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 
@@ -33,17 +44,52 @@ const EXAMPLES = [
   "Pay 30,000 shillings to Nigeria",
 ];
 
+const GREETING: Msg = {
+  role: "agent",
+  text:
+    "Hi — I'm Pesarc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
+};
+
+// ---- Chat history (per-device, localStorage) ----------------------------
+type Thread = { id: string; title: string; msgs: Msg[]; updatedAt: number };
+const HISTORY_KEY = "pesarc.agent.threads";
+const MAX_THREADS = 30;
+
+function loadThreads(): Thread[] {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    const list = raw ? (JSON.parse(raw) as Thread[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveThreads(list: Thread[]) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_THREADS)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function relativeTime(ts: number): string {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
 export default function AgentChat() {
-  const [msgs, setMsgs] = useState<Msg[]>([
-    {
-      role: "agent",
-      text:
-        "Hi — I'm Pesarc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
-    },
-  ]);
+  const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [budget, setBudget] = useState<AgentBudget | null>(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const activeId = useRef<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +98,56 @@ export default function AgentChat() {
     return () => {
       alive = false;
     };
+  }, []);
+
+  // Load saved threads; reopen the most recent one so history persists across
+  // visits (this is a per-device record — nothing leaves the browser).
+  useEffect(() => {
+    const list = loadThreads();
+    setThreads(list);
+    if (list.length && list[0].msgs.length) {
+      activeId.current = list[0].id;
+      setMsgs(list[0].msgs);
+    }
+  }, []);
+
+  // Persist the running conversation into its thread after every exchange.
+  useEffect(() => {
+    if (!msgs.some((m) => m.role === "user")) return; // don't save an empty greeting
+    const id = activeId.current ?? `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    activeId.current = id;
+    const title = (msgs.find((m) => m.role === "user")?.text ?? "Chat").slice(0, 48);
+    setThreads((prev) => {
+      const rest = prev.filter((t) => t.id !== id);
+      const next = [{ id, title, msgs, updatedAt: Date.now() }, ...rest].slice(0, MAX_THREADS);
+      saveThreads(next);
+      return next;
+    });
+  }, [msgs]);
+
+  const newChat = useCallback(() => {
+    activeId.current = null;
+    setMsgs([GREETING]);
+    setInput("");
+  }, []);
+
+  const openThread = useCallback((t: Thread) => {
+    activeId.current = t.id;
+    setMsgs(t.msgs.length ? t.msgs : [GREETING]);
+    setInput("");
+    setTimeout(() => endRef.current?.scrollIntoView({ behavior: "auto" }), 50);
+  }, []);
+
+  const deleteThread = useCallback((id: string) => {
+    setThreads((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      saveThreads(next);
+      return next;
+    });
+    if (activeId.current === id) {
+      activeId.current = null;
+      setMsgs([GREETING]);
+    }
   }, []);
 
   const send = useCallback(
@@ -153,6 +249,13 @@ export default function AgentChat() {
           </Card>
         </motion.div>
       )}
+      <ChatHistory
+        threads={threads}
+        activeId={activeId.current}
+        onNew={newChat}
+        onOpen={openThread}
+        onDelete={deleteThread}
+      />
       <AgentCapabilities />
       </div>
 
@@ -272,6 +375,73 @@ export default function AgentChat() {
       </div>
       </div>
     </div>
+  );
+}
+
+/* Per-device chat history — resume or clear past conversations. */
+function ChatHistory({
+  threads,
+  activeId,
+  onNew,
+  onOpen,
+  onDelete,
+}: {
+  threads: Thread[];
+  activeId: string | null;
+  onNew: () => void;
+  onOpen: (t: Thread) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-slate">History</span>
+        <button
+          onClick={onNew}
+          className="inline-flex items-center gap-1 rounded-full bg-sky text-white text-[12px] font-bold px-2.5 py-1 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+        >
+          <Plus className="w-3.5 h-3.5" /> New chat
+        </button>
+      </div>
+      {threads.length === 0 ? (
+        <p className="text-[12.5px] text-slate leading-snug">
+          Your conversations will appear here — saved on this device.
+        </p>
+      ) : (
+        <ul className="space-y-1 max-h-64 overflow-y-auto -mr-1 pr-1">
+          {threads.map((t) => {
+            const active = t.id === activeId;
+            return (
+              <li key={t.id} className="group flex items-center gap-1">
+                <button
+                  onClick={() => onOpen(t)}
+                  className={`flex-1 min-w-0 flex items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-colors ${
+                    active ? "bg-sky-tint/50" : "hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <MessageSquare
+                    className={`w-3.5 h-3.5 shrink-0 ${active ? "text-sky-deep" : "text-slate"}`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold text-harbor truncate">
+                      {t.title}
+                    </span>
+                    <span className="block text-[11px] text-slate">{relativeTime(t.updatedAt)}</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => onDelete(t.id)}
+                  aria-label="Delete conversation"
+                  className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-slate opacity-0 group-hover:opacity-100 hover:text-alert hover:bg-alert/10 transition-opacity"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }
 
