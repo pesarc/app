@@ -904,15 +904,7 @@ function SuccessStep({
 /* ---------------- Shared ---------------- */
 
 function flagFor(code: CurrencyCode): string {
-  const map: Record<CurrencyCode, string> = {
-    GBP: "🇬🇧",
-    USD: "🇺🇸",
-    EUR: "🇪🇺",
-    NGN: "🇳🇬",
-    KES: "🇰🇪",
-    GHS: "🇬🇭",
-  };
-  return map[code] ?? "🌍";
+  return CURRENCIES[code]?.flag ?? "🌍";
 }
 
 function StepNav({ onBack, title }: { onBack: () => void; title: string }) {
