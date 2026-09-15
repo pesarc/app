@@ -5,8 +5,8 @@
 import { createWalletClient, encodeFunctionData, http, parseUnits, type Abi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CELO_CHAIN, celoPublicClient, celoRpcUrl, CELO } from "./config";
-import { intentMatcherAbi } from "@stablearc/abi";
-import { findPlans, type Intent } from "@stablearc/sdk/solver/matching";
+import { intentMatcherAbi } from "@pesarc/abi";
+import { findPlans, type Intent } from "@pesarc/sdk/solver/matching";
 import { withTag } from "./attribution";
 
 const matcher = () => CELO.intentMatcher as `0x${string}`;

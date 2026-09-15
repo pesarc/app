@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { computeIndependence } from "@stablearc/sdk/metrics/independence";
+import { computeIndependence } from "@pesarc/sdk/metrics/independence";
 
 export const runtime = "nodejs";
 // Public, read-only, and derived from chain events — cache it so the landing

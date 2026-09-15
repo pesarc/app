@@ -1,4 +1,4 @@
-// Minimal ABI for the StableArc PredictionMarket (read path). The app reads
+// Minimal ABI for the Pesarc PredictionMarket (read path). The app reads
 // live implied odds + pools from Celo and overlays them on the market catalog;
 // staking on Celo needs a Celo-funded signer and is a separate flow.
 

@@ -4,8 +4,8 @@
 
 import { encodeFunctionData, formatUnits, parseUnits } from "viem";
 import { CONTRACTS } from "./contracts";
-import { erc20Abi } from "@stablearc/abi";
-import { swapRouterAbi, MIN_SQRT_PRICE_LIMIT } from "@stablearc/abi";
+import { erc20Abi } from "@pesarc/abi";
+import { swapRouterAbi, MIN_SQRT_PRICE_LIMIT } from "@pesarc/abi";
 import { readBalance, readDecimals } from "./erc20Read";
 
 export type CorridorSendResult = {

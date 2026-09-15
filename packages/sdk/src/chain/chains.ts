@@ -2,7 +2,7 @@
 // Hub = Arbitrum (PRD §7.1). Testnet hub = Arbitrum Sepolia.
 //
 // NOTE: the hub contract suite lives in ../../contracts (Foundry). Deploy it
-// to Arbitrum Sepolia with `forge script script/DeployStableArcHub.s.sol
+// to Arbitrum Sepolia with `forge script script/DeployPesarcHub.s.sol
 // --rpc-url arbitrum_sepolia --broadcast` and paste the generated
 // deployments/frontend.421614.env block into .env. The legacy *Ethereum*
 // Sepolia deployment remains available via NEXT_PUBLIC_HUB_CHAIN_ID=11155111.

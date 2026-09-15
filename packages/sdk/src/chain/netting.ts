@@ -4,7 +4,7 @@
 import { formatUnits } from "viem";
 import { getPublicClient } from "./chains";
 import { CONTRACTS } from "./contracts";
-import { settlementNettingAbi } from "@stablearc/abi";
+import { settlementNettingAbi } from "@pesarc/abi";
 
 /** Demo netting set bootstrapped by DeploySettlementNetting.s.sol. */
 export const NETTING_SET_ID = BigInt(

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { site } from "@stablearc/sdk/site";
-import { useUIMode } from "@stablearc/sdk/ui-mode";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { site } from "@pesarc/sdk/site";
+import { useUIMode } from "@pesarc/sdk/ui-mode";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { Segmented } from "@/components/app/ui";
 
 export default function AppNav() {

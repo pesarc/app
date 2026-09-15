@@ -1,6 +1,6 @@
 "use client";
 
-// The StableArc settlement agent — Celo "Agents at Work" submission.
+// The Pesarc settlement agent — Celo "Agents at Work" submission.
 // Tell it what to send in plain language; it turns that into an on-chain
 // intent and settles it peer-to-peer in local currency, no dollar in the path.
 
@@ -30,7 +30,7 @@ export default function AgentChat() {
     {
       role: "agent",
       text:
-        "Hi — I'm StableArc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
+        "Hi — I'm Pesarc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
     },
   ]);
   const [input, setInput] = useState("");

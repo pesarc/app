@@ -4,8 +4,8 @@
 // rule — the screen never hard-fails).
 
 import { formatUnits } from "viem";
-import { celoPublicClient, CELO } from "@stablearc/sdk/celo/config";
-import { predictionMarketAbi } from "@stablearc/abi";
+import { celoPublicClient, CELO } from "@pesarc/sdk/celo/config";
+import { predictionMarketAbi } from "@pesarc/abi";
 
 export type LiveMarket = {
   id: number;

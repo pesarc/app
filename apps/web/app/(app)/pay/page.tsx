@@ -1,6 +1,6 @@
 "use client";
 
-// Scan & Pay: point the camera at a StableArc payment QR (or any wallet
+// Scan & Pay: point the camera at a Pesarc payment QR (or any wallet
 // address QR), see who you're paying and the all-in fee, and settle in one
 // tap. Live wallets pay for real on the hub chain; mock mode simulates.
 
@@ -13,22 +13,22 @@ import {
   ScanLine,
   Zap,
 } from "lucide-react";
-import { ACCOUNT } from "@stablearc/sdk/account";
-import { formatMoney, formatNumber } from "@stablearc/sdk/money";
-import { applyLivePool, getQuote, type Quote } from "@stablearc/sdk/quote";
+import { ACCOUNT } from "@pesarc/sdk/account";
+import { formatMoney, formatNumber } from "@pesarc/sdk/money";
+import { applyLivePool, getQuote, type Quote } from "@pesarc/sdk/quote";
 import {
   fetchLivePoolQuote,
   livePoolQuoteAvailable,
   type LivePoolQuote,
-} from "@stablearc/sdk/chain/liveQuote";
-import { executeCorridorSend } from "@stablearc/sdk/chain/sendCorridor";
-import { explorerTxUrl } from "@stablearc/sdk/chain/chains";
-import { CONTRACTS_READY } from "@stablearc/sdk/chain/contracts";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
-import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
+} from "@pesarc/sdk/chain/liveQuote";
+import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
+import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { Button, Card } from "@/components/app/ui";
-import { authedPostJson } from "@stablearc/sdk/api/client";
-import { payReference } from "@stablearc/sdk/reference";
+import { authedPostJson } from "@pesarc/sdk/api/client";
+import { payReference } from "@pesarc/sdk/reference";
 
 type Target = {
   /** Payout address (when the QR carried one). */
@@ -52,7 +52,7 @@ function parseScan(raw: string): Target | null {
     return { address, label: `${address.slice(0, 6)}…${address.slice(-4)}` };
   }
 
-  // StableArc pay link: https://stablearc.app/pay/<alias>?to=0x..&amount=..
+  // Pesarc pay link: https://pesarc.money/pay/<alias>?to=0x..&amount=..
   try {
     const url = new URL(text);
     const m = url.pathname.match(/\/pay\/([^/]+)/);
@@ -161,7 +161,7 @@ export default function PayPage() {
         Scan &amp; pay
       </h1>
       <p className="text-muted mb-6">
-        Point at a StableArc QR — see who you&apos;re paying and the fee, then
+        Point at a Pesarc QR — see who you&apos;re paying and the fee, then
         pay in one tap.
       </p>
 

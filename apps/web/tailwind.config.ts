@@ -12,7 +12,7 @@ const config: Config = {
         mono: ["var(--font-jetbrains)", "ui-monospace", "monospace"],
       },
       colors: {
-        // StableArc brand — marketing landing (dark). Emerald = signal/state,
+        // Pesarc brand — marketing landing (dark). Emerald = signal/state,
         // gold = value/CTA. Orange retired (2026).
         ink: "#06080b",
         accent: {

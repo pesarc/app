@@ -1,5 +1,5 @@
 {
-  "name": "@stablearc/sdk",
+  "name": "@pesarc/sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@stablearc/abi": "workspace:*",
+    "@pesarc/abi": "workspace:*",
     "@alchemy/wallet-apis": "^5.0.6",
     "@neondatabase/serverless": "^0.10.4",
     "@privy-io/react-auth": "^3.32.0",

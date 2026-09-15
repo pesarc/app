@@ -13,32 +13,32 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@stablearc/sdk/account";
-import { CURRENCIES, formatMoney, formatNumber } from "@stablearc/sdk/money";
+import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@pesarc/sdk/account";
+import { CURRENCIES, formatMoney, formatNumber } from "@pesarc/sdk/money";
 import {
   applyLivePool,
   getQuote,
   PAYOUT_METHODS,
   type PayoutMethod,
   type Quote,
-} from "@stablearc/sdk/quote";
+} from "@pesarc/sdk/quote";
 import {
   fetchLivePoolQuote,
   livePoolQuoteAvailable,
   type LivePoolQuote,
-} from "@stablearc/sdk/chain/liveQuote";
-import { useUIMode } from "@stablearc/sdk/ui-mode";
-import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
-import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
-import { TEST_RECIPIENT, RAMP_ESCROW } from "@stablearc/sdk/wallet/config";
-import { CONTRACTS_READY } from "@stablearc/sdk/chain/contracts";
-import { explorerTxUrl } from "@stablearc/sdk/chain/chains";
-import { executeCorridorSend } from "@stablearc/sdk/chain/sendCorridor";
+} from "@pesarc/sdk/chain/liveQuote";
+import { useUIMode } from "@pesarc/sdk/ui-mode";
+import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { TEST_RECIPIENT, RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
+import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
+import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
 import { Avatar, Button, Card } from "@/components/app/ui";
 import { QuoteBreakdown, formatEta } from "./QuoteBreakdown";
 import { PayoutStatus } from "./PayoutStatus";
-import { authedPostJson } from "@stablearc/sdk/api/client";
-import { sendReference } from "@stablearc/sdk/reference";
+import { authedPostJson } from "@pesarc/sdk/api/client";
+import { sendReference } from "@pesarc/sdk/reference";
 
 type Step = "recipient" | "amount" | "confirm" | "settling" | "success";
 
@@ -770,10 +770,10 @@ function SuccessStep({
     const text = `I sent ${formatMoney(
       quote.receiveAmount,
       quote.receiveCurrency
-    )} to ${recipient.name} with StableArc · ref ${ref}`;
+    )} to ${recipient.name} with Pesarc · ref ${ref}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "StableArc receipt", text });
+        await navigator.share({ title: "Pesarc receipt", text });
       } else {
         await navigator.clipboard.writeText(text);
         setCopied(true);

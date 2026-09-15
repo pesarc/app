@@ -1,5 +1,5 @@
 {
-  "name": "@stablearc/web",
+  "name": "@pesarc/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -23,8 +23,8 @@
     "react-dom": "18.3.1",
     "viem": "^2.30.1",
     "zod": "^3.24.1",
-    "@stablearc/sdk": "workspace:*",
-    "@stablearc/abi": "workspace:*"
+    "@pesarc/sdk": "workspace:*",
+    "@pesarc/abi": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",

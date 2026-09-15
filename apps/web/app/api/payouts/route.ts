@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createPayout, getPayout } from "@stablearc/sdk/payouts";
-import { getAccount } from "@stablearc/sdk/api/auth";
-import { rateLimit } from "@stablearc/sdk/api/guard";
+import { createPayout, getPayout } from "@pesarc/sdk/payouts";
+import { getAccount } from "@pesarc/sdk/api/auth";
+import { rateLimit } from "@pesarc/sdk/api/guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
