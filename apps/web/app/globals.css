@@ -4,6 +4,41 @@
 
 :root {
   color-scheme: dark;
+
+  /* shadcn/ui tokens — mapped to the Relief palette. Defined at :root (not just
+     .app-surface) so Radix portals (Sheet, Dropdown, Tooltip) inherit them.
+     The dark marketing landing uses its own hardcoded colors, so these are
+     inert there. */
+  --background: 48 33% 96%;   /* cream  #f9f7f0 */
+  --foreground: 0 0% 20%;     /* ink    #333333 */
+  --card: 0 0% 100%;          /* snow   #ffffff */
+  --card-foreground: 0 0% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+  --primary: 212 100% 59%;    /* sky    #2e96ff */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 48 25% 92%;    /* warm light */
+  --secondary-foreground: 210 71% 25%; /* harbor #13426f */
+  --muted: 48 20% 93%;
+  --muted-foreground: 224 15% 46%;     /* slate  #616c8a */
+  --accent: 205 82% 86%;      /* sky-tint #bde1f9 */
+  --accent-foreground: 210 71% 25%;
+  --destructive: 6 64% 46%;   /* alert  #c0392b */
+  --destructive-foreground: 0 0% 100%;
+  --border: 216 16% 84%;      /* fog    #d0d5dd */
+  --input: 216 16% 84%;
+  --ring: 212 100% 59%;
+  --radius: 0.75rem;
+
+  /* sidebar */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 224 15% 40%;
+  --sidebar-primary: 210 71% 25%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 205 82% 90%;
+  --sidebar-accent-foreground: 210 71% 25%;
+  --sidebar-border: 216 16% 88%;
+  --sidebar-ring: 212 100% 59%;
 }
 
 body {

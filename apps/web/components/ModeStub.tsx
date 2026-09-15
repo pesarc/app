@@ -31,7 +31,7 @@ export default function ModeStub({
       <h1 className="text-4xl md:text-5xl tracking-tight font-semibold text-deepink mb-4 text-balance">
         {title}
       </h1>
-      <p className="text-base md:text-lg text-muted leading-relaxed max-w-2xl mb-10">
+      <p className="text-base md:text-lg text-slate leading-relaxed max-w-2xl mb-10">
         {description}
       </p>
 
