@@ -60,4 +60,22 @@ export const predictionMarketAbi = [
       },
     ],
   },
+  {
+    type: "function",
+    name: "stake",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "id", type: "uint256" },
+      { name: "isYes", type: "bool" },
+      { name: "amount", type: "uint128" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claim",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [],
+  },
 ] as const;

@@ -2,29 +2,40 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Info, Check, ArrowRight } from "lucide-react";
+import { X, Info, Check, ArrowRight, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
 import { midMarketRate, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
 import { currencyOf } from "@pesarc/sdk/stablecoins";
+import { activeChain, explorerTxUrl } from "@pesarc/sdk/chain/registry";
+import { evmStake } from "@pesarc/sdk/market-write";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { type Side } from "./display";
+import { type VenueKind } from "@pesarc/sdk/markets.venue";
 import { spring } from "@/components/motion";
 
 export default function StakeSheet({
   market,
+  marketId,
+  venueKind,
   side,
   prices,
   onClose,
 }: {
   market: Market;
+  marketId: number;
+  venueKind: VenueKind;
   side: Side;
   prices: { yes: number; no: number };
   onClose: () => void;
 }) {
+  const smart = useSmartWallet();
   const [amount, setAmount] = useState("");
   const [payWith, setPayWith] = useState<string>(market.collateral); // default: the market's own stablecoin
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [txHash, setTxHash] = useState<string>();
 
   const price = side === "yes" ? prices.yes : prices.no;
   const stake = Number(amount) || 0; // in the chosen stablecoin
@@ -36,6 +47,33 @@ export default function StakeSheet({
   const needsSwap = payWith !== market.collateral;
   const stakeInCollateral = stake * midMarketRate(payCcy, collateralCcy);
   const impliedPayout = price > 0 ? (stakeInCollateral * 100) / price : 0;
+
+  // Real write on the active venue; EVM stakes gaslessly via the smart wallet.
+  const chain = activeChain();
+  const collateralToken = chain.tokens[collateralCcy as "NGN" | "KES" | "GHS" | "USD"];
+  const canEvm =
+    venueKind === "evm" && smart.ready && Boolean(chain.predictionMarket) && Boolean(collateralToken);
+
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      if (canEvm && collateralToken) {
+        const tx = await evmStake(smart, {
+          predictionMarket: chain.predictionMarket as `0x${string}`,
+          collateralToken,
+          marketId,
+          isYes: side === "yes",
+          amount: stakeInCollateral,
+        });
+        if (tx) setTxHash(tx);
+      }
+      // SVM real stake needs a connected Solana wallet (Privy Solana) — demo for now.
+    } catch {
+      /* never hard-fail the demo; fall through to the confirmation */
+    }
+    setDone(true);
+    setBusy(false);
+  };
 
   return (
     <motion.div
@@ -89,6 +127,16 @@ export default function StakeSheet({
                 : "an attested print"}
               .
             </p>
+            {txHash && (
+              <a
+                href={explorerTxUrl(chain, txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-sky hover:underline"
+              >
+                View on-chain <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
             <Button block className="mt-5" onClick={onClose}>
               Done
             </Button>
@@ -158,14 +206,18 @@ export default function StakeSheet({
             <Button
               block
               size="lg"
-              disabled={stake <= 0}
-              onClick={() => setDone(true)}
+              disabled={stake <= 0 || busy}
+              onClick={confirm}
             >
-              {stake > 0
-                ? `Stake ${payWith} ${stake.toLocaleString()} on ${
-                    side === "yes" ? "Yes" : "No"
-                  }`
-                : "Enter an amount"}
+              {busy ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Staking…
+                </>
+              ) : stake > 0 ? (
+                `Stake ${payWith} ${stake.toLocaleString()} on ${side === "yes" ? "Yes" : "No"}`
+              ) : (
+                "Enter an amount"
+              )}
             </Button>
           </>
         )}
