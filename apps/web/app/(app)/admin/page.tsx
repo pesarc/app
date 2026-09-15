@@ -55,18 +55,46 @@ export default function AdminPage() {
   const [editing, setEditing] = useState<string | null>(null); // id or "new"
   const [form, setForm] = useState<Record<string, string>>(blank("markets"));
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async (k: Kind) => {
-    setLoading(true);
+  // Admin is private: gated by ADMIN_SECRET server-side; the passphrase is kept
+  // locally and sent as x-admin-secret on every request.
+  const [secret, setSecret] = useState<string>(() => {
     try {
-      const res = await fetch(`/api/admin/catalog?kind=${k}`);
-      const j = await res.json();
-      setItems(j.ok ? j.items : []);
+      return typeof window !== "undefined" ? localStorage.getItem("pesarc.admin-secret") ?? "" : "";
     } catch {
-      setItems([]);
+      return "";
     }
-    setLoading(false);
-  }, []);
+  });
+  const [authed, setAuthed] = useState(true);
+  const [entry, setEntry] = useState("");
+
+  const hdr = useCallback(
+    (json = false): Record<string, string> => ({
+      ...(json ? { "content-type": "application/json" } : {}),
+      ...(secret ? { "x-admin-secret": secret } : {}),
+    }),
+    [secret],
+  );
+
+  const load = useCallback(
+    async (k: Kind) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/admin/catalog?kind=${k}`, { headers: hdr() });
+        if (res.status === 403) {
+          setAuthed(false);
+          setItems([]);
+        } else {
+          const j = await res.json();
+          setAuthed(true);
+          setItems(j.ok ? j.items : []);
+        }
+      } catch {
+        setItems([]);
+      }
+      setLoading(false);
+    },
+    [hdr],
+  );
 
   useEffect(() => {
     load(kind);
@@ -93,7 +121,7 @@ export default function AdminPage() {
       const isNew = editing === "new";
       await fetch("/api/admin/catalog", {
         method: isNew ? "POST" : "PATCH",
-        headers: { "content-type": "application/json" },
+        headers: hdr(true),
         body: JSON.stringify(isNew ? { kind, data } : { kind, id: editing, data }),
       });
       setEditing(null);
@@ -105,9 +133,44 @@ export default function AdminPage() {
   };
 
   const remove = async (id: string) => {
-    await fetch(`/api/admin/catalog?kind=${kind}&id=${id}`, { method: "DELETE" });
+    await fetch(`/api/admin/catalog?kind=${kind}&id=${id}`, { method: "DELETE", headers: hdr() });
     await load(kind);
   };
+
+  const unlock = () => {
+    try {
+      localStorage.setItem("pesarc.admin-secret", entry);
+    } catch {
+      /* ignore */
+    }
+    setSecret(entry);
+    setAuthed(true);
+  };
+
+  if (!authed) {
+    return (
+      <div className="mx-auto w-full max-w-sm px-4 py-20">
+        <h1 className="text-[22px] font-extrabold text-harbor tracking-tight mb-1">Admin access</h1>
+        <p className="text-sm font-medium text-slate mb-4">
+          This area is private. Enter your admin passphrase.
+        </p>
+        <input
+          type="password"
+          value={entry}
+          onChange={(e) => setEntry(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && unlock()}
+          placeholder="Admin passphrase"
+          className="w-full rounded-field border border-fog bg-snow px-4 py-3 text-[15px] text-ink mb-3"
+        />
+        <button
+          onClick={unlock}
+          className="w-full rounded-pill bg-sky text-white font-bold py-3 shadow-pop-sm"
+        >
+          Unlock
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 py-6 md:py-10">
