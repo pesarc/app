@@ -77,6 +77,9 @@ Solana a first-class home (in progress):
 - [x] LLM via OpenRouter (OpenAI-compatible) for the settlement agent
 - [x] Venue-neutral market read (`markets.venue`: `fetchLiveMarkets`/`activeVenue`)
 - [x] SVM adapter for prediction-market reads (mirror `markets.live`, lazy-loaded)
+- [x] Programs deployed to Solana devnet: prediction_market
+      `2aMC2CKjqwxmLrS6dv98c6pVYEKogRXxEuz3NZpzv8CZ`, realized_rate_oracle
+      `4NUdEu7crxzR1AtHhaiMLk4q1ctTvhZLREq7Pbt9KNkK` (env set; markets not yet seeded)
 - [ ] SVM oracle (realized-rate) reads + SVM write path (stake/claim)
 - [ ] Multi-venue `fetchLiveMarkets()` that fans out and merges across homes
 - [ ] Cross-venue P2P intent matching (EVM ↔ SVM via spoke-gateway / CCTP)
