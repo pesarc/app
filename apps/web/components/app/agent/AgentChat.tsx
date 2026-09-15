@@ -98,20 +98,22 @@ export default function AgentChat() {
   );
 
   return (
-    <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 md:py-10">
       <div className="mb-5">
         <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky uppercase tracking-widest mb-1">
           <Bot className="w-4 h-4" /> Settlement agent · Celo
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
+        <h1 className="text-[27px] font-extrabold tracking-tight text-harbor mb-1.5">
           Just say what to send
         </h1>
-        <p className="text-slate">
+        <p className="text-slate max-w-xl">
           The agent turns plain language into an on-chain settlement and matches
           it peer-to-peer — local currency, zero dollars.
         </p>
       </div>
 
+      <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6 lg:items-start">
+      <div className="space-y-4 mb-4 lg:mb-0 lg:sticky lg:top-20">
       {budget && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="p-4 mb-4">
@@ -151,7 +153,10 @@ export default function AgentChat() {
           </Card>
         </motion.div>
       )}
+      <AgentCapabilities />
+      </div>
 
+      <div className="min-w-0">
       <div className="space-y-3 mb-4">
         {msgs.map((m, i) =>
           m.role === "user" ? (
@@ -264,6 +269,40 @@ export default function AgentChat() {
           <ArrowUp className="w-5 h-5" />
         </button>
       </form>
+      </div>
+      </div>
     </div>
+  );
+}
+
+/* Bounded on-chain authority — what makes the agent safe to trust. */
+function AgentCapabilities() {
+  const items = [
+    { icon: ShieldCheck, title: "Session-key spend cap", body: "Every action is metered against an on-chain cap and expiry you granted." },
+    { icon: Bot, title: "ERC-8004 identity", body: "The agent has its own on-chain identity — actions are attributable, not anonymous." },
+    { icon: Sparkles, title: "x402-metered tools", body: "Paid tools charge per call over x402; no standing access, no surprises." },
+  ];
+  return (
+    <Card className="p-4">
+      <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-3">
+        Bounded, on-chain
+      </div>
+      <div className="space-y-3.5">
+        {items.map((it) => {
+          const Icon = it.icon;
+          return (
+            <div key={it.title} className="flex gap-3">
+              <span className="w-8 h-8 shrink-0 rounded-full bg-sky-tint/60 flex items-center justify-center text-sky-deep">
+                <Icon className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="text-[13.5px] font-bold text-harbor leading-tight">{it.title}</div>
+                <div className="text-[12.5px] text-slate leading-snug mt-0.5">{it.body}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }

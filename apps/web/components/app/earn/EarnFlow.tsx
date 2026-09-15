@@ -50,20 +50,20 @@ export default function EarnFlow() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 md:py-10">
       <div className="flex items-center gap-3 mb-1.5">
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">
+        <h1 className="text-[27px] font-extrabold tracking-tight text-harbor">
           Earn
         </h1>
       </div>
-      <p className="text-slate mb-6">
+      <p className="text-slate mb-6 max-w-xl">
         Put your money to work earning fees on a corridor. Bounded, insured
         risk — withdraw anytime.
       </p>
 
       {/* Active positions */}
       {positions.length > 0 && (
-        <div className="space-y-2 mb-7">
+        <div className="grid gap-3 sm:grid-cols-2 mb-7">
           {positions.map((pos) => {
             const pool = POOLS.find((p) => p.id === pos.poolId)!;
             return (
@@ -95,7 +95,7 @@ function BasicChoices({ onPick }: { onPick: (p: Pool) => void }) {
   const invest = POOLS.find((p) => p.tier === "invest")!;
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       <ChoiceCard
         pool={save}
         title="Save"
@@ -111,7 +111,7 @@ function BasicChoices({ onPick }: { onPick: (p: Pool) => void }) {
         recommended
         onPick={onPick}
       />
-      <p className="text-xs text-slate leading-relaxed pt-2 px-1">
+      <p className="sm:col-span-2 text-xs text-slate leading-relaxed pt-2 px-1">
         Returns come from corridor fees, not interest on your balance. Each
         option is covered by the Safety Module. Switch to{" "}
         <span className="font-medium text-ink">Advanced</span> to choose
@@ -182,6 +182,7 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
         <span className="text-xs text-slate">APY = fee + spread + rewards</span>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {POOLS.map((pool) => (
         <Card key={pool.id} className="p-5">
           <div className="flex items-start justify-between mb-3">
@@ -217,6 +218,7 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
           </div>
         </Card>
       ))}
+      </div>
 
       <p className="text-xs text-slate leading-relaxed pt-1 px-1">
         Variable APY. Corridor pools carry residual peg risk, backstopped by the
