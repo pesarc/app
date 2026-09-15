@@ -9,6 +9,7 @@ import {
   LiveSmartWalletProvider,
   MockSmartWalletProvider,
 } from "./smart-wallet";
+import { LiveSolanaProvider } from "./solana";
 
 export type WalletMode = "mock" | "live";
 
@@ -73,7 +74,9 @@ function LiveWalletBridge({ children }: { children: React.ReactNode }) {
 
   return (
     <WalletContext.Provider value={value}>
-      <LiveSmartWalletProvider>{children}</LiveSmartWalletProvider>
+      <LiveSolanaProvider>
+        <LiveSmartWalletProvider>{children}</LiveSmartWalletProvider>
+      </LiveSolanaProvider>
     </WalletContext.Provider>
   );
 }
@@ -87,18 +90,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        // PRD W1: phone/passkey/social, no seed phrase.
-        loginMethods: ["sms", "passkey", "email", "google"],
+        // Sign-in: Google, phone, email, passkey — no seed phrase.
+        loginMethods: ["google", "sms", "email", "passkey"],
         embeddedWallets: {
-          // Alchemy smart-wallet client needs an embedded wallet to sign.
+          // Alchemy smart-wallet client needs an EVM embedded wallet to sign;
+          // the Solana embedded wallet powers on-chain staking on the SVM venue.
           ethereum: { createOnLogin: "all-users" },
+          solana: { createOnLogin: "all-users" },
           showWalletUIs: false,
         },
         defaultChain: HUB_CHAIN,
         supportedChains: [HUB_CHAIN],
         appearance: {
           theme: "light",
-          accentColor: "#EA580C",
+          accentColor: "#2e96ff",
+          walletChainType: "ethereum-and-solana",
           logo: undefined,
         },
       }}

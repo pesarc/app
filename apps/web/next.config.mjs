@@ -41,6 +41,13 @@ const nextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  webpack: (config) => {
+    // Privy's Solana funding plugin pulls @solana-program/memo, whose build
+    // expects a @solana/kit subpath our pinned kit doesn't export. We don't use
+    // funding — only wallet + signTransaction — so ignore memo entirely.
+    config.resolve.alias = { ...config.resolve.alias, "@solana-program/memo": false };
+    return config;
+  },
 };
 
 export default nextConfig;
