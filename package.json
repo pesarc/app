@@ -1,7 +1,7 @@
 {
   "name": "stablearc",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@11.5.1",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
