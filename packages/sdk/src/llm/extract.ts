@@ -63,9 +63,20 @@ async function viaOpenAI(system: string, userMessage: string, tools: ToolSpec[])
   const model = process.env.LLM_MODEL || "gpt-4o-mini";
   if (!apiKey) throw new Error("LLM_API_KEY is not set");
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+  // OpenRouter uses these for attribution / app ranking (optional but recommended).
+  if (baseUrl.includes("openrouter.ai")) {
+    headers["HTTP-Referer"] =
+      process.env.OPENROUTER_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://pesarc.app";
+    headers["X-Title"] = process.env.OPENROUTER_APP_NAME || "Pesarc";
+  }
+
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    headers,
     body: JSON.stringify({
       model,
       max_tokens: 400,

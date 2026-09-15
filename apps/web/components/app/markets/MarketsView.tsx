@@ -5,7 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { Shield, Radio } from "lucide-react";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { fetchLiveMarkets, type LiveMarket } from "@pesarc/sdk/markets.live";
-import { CELO, celoExplorerAddress } from "@pesarc/sdk/celo/config";
+import { activeChain, explorerAddressUrl } from "@pesarc/sdk/chain/registry";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
@@ -29,6 +29,7 @@ export default function MarketsView() {
   }, []);
 
   const isLive = Boolean(live && live.length > 0);
+  const chain = activeChain();
 
   const list = useMemo(
     () =>
@@ -46,13 +47,13 @@ export default function MarketsView() {
           <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Markets</h1>
           {isLive && (
             <a
-              href={celoExplorerAddress(CELO.predictionMarket)}
+              href={explorerAddressUrl(chain, chain.predictionMarket)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-extrabold px-2.5 py-1 hover:bg-sky-tint transition-colors"
-              aria-label="View the prediction market contract on the Celo explorer"
+              aria-label="View the prediction market contract on the block explorer"
             >
-              <Radio className="w-3 h-3" /> Live · Celo
+              <Radio className="w-3 h-3" /> Live · {chain.label}
             </a>
           )}
         </div>
