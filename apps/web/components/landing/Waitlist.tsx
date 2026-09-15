@@ -63,7 +63,7 @@ export default function Waitlist() {
         </h2>
 
         <p className="text-base md:text-lg text-blue-100/70 font-light max-w-xl mb-10 text-balance leading-relaxed">
-          Join the waitlist for the Luberty beta. Be first to send money home,
+          Join the waitlist for the Pesarc beta. Be first to send money home,
           gasless, in under a minute, in your own currency.
         </p>
 

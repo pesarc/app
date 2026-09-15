@@ -11,7 +11,7 @@ export type PayoutMethod = "bank" | "mobile_money" | "wallet";
 export const PAYOUT_METHODS: { id: PayoutMethod; label: string; hint: string }[] = [
   { id: "bank", label: "Bank account", hint: "Pay into any local bank" },
   { id: "mobile_money", label: "Mobile money", hint: "M-Pesa, Airtel, OPay" },
-  { id: "wallet", label: "Luberty balance", hint: "Instant in-app credit" },
+  { id: "wallet", label: "Pesarc balance", hint: "Instant in-app credit" },
 ];
 
 /** All-in fee folded into the FX spread (PRD: 0.5–1% vs 8.78% legacy). */

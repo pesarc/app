@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -121,7 +122,14 @@ export default function SendFlow() {
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       <Progress step={step} />
 
-      <div key={step} className="animate-step-in">
+      <AnimatePresence mode="wait">
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -16 }}
+        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+      >
         {step === "recipient" && (
           <RecipientStep
             onSelect={(r) => {
@@ -179,7 +187,8 @@ export default function SendFlow() {
             onAnother={reset}
           />
         )}
-      </div>
+      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
