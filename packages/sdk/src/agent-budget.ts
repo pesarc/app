@@ -19,7 +19,8 @@ const DECIMALS = 18;
 
 export async function fetchAgentBudget(key?: `0x${string}`): Promise<AgentBudget> {
   const addr = CELO.agentSessionKeys;
-  if (!addr || !key) return MOCK;
+  const agentKey = key ?? CELO.agentKey; // demo/default agent key from env
+  if (!addr || !agentKey) return MOCK;
   try {
     const client = celoPublicClient();
     const [rem, session] = await Promise.all([
@@ -27,13 +28,13 @@ export async function fetchAgentBudget(key?: `0x${string}`): Promise<AgentBudget
         address: addr,
         abi: agentSessionKeysAbi,
         functionName: "remaining",
-        args: [key],
+        args: [agentKey],
       }),
       client.readContract({
         address: addr,
         abi: agentSessionKeysAbi,
         functionName: "sessions",
-        args: [key],
+        args: [agentKey],
       }),
     ]);
     // sessions(key) → [token, cap, spent, expiry, active]
