@@ -5,12 +5,48 @@
 // otherwise it renders the server-provided fallback rows (DB / sample data).
 
 import { useEffect, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { fetchOnchainActivity, type OnchainActivity } from "@pesarc/sdk/chain/history";
 import { explorerTxUrl, chainLabel } from "@pesarc/sdk/chain/chains";
-import { Card } from "@/components/app/ui";
+import { initials } from "@pesarc/sdk/account";
+
+/** Shared row chrome — flat card, initials avatar with an optional flag badge. */
+function Row({
+  name,
+  initialsColor,
+  flag,
+  sub,
+  amount,
+  positive,
+}: {
+  name: string;
+  initialsColor: string;
+  flag?: string;
+  sub: React.ReactNode;
+  amount: React.ReactNode;
+  positive: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 bg-snow border border-fog rounded-[20px] px-4 py-3 shadow-card-flat">
+      <div
+        className="relative w-[42px] h-[42px] rounded-full flex items-center justify-center font-extrabold text-sm text-white shrink-0"
+        style={{ backgroundColor: initialsColor }}
+      >
+        {initials(name)}
+        {flag && <span className="absolute -right-1 -bottom-1 text-sm">{flag}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-bold text-ink truncate">{name}</div>
+        <div className="text-[12.5px] font-medium text-slate truncate">{sub}</div>
+      </div>
+      <div className={`text-right text-[15px] font-extrabold numerals ${positive ? "text-sky-deep" : "text-harbor"}`}>
+        {amount}
+      </div>
+    </div>
+  );
+}
 
 export type FallbackItem = {
   id: string;
@@ -55,8 +91,8 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
 
   if (live && onchain && onchain.length > 0) {
     return (
-      <div className="space-y-2">
-        <div className="text-[11px] text-muted mb-1">
+      <div className="space-y-2.5">
+        <div className="text-[11px] font-semibold uppercase tracking-widest text-slate mb-1">
           On-chain · {chainLabel()}
         </div>
         {onchain.map((a) => {
@@ -67,43 +103,26 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
               href={explorerTxUrl(a.txHash)}
               target="_blank"
               rel="noreferrer"
-              className="block group"
+              className="block"
             >
-              <Card className="flex items-center gap-3 p-3.5 group-hover:border-emerald/40 transition">
-                <span
-                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    sent ? "bg-emerald-50 text-emerald" : "bg-gold/15 text-gold"
-                  }`}
-                >
-                  {sent ? (
-                    <ArrowUpRight className="w-5 h-5" />
-                  ) : (
-                    <ArrowDownLeft className="w-5 h-5" />
-                  )}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-deepink truncate">
-                    {sent ? "Sent to" : "Received from"} {a.counterparty}
-                  </div>
-                  <div className="text-xs text-muted flex items-center gap-1">
-                    {timeAgo(a.timestamp)}
+              <Row
+                name={a.counterparty}
+                initialsColor={sent ? "#13426f" : "#0254a5"}
+                positive={!sent}
+                sub={
+                  <span className="inline-flex items-center gap-1">
+                    {sent ? "Sent" : "Received"} · {timeAgo(a.timestamp)}
                     <ExternalLink className="w-3 h-3 opacity-60" />
-                  </div>
-                </div>
-                <div
-                  className={`font-semibold numerals ${
-                    sent ? "text-deepink" : "text-success"
-                  }`}
-                >
-                  {sent ? "−" : "+"}
-                  {a.amount.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  <span className="text-xs font-medium opacity-70">
-                    {a.symbol}
                   </span>
-                </div>
-              </Card>
+                }
+                amount={
+                  <>
+                    {sent ? "−" : "+"}
+                    {a.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                    <span className="text-xs font-semibold opacity-70">{a.symbol}</span>
+                  </>
+                }
+              />
             </a>
           );
         })}
@@ -112,39 +131,24 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {fallback.map((a) => {
         const sent = a.kind === "sent";
         return (
-          <Card key={a.id} className="flex items-center gap-3 p-3.5">
-            <span
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                sent ? "bg-emerald-50 text-emerald" : "bg-gold/15 text-gold"
-              }`}
-            >
-              {sent ? (
-                <ArrowUpRight className="w-5 h-5" />
-              ) : (
-                <ArrowDownLeft className="w-5 h-5" />
-              )}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-deepink truncate">
-                {sent ? "Sent to" : "Received from"} {a.counterparty}
-              </div>
-              <div className="text-xs text-muted">
-                {a.flag} {a.when}
-              </div>
-            </div>
-            <div
-              className={`font-semibold numerals ${
-                sent ? "text-deepink" : "text-success"
-              }`}
-            >
-              {sent ? "−" : "+"}
-              {a.amountLabel}
-            </div>
-          </Card>
+          <Row
+            key={a.id}
+            name={a.counterparty}
+            initialsColor={sent ? "#13426f" : "#0254a5"}
+            flag={a.flag}
+            positive={!sent}
+            sub={`${sent ? "Sent" : "Received"} · ${a.when}`}
+            amount={
+              <>
+                {sent ? "−" : "+"}
+                {a.amountLabel}
+              </>
+            }
+          />
         );
       })}
     </div>

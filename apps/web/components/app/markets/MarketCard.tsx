@@ -1,8 +1,19 @@
-import { Shield, TrendingUp } from "lucide-react";
-import { Card } from "@/components/app/ui";
+import { Shield, Sun } from "lucide-react";
 import { type Market } from "@pesarc/sdk/markets";
 import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Side } from "./display";
+
+const COLLATERAL_SYMBOL: Record<string, string> = {
+  cNGN: "₦",
+  cKES: "KSh ",
+  cGHS: "₵ ",
+};
+
+function compact(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 2) + "m";
+  if (n >= 1_000) return Math.round(n / 1_000) + "k";
+  return String(n);
+}
 
 export default function MarketCard({
   market,
@@ -15,65 +26,84 @@ export default function MarketCard({
 }) {
   const p = displayPrices(market, live);
   const pool = displayPool(market, live);
+  const sym = COLLATERAL_SYMBOL[market.collateral] ?? "";
+  const oracle = market.resolver.kind === "oracle";
+
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3 mb-3">
-        <span className="text-2xl leading-none mt-0.5">{market.flag}</span>
-        <div className="flex-1">
-          <p className="font-semibold text-deepink leading-snug">
+    <div className="bg-snow border border-fog rounded-card p-[18px] shadow-card-flat">
+      {/* Header */}
+      <div className="flex gap-3 mb-3.5">
+        <span className="w-10 h-10 rounded-[13px] bg-cream flex items-center justify-center text-xl shrink-0">
+          {market.flag}
+        </span>
+        <div>
+          <div className="text-[15px] font-extrabold text-harbor leading-snug">
             {market.question}
-          </p>
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {market.hedge && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald/10 text-emerald text-[11px] font-semibold px-2 py-0.5">
-                <Shield className="w-3 h-3" /> Hedge
-              </span>
-            )}
-            <span className="text-[11px] text-muted">
-              Resolves {market.resolves} · {market.collateral}
-            </span>
           </div>
+          {market.hedge ? (
+            <div className="inline-flex items-center gap-1.5 mt-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-bold px-2.5 py-0.5">
+              <Shield className="w-[11px] h-[11px]" />
+              {market.kind === "fx" ? "FX hedge" : "Cover"}
+            </div>
+          ) : (
+            <div className="mt-1.5 text-[11px] font-bold text-slate">
+              {cap(market.kind)} · settled in {market.collateral}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      {market.hedge && market.hedgeNote && (
+        <div className="text-[12.5px] italic font-medium text-slate mb-3.5">
+          {market.hedgeNote}
+        </div>
+      )}
+
+      {/* Parimutuel split bar */}
+      <div className="flex h-2.5 rounded-full overflow-hidden mb-2">
+        <div className="bg-sky" style={{ width: `${p.yes}%` }} />
+        <div className="bg-fog" style={{ width: `${p.no}%` }} />
+      </div>
+      <div className="flex justify-between mb-4 numerals">
+        <span className="text-[12.5px] font-bold text-sky-deep">Yes {p.yes}%</span>
+        <span className="text-[12.5px] font-bold text-slate">No {p.no}%</span>
+      </div>
+
+      {/* Stake buttons */}
+      <div className="flex gap-2.5 mb-3.5">
         <button
           onClick={() => onStake("yes")}
-          className="rounded-xl border border-emerald/20 bg-emerald-50 hover:bg-emerald/15 transition-colors py-2.5 text-center"
+          className="flex-1 rounded-2xl bg-sky text-white py-3 text-sm font-extrabold shadow-pop-sm hover:-translate-y-0.5 transition-transform"
         >
-          <div className="text-xs font-medium text-muted">Yes</div>
-          <div className="text-lg font-semibold text-emerald numerals">
-            {p.yes}¢
-          </div>
+          Yes · <span className="numerals">{p.yes}¢</span>
         </button>
         <button
           onClick={() => onStake("no")}
-          className="rounded-xl border border-black/10 bg-black/[0.03] hover:bg-black/[0.06] transition-colors py-2.5 text-center"
+          className="flex-1 rounded-2xl bg-snow text-harbor border-[1.5px] border-fog py-3 text-sm font-extrabold hover:border-slate/50 transition-colors"
         >
-          <div className="text-xs font-medium text-muted">No</div>
-          <div className="text-lg font-semibold text-deepink numerals">
-            {p.no}¢
-          </div>
+          No · <span className="numerals">{p.no}¢</span>
         </button>
       </div>
 
-      <div className="flex items-center justify-between mt-3 text-[11px] text-muted">
-        <span className="inline-flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
-          {market.collateral} {pool.toLocaleString()} pooled
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3.5 border-t border-cream">
+        <span className="text-[12.5px] font-semibold text-slate numerals">
+          {sym}
+          {compact(pool)} pool · closes {market.closes}
         </span>
-        <span className="truncate max-w-[55%] text-right">
-          {market.resolver.kind === "oracle"
-            ? market.resolver.feed
-            : market.resolver.attestor}
+        <span
+          className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+            oracle ? "text-sky-deep" : "text-slate"
+          }`}
+        >
+          {oracle ? <Sun className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+          {oracle ? "Realized-rate oracle" : "Bonded attestor"}
         </span>
       </div>
-
-      {market.hedge && market.hedgeNote && (
-        <p className="mt-2 text-[11px] text-emerald/90 bg-emerald-50 rounded-lg px-2.5 py-1.5">
-          {market.hedgeNote}
-        </p>
-      )}
-    </Card>
+    </div>
   );
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
