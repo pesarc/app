@@ -15,8 +15,8 @@ export default function AppNav() {
     <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-cloud/85 backdrop-blur-md">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald text-white font-semibold text-[11px]">
-            SA
+          <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-sky text-white font-bold text-[13px]">
+            P
           </span>
           <span className="text-base tracking-tight text-deepink font-semibold">
             {site.name}

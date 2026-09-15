@@ -27,10 +27,12 @@ export function Button({
     lg: "px-7 py-4 text-base",
   };
   const variants = {
-    primary: "bg-emerald text-white hover:bg-emerald-600 shadow-soft",
+    // Signature Relief CTA: sky fill + flat 7px sky pop-shadow (never a blur).
+    primary:
+      "bg-sky text-white hover:bg-sky-deep shadow-pop hover:-translate-y-0.5",
     secondary:
-      "bg-white text-deepink border border-black/10 hover:border-black/20 shadow-soft",
-    ghost: "text-emerald hover:bg-emerald-50",
+      "bg-snow text-harbor border border-fog hover:border-slate/50 shadow-card-flat",
+    ghost: "text-sky hover:bg-sky-tint/50",
   };
   return (
     <button
