@@ -30,6 +30,7 @@ function kindOf(v: string | null): CatalogKind | null {
 export async function GET(request: Request) {
   const limited = rateLimit(request, "admin-read", 60, 60_000);
   if (limited) return limited;
+  if (forbidden(request)) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   const kind = kindOf(new URL(request.url).searchParams.get("kind"));
   if (!kind) return NextResponse.json({ ok: false, error: "unknown kind" }, { status: 400 });
   return NextResponse.json({ ok: true, items: await listCatalog(kind) });
