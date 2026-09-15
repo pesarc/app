@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Info, Check } from "lucide-react";
+import { X, Info, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
+import { midMarketRate, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
+import { currencyOf } from "@pesarc/sdk/stablecoins";
+import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { type Side } from "./display";
 import { spring } from "@/components/motion";
 
@@ -20,13 +23,19 @@ export default function StakeSheet({
   onClose: () => void;
 }) {
   const [amount, setAmount] = useState("");
+  const [payWith, setPayWith] = useState<string>(market.collateral); // default: the market's own stablecoin
   const [done, setDone] = useState(false);
 
   const price = side === "yes" ? prices.yes : prices.no;
-  const stake = Number(amount) || 0;
-  // Parimutuel: your real share is stake / winning-pool. We show a simple
-  // implied return from the current price (illustrative, mock-only).
-  const impliedPayout = price > 0 ? (stake * 100) / price : 0;
+  const stake = Number(amount) || 0; // in the chosen stablecoin
+
+  // The market settles in its collateral; a non-collateral stablecoin is
+  // auto-swapped to it (cross-FX). All the market math is in collateral units.
+  const collateralCcy = market.collateral.slice(1) as CurrencyCode; // cNGN -> NGN
+  const payCcy = currencyOf(payWith);
+  const needsSwap = payWith !== market.collateral;
+  const stakeInCollateral = stake * midMarketRate(payCcy, collateralCcy);
+  const impliedPayout = price > 0 ? (stakeInCollateral * 100) / price : 0;
 
   return (
     <motion.div
@@ -72,8 +81,9 @@ export default function StakeSheet({
               {side === "yes" ? "Yes" : "No"} position placed
             </p>
             <p className="text-sm text-slate mt-1">
-              {market.collateral} {stake.toLocaleString()} staked · settles{" "}
-              {market.resolves} from{" "}
+              {payWith} {stake.toLocaleString()} staked
+              {needsSwap ? ` (→ ${market.collateral} ${Math.round(stakeInCollateral).toLocaleString()})` : ""}
+              {" "}· settles {market.resolves} from{" "}
               {market.resolver.kind === "oracle"
                 ? "the realized rate"
                 : "an attested print"}
@@ -85,11 +95,15 @@ export default function StakeSheet({
           </div>
         ) : (
           <>
+            <div className="mb-3">
+              <StablecoinSelect value={payWith} onChange={setPayWith} label="Stake with" />
+            </div>
+
             <label className="block text-xs font-medium text-slate mb-1.5">
-              Amount ({market.collateral})
+              Amount ({payWith})
             </label>
             <div className="flex items-center rounded-xl border border-fog bg-snow px-4 py-3 mb-2">
-              <span className="text-slate mr-2 text-sm">{market.collateral}</span>
+              <span className="text-slate mr-2 text-sm">{payWith}</span>
               <input
                 inputMode="decimal"
                 autoFocus
@@ -100,7 +114,7 @@ export default function StakeSheet({
               />
             </div>
 
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-3">
               {[5000, 20000, 50000].map((q) => (
                 <button
                   key={q}
@@ -111,6 +125,15 @@ export default function StakeSheet({
                 </button>
               ))}
             </div>
+
+            {needsSwap && stake > 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-sky-deep mb-3">
+                {payWith} {formatNumber(stake, payCcy)}
+                <ArrowRight className="w-3.5 h-3.5" />
+                {market.collateral} {formatNumber(stakeInCollateral, collateralCcy)}
+                <span className="text-slate font-medium">· auto-swapped</span>
+              </div>
+            )}
 
             <div className="rounded-xl bg-black/[0.03] p-3 text-sm space-y-1.5 mb-4">
               <Row label="Price" value={`${price}¢ per ${market.collateral} 1`} />
@@ -139,7 +162,7 @@ export default function StakeSheet({
               onClick={() => setDone(true)}
             >
               {stake > 0
-                ? `Stake ${market.collateral} ${stake.toLocaleString()} on ${
+                ? `Stake ${payWith} ${stake.toLocaleString()} on ${
                     side === "yes" ? "Yes" : "No"
                   }`
                 : "Enter an amount"}
