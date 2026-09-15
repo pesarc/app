@@ -1,11 +1,11 @@
-# StableArc — Engineering Standards (CLAUDE.md)
+# Pesarc — Engineering Standards (CLAUDE.md)
 
-StableArc is a cross-border stablecoin settlement network: one unified-liquidity
+Pesarc is a cross-border stablecoin settlement network: one unified-liquidity
 hub on **Arbitrum**, every other chain a thin **spoke** gateway. This repo (`luberty/`)
 is the **private** product monorepo — app, hub/spoke contracts, Solana spoke, docs.
 The open-source Goldgard hook lives separately at `jorshimayor/Goldgard`.
 
-> Folder is named `luberty/` for historical reasons; the product brand is **StableArc**.
+> Folder is named `luberty/` for historical reasons; the product brand is **Pesarc**.
 
 ## Golden rules (read first)
 

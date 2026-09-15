@@ -14,17 +14,27 @@ import {
 import { ACCOUNT } from "./account";
 import { SEND_CURRENCIES, type CurrencyCode } from "./money";
 
+/** Identity verification (KYC) status. In demo mode this is a local,
+ *  swap-in-a-provider stand-in; a real KYC provider (Persona/Sumsub/etc.) would
+ *  set it from a verified webhook. Fiat payouts require "verified" in production. */
+export type KycStatus = "unverified" | "pending" | "verified";
+
 type Ctx = {
   /** The currency the user sends in by default. */
   sendCurrency: CurrencyCode;
   setSendCurrency: (c: CurrencyCode) => void;
+  /** Identity verification status (KYC). */
+  kyc: KycStatus;
+  setKyc: (s: KycStatus) => void;
 };
 
 const PrefsContext = createContext<Ctx | null>(null);
 const KEY = "pesarc.send-currency";
+const KYC_KEY = "pesarc.kyc";
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const [sendCurrency, setState] = useState<CurrencyCode>(ACCOUNT.currency);
+  const [kyc, setKycState] = useState<KycStatus>("unverified");
 
   useEffect(() => {
     try {
@@ -32,6 +42,8 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       if (saved && (SEND_CURRENCIES as string[]).includes(saved)) {
         setState(saved as CurrencyCode);
       }
+      const k = window.localStorage.getItem(KYC_KEY);
+      if (k === "verified" || k === "pending" || k === "unverified") setKycState(k);
     } catch {
       /* ignore */
     }
@@ -46,8 +58,17 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const setKyc = useCallback((s: KycStatus) => {
+    setKycState(s);
+    try {
+      window.localStorage.setItem(KYC_KEY, s);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
-    <PrefsContext.Provider value={{ sendCurrency, setSendCurrency }}>
+    <PrefsContext.Provider value={{ sendCurrency, setSendCurrency, kyc, setKyc }}>
       {children}
     </PrefsContext.Provider>
   );
