@@ -8,6 +8,7 @@ import type { CurrencyCode } from "@pesarc/sdk/money";
 import { Card } from "@/components/app/ui";
 import { LiveBalance } from "@/components/app/LiveBalance";
 import { ActivityFeed, type FallbackItem } from "@/components/app/ActivityFeed";
+import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -56,58 +57,68 @@ export default async function HomePage() {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       {/* Balance */}
-      <Card className="p-6 mb-4 rounded-card-lg bg-gradient-to-br from-harbor to-[#0e3358] border-0 text-white shadow-card-flat">
-        <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-2">
-          Your balance
-        </div>
-        <div className="text-5xl font-semibold numerals mb-1">
-          <LiveBalance fallback={formatMoney(ACCOUNT.balance, ACCOUNT.currency)} />
-        </div>
-        <div className="text-sm text-white/70">Available now · gasless</div>
-      </Card>
+      <Reveal>
+        <Card className="p-6 mb-4 rounded-card-lg bg-gradient-to-br from-harbor to-[#0e3358] border-0 text-white shadow-card-flat">
+          <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-2">
+            Your balance
+          </div>
+          <div className="text-5xl font-semibold numerals mb-1">
+            <LiveBalance fallback={formatMoney(ACCOUNT.balance, ACCOUNT.currency)} />
+          </div>
+          <div className="text-sm text-white/70">Available now · gasless</div>
+        </Card>
+      </Reveal>
 
       {/* Primary actions */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <Link href="/send">
-          <Card className="p-4 flex flex-col items-start gap-3 hover:border-emerald/40 hover:shadow-soft-lg transition h-full">
-            <span className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald">
-              <ArrowUpRight className="w-5 h-5" />
-            </span>
-            <span className="font-semibold text-deepink">Send</span>
-          </Card>
-        </Link>
-        <Link href="/receive">
-          <Card className="p-4 flex flex-col items-start gap-3 hover:border-emerald/40 hover:shadow-soft-lg transition h-full">
-            <span className="w-10 h-10 rounded-full bg-gold/15 flex items-center justify-center text-gold">
-              <ArrowDownLeft className="w-5 h-5" />
-            </span>
-            <span className="font-semibold text-deepink">Receive</span>
-          </Card>
-        </Link>
-        <Link href="/pay">
-          <Card className="p-4 flex flex-col items-start gap-3 hover:border-emerald/40 hover:shadow-soft-lg transition h-full">
-            <span className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald">
-              <QrCode className="w-5 h-5" />
-            </span>
-            <span className="font-semibold text-deepink">Pay</span>
-          </Card>
-        </Link>
-      </div>
+      <Stagger className="grid grid-cols-3 gap-3 mb-8">
+        <StaggerItem pop className="h-full">
+          <Link href="/send">
+            <Card className="p-4 flex flex-col items-start gap-3 hover:border-sky/40 hover:shadow-pop-sm hover:-translate-y-0.5 transition h-full">
+              <span className="w-10 h-10 rounded-full bg-sky-tint flex items-center justify-center text-sky">
+                <ArrowUpRight className="w-5 h-5" />
+              </span>
+              <span className="font-semibold text-harbor">Send</span>
+            </Card>
+          </Link>
+        </StaggerItem>
+        <StaggerItem pop className="h-full">
+          <Link href="/receive">
+            <Card className="p-4 flex flex-col items-start gap-3 hover:border-sky/40 hover:shadow-pop-sm hover:-translate-y-0.5 transition h-full">
+              <span className="w-10 h-10 rounded-full bg-harbor/10 flex items-center justify-center text-harbor">
+                <ArrowDownLeft className="w-5 h-5" />
+              </span>
+              <span className="font-semibold text-harbor">Receive</span>
+            </Card>
+          </Link>
+        </StaggerItem>
+        <StaggerItem pop className="h-full">
+          <Link href="/pay">
+            <Card className="p-4 flex flex-col items-start gap-3 hover:border-sky/40 hover:shadow-pop-sm hover:-translate-y-0.5 transition h-full">
+              <span className="w-10 h-10 rounded-full bg-sky-tint flex items-center justify-center text-sky">
+                <QrCode className="w-5 h-5" />
+              </span>
+              <span className="font-semibold text-harbor">Pay</span>
+            </Card>
+          </Link>
+        </StaggerItem>
+      </Stagger>
 
       {/* Activity */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-widest">
-          Recent activity
-        </h2>
-        <Link
-          href="/add"
-          className="inline-flex items-center gap-1 text-sm font-medium text-emerald hover:underline"
-        >
-          <Plus className="w-4 h-4" /> Add money
-        </Link>
-      </div>
+      <Reveal delay={0.12}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-muted uppercase tracking-widest">
+            Recent activity
+          </h2>
+          <Link
+            href="/add"
+            className="inline-flex items-center gap-1 text-sm font-medium text-sky hover:underline"
+          >
+            <Plus className="w-4 h-4" /> Add money
+          </Link>
+        </div>
 
-      <ActivityFeed fallback={fallback} />
+        <ActivityFeed fallback={fallback} />
+      </Reveal>
     </div>
   );
 }
