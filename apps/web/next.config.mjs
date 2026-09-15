@@ -42,10 +42,15 @@ const nextConfig = {
     ],
   },
   webpack: (config) => {
-    // Privy's Solana funding plugin pulls @solana-program/memo, whose build
-    // expects a @solana/kit subpath our pinned kit doesn't export. We don't use
-    // funding — only wallet + signTransaction — so ignore memo entirely.
-    config.resolve.alias = { ...config.resolve.alias, "@solana-program/memo": false };
+    // Ignore optional Privy Solana deps we don't use — they only warn in dev but
+    // hard-fail a production `next build`. memo: Privy's funding plugin, whose
+    // build wants a @solana/kit subpath our pinned kit doesn't export.
+    // @farcaster/mini-app-solana: an optional Farcaster mini-app connector.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@solana-program/memo": false,
+      "@farcaster/mini-app-solana": false,
+    };
     return config;
   },
 };
