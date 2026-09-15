@@ -19,9 +19,12 @@ const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 const STAKE_DISCRIMINATOR = Uint8Array.from([206, 176, 202, 18, 200, 209, 179, 108]);
 
+// Byte-oriented signer so the provider never needs @solana/web3.js — it just
+// wraps the wallet's sign call (e.g. Privy's Solana embedded wallet). This
+// module builds/serializes the tx and this signer returns signed bytes.
 export type SolanaSigner = {
-  publicKey: PublicKey;
-  signTransaction: (tx: Transaction) => Promise<Transaction>;
+  address: string;
+  signTransaction: (txBytes: Uint8Array) => Promise<Uint8Array>;
 };
 
 function ata(owner: PublicKey, mint: PublicKey): PublicKey {
@@ -48,7 +51,7 @@ export async function svmStake(signer: SolanaSigner, p: SvmStakeParams): Promise
   const cfg = svmConfig();
   const conn = new Connection(cfg.rpcUrl, "confirmed");
   const programId = new PublicKey(cfg.predictionMarket);
-  const user = signer.publicKey;
+  const user = new PublicKey(signer.address);
 
   const [market] = PublicKey.findProgramAddressSync(
     [Buffer.from("market"), Buffer.from(u64le(BigInt(p.marketId)))],
@@ -89,8 +92,9 @@ export async function svmStake(signer: SolanaSigner, p: SvmStakeParams): Promise
   const tx = new Transaction().add(ix);
   tx.feePayer = user;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
-  const signed = await signer.signTransaction(tx);
-  const sig = await conn.sendRawTransaction(signed.serialize());
+  const unsigned = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+  const signed = await signer.signTransaction(new Uint8Array(unsigned));
+  const sig = await conn.sendRawTransaction(signed);
   await conn.confirmTransaction(sig, "confirmed");
   return sig;
 }
