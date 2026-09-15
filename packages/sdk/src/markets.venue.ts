@@ -61,4 +61,14 @@ export function fetchLiveMarkets(): Promise<LiveMarket[] | null> {
   return fetchLiveMarketsFor(activeVenue().kind);
 }
 
+export type VenueMarkets = { venue: Venue; markets: LiveMarket[] | null };
+
+/** Fetch every configured venue at once — powers the merged multi-venue board. */
+export async function fetchAllVenues(): Promise<VenueMarkets[]> {
+  const venues = availableVenues();
+  return Promise.all(
+    venues.map(async (venue) => ({ venue, markets: await fetchLiveMarketsFor(venue.kind) })),
+  );
+}
+
 export type { LiveMarket };

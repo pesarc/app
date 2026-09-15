@@ -19,15 +19,24 @@ export default function MarketCard({
   market,
   live,
   onStake,
+  venueLabel,
+  onClaim,
+  claiming,
 }: {
   market: Market;
   live?: LiveMarket;
   onStake: (side: Side) => void;
+  /** When set, show a venue chip (used on the merged multi-venue board). */
+  venueLabel?: string;
+  /** When set and the market is finalized, show a Claim button. */
+  onClaim?: () => void;
+  claiming?: boolean;
 }) {
   const p = displayPrices(market, live);
   const pool = displayPool(market, live);
   const sym = COLLATERAL_SYMBOL[market.collateral] ?? "";
   const oracle = market.resolver.kind === "oracle";
+  const finalized = live?.status === 3;
 
   return (
     <div className="bg-snow border border-fog rounded-card p-[18px] shadow-card-flat">
@@ -51,6 +60,11 @@ export default function MarketCard({
             </div>
           )}
         </div>
+        {venueLabel && (
+          <span className="ml-auto shrink-0 self-start inline-flex items-center rounded-full bg-black/[0.05] text-slate text-[10px] font-bold uppercase tracking-wide px-2 py-0.5">
+            {venueLabel}
+          </span>
+        )}
       </div>
 
       {market.hedge && market.hedgeNote && (
@@ -69,21 +83,31 @@ export default function MarketCard({
         <span className="text-[12.5px] font-bold text-slate">No {p.no}%</span>
       </div>
 
-      {/* Stake buttons */}
-      <div className="flex gap-2.5 mb-3.5">
+      {/* Stake buttons — or Claim on a finalized market */}
+      {finalized && onClaim ? (
         <button
-          onClick={() => onStake("yes")}
-          className="flex-1 rounded-2xl bg-sky text-white py-3 text-sm font-extrabold shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+          onClick={onClaim}
+          disabled={claiming}
+          className="w-full rounded-2xl bg-sky text-white py-3 text-sm font-extrabold shadow-pop-sm hover:-translate-y-0.5 transition-transform disabled:opacity-60 mb-3.5"
         >
-          Yes · <span className="numerals">{p.yes}¢</span>
+          {claiming ? "Claiming…" : `Claim winnings · ${live?.outcome === 1 ? "Yes" : live?.outcome === 2 ? "No" : "resolved"}`}
         </button>
-        <button
-          onClick={() => onStake("no")}
-          className="flex-1 rounded-2xl bg-snow text-harbor border-[1.5px] border-fog py-3 text-sm font-extrabold hover:border-slate/50 transition-colors"
-        >
-          No · <span className="numerals">{p.no}¢</span>
-        </button>
-      </div>
+      ) : (
+        <div className="flex gap-2.5 mb-3.5">
+          <button
+            onClick={() => onStake("yes")}
+            className="flex-1 rounded-2xl bg-sky text-white py-3 text-sm font-extrabold shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+          >
+            Yes · <span className="numerals">{p.yes}¢</span>
+          </button>
+          <button
+            onClick={() => onStake("no")}
+            className="flex-1 rounded-2xl bg-snow text-harbor border-[1.5px] border-fog py-3 text-sm font-extrabold hover:border-slate/50 transition-colors"
+          >
+            No · <span className="numerals">{p.no}¢</span>
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3.5 border-t border-cream">

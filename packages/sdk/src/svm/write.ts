@@ -18,6 +18,7 @@ import { svmConfig } from "./config";
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 const STAKE_DISCRIMINATOR = Uint8Array.from([206, 176, 202, 18, 200, 209, 179, 108]);
+const CLAIM_DISCRIMINATOR = Uint8Array.from([62, 198, 214, 193, 213, 159, 108, 210]);
 
 // Byte-oriented signer so the provider never needs @solana/web3.js — it just
 // wraps the wallet's sign call (e.g. Privy's Solana embedded wallet). This
@@ -88,9 +89,50 @@ export async function svmStake(signer: SolanaSigner, p: SvmStakeParams): Promise
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
 
-  const ix = new TransactionInstruction({ programId, keys, data: Buffer.from(data) });
+  return sendSigned(conn, signer, user, new TransactionInstruction({ programId, keys, data: Buffer.from(data) }));
+}
+
+/** Claim winnings on a finalized market. No args; the market PDA carries the id. */
+export async function svmClaim(signer: SolanaSigner, p: { marketId: number }): Promise<string> {
+  const cfg = svmConfig();
+  const conn = new Connection(cfg.rpcUrl, "confirmed");
+  const programId = new PublicKey(cfg.predictionMarket);
+  const user = new PublicKey(signer.address);
+
+  const [market] = PublicKey.findProgramAddressSync(
+    [Buffer.from("market"), Buffer.from(u64le(BigInt(p.marketId)))],
+    programId,
+  );
+  const [vault] = PublicKey.findProgramAddressSync([Buffer.from("vault"), market.toBuffer()], programId);
+  const [position] = PublicKey.findProgramAddressSync(
+    [Buffer.from("position"), market.toBuffer(), user.toBuffer()],
+    programId,
+  );
+  const info = await conn.getAccountInfo(market);
+  if (!info) throw new Error("market not found");
+  const mint = new PublicKey(info.data.subarray(16, 48));
+  const userToken = ata(user, mint);
+
+  const keys = [
+    { pubkey: market, isSigner: false, isWritable: true },
+    { pubkey: position, isSigner: false, isWritable: true },
+    { pubkey: vault, isSigner: false, isWritable: true },
+    { pubkey: userToken, isSigner: false, isWritable: true },
+    { pubkey: user, isSigner: true, isWritable: true },
+    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+  ];
+  const data = Buffer.from(CLAIM_DISCRIMINATOR);
+  return sendSigned(conn, signer, user, new TransactionInstruction({ programId, keys, data }));
+}
+
+async function sendSigned(
+  conn: Connection,
+  signer: SolanaSigner,
+  feePayer: PublicKey,
+  ix: TransactionInstruction,
+): Promise<string> {
   const tx = new Transaction().add(ix);
-  tx.feePayer = user;
+  tx.feePayer = feePayer;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
   const unsigned = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
   const signed = await signer.signTransaction(new Uint8Array(unsigned));
