@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { X, Info, Check } from "lucide-react";
 import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
 import { type Side } from "./display";
+import { spring } from "@/components/motion";
 
 export default function StakeSheet({
   market,
@@ -27,13 +29,21 @@ export default function StakeSheet({
   const impliedPayout = price > 0 ? (stake * 100) / price : 0;
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
     >
-      <div
-        className="w-full sm:max-w-sm bg-cloud rounded-t-3xl sm:rounded-3xl p-5 shadow-soft-lg animate-step-in"
+      <motion.div
+        className="w-full sm:max-w-sm bg-cream rounded-t-3xl sm:rounded-3xl p-5 shadow-card-flat border border-fog"
         onClick={(e) => e.stopPropagation()}
+        initial={{ y: 40, opacity: 0, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 30, opacity: 0 }}
+        transition={spring}
       >
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -136,8 +146,8 @@ export default function StakeSheet({
             </Button>
           </>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

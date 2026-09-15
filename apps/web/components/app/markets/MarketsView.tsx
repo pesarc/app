@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Shield, Radio } from "lucide-react";
 import { Card } from "@/components/app/ui";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
@@ -9,6 +10,7 @@ import { CELO, celoExplorerAddress } from "@pesarc/sdk/celo/config";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
+import { Stagger, StaggerItem } from "@/components/motion";
 
 export default function MarketsView() {
   const [cat, setCat] = useState<MarketKind | "all">("all");
@@ -91,31 +93,35 @@ export default function MarketsView() {
         })}
       </div>
 
-      <div className="space-y-3">
+      <Stagger className="space-y-3">
         {list.map(({ market: m, index }) => {
           const lm = overlay(live, index);
           return (
-            <MarketCard
-              key={m.id}
-              market={m}
-              live={lm}
-              onStake={(side) => setTicket({ market: m, live: lm, side })}
-            />
+            <StaggerItem key={m.id} pop>
+              <MarketCard
+                market={m}
+                live={lm}
+                onStake={(side) => setTicket({ market: m, live: lm, side })}
+              />
+            </StaggerItem>
           );
         })}
         {list.length === 0 && (
           <p className="text-sm text-muted py-8 text-center">No markets in this category yet.</p>
         )}
-      </div>
+      </Stagger>
 
-      {ticket && (
-        <StakeSheet
-          market={ticket.market}
-          side={ticket.side}
-          prices={displayPrices(ticket.market, ticket.live)}
-          onClose={() => setTicket(null)}
-        />
-      )}
+      <AnimatePresence>
+        {ticket && (
+          <StakeSheet
+            key="stake-sheet"
+            market={ticket.market}
+            side={ticket.side}
+            prices={displayPrices(ticket.market, ticket.live)}
+            onClose={() => setTicket(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
