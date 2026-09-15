@@ -1,5 +1,6 @@
-import AppNav from "@/components/AppNav";
+import AppShell from "@/components/app/AppShell";
 import { UIModeProvider } from "@pesarc/sdk/ui-mode";
+import { PrefsProvider } from "@pesarc/sdk/prefs";
 import { WalletProvider } from "@pesarc/sdk/wallet/WalletProvider";
 
 export default function AppLayout({
@@ -10,10 +11,9 @@ export default function AppLayout({
   return (
     <WalletProvider>
       <UIModeProvider>
-        <div className="app-surface flex flex-col">
-          <AppNav />
-          <main className="flex-1">{children}</main>
-        </div>
+        <PrefsProvider>
+          <AppShell>{children}</AppShell>
+        </PrefsProvider>
       </UIModeProvider>
     </WalletProvider>
   );
