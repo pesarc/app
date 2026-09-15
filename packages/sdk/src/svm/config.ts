@@ -20,6 +20,8 @@ export type SvmConfig = {
   realizedOracle: string;
   /** collateral mint decimals (SPL default 6). */
   collateralDecimals: number;
+  /** Fee-payer relayer pubkey — when set, txs are sponsored (user pays 0 SOL). */
+  feePayer: string;
 };
 
 // Declared program id from contracts/svm/target/idl (Anchor workspace).
@@ -46,6 +48,7 @@ export function svmConfig(): SvmConfig {
     predictionMarket: process.env.NEXT_PUBLIC_SVM_PREDICTION_MARKET || DEFAULT_PREDICTION_MARKET,
     realizedOracle: process.env.NEXT_PUBLIC_SVM_REALIZED_ORACLE || "",
     collateralDecimals: Number(process.env.NEXT_PUBLIC_SVM_COLLATERAL_DECIMALS || 6),
+    feePayer: process.env.NEXT_PUBLIC_SVM_FEE_PAYER || "",
   };
 }
 
