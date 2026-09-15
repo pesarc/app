@@ -83,17 +83,17 @@ export default function ReceivePage() {
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Receive money
       </h1>
-      <p className="text-muted mb-6">
+      <p className="text-slate mb-6">
         {live
           ? `Share your address or QR — payments land in your wallet on ${chainLabel()}.`
           : `Share your alias or QR. Anyone can pay you in their own currency — you receive ${ACCOUNT.currency}.`}
       </p>
 
       <Card className="p-6 flex flex-col items-center mb-4">
-        <div className="w-56 h-56 rounded-xl bg-white border border-black/[0.06] p-2 flex items-center justify-center">
+        <div className="w-56 h-56 rounded-xl bg-snow border border-black/[0.06] p-2 flex items-center justify-center">
           {qr ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -106,16 +106,16 @@ export default function ReceivePage() {
           )}
         </div>
         <div className="mt-5 text-center">
-          <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+          <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
             Your alias
           </div>
-          <div className="text-2xl font-semibold text-deepink">{ALIAS}</div>
+          <div className="text-2xl font-semibold text-ink">{ALIAS}</div>
           {live && address && (
             <div className="mt-2">
-              <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-0.5">
+              <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-0.5">
                 Wallet · {chainLabel()}
               </div>
-              <div className="font-mono text-sm text-deepink/80 break-all">
+              <div className="font-mono text-sm text-ink/80 break-all">
                 {address}
               </div>
             </div>
@@ -124,18 +124,18 @@ export default function ReceivePage() {
       </Card>
 
       {/* Optional request amount — baked into the QR so payers just tap Pay */}
-      <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-2">
+      <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-2">
         Request a specific amount (optional)
       </label>
-      <div className="flex items-center gap-2 bg-white rounded-field border border-black/10 px-4 py-3 shadow-soft mb-5">
-        <span className="text-lg font-semibold text-deepink/50">{sym}</span>
+      <div className="flex items-center gap-2 bg-snow rounded-field border border-fog px-4 py-3 shadow-card-flat mb-5">
+        <span className="text-lg font-semibold text-ink/50">{sym}</span>
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
           inputMode="decimal"
           placeholder="0"
           aria-label="Request amount"
-          className="flex-1 bg-transparent text-lg font-semibold text-deepink outline-none numerals placeholder:text-deepink/25"
+          className="flex-1 bg-transparent text-lg font-semibold text-ink outline-none numerals placeholder:text-ink/25"
         />
       </div>
 

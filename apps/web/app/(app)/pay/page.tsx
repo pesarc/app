@@ -157,10 +157,10 @@ export default function PayPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Scan &amp; pay
       </h1>
-      <p className="text-muted mb-6">
+      <p className="text-slate mb-6">
         Point at a Pesarc QR — see who you&apos;re paying and the fee, then
         pay in one tap.
       </p>
@@ -169,7 +169,7 @@ export default function PayPage() {
         <>
           <Scanner onScanned={onScanned} onError={() => setCameraError(true)} />
           {cameraError && (
-            <Card className="p-4 mt-4 flex items-center gap-3 text-sm text-muted">
+            <Card className="p-4 mt-4 flex items-center gap-3 text-sm text-slate">
               <CameraOff className="w-4 h-4 shrink-0" />
               Camera unavailable — paste a payment link or address instead.
             </Card>
@@ -180,7 +180,7 @@ export default function PayPage() {
               onChange={(e) => setManual(e.target.value)}
               placeholder="Paste address or pay link"
               aria-label="Payment link or address"
-              className="flex-1 bg-white rounded-field border border-black/10 px-4 py-3 text-sm text-deepink placeholder:text-muted/70 shadow-soft focus:outline-none focus:border-emerald/50"
+              className="flex-1 bg-snow rounded-field border border-fog px-4 py-3 text-sm text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50"
             />
             <Button
               onClick={() => manual && onScanned(manual)}
@@ -195,14 +195,14 @@ export default function PayPage() {
       {step === "details" && target && (
         <div className="animate-step-in">
           <Card className="p-6 mb-4">
-            <div className="text-xs font-semibold text-muted uppercase tracking-widest mb-1">
+            <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
               Paying
             </div>
-            <div className="text-2xl font-semibold text-deepink mb-1">
+            <div className="text-2xl font-semibold text-ink mb-1">
               {target.label}
             </div>
             {target.address && (
-              <div className="font-mono text-xs text-muted break-all">
+              <div className="font-mono text-xs text-slate break-all">
                 {target.address}
               </div>
             )}
@@ -210,11 +210,11 @@ export default function PayPage() {
 
           {target.amount === undefined && (
             <div className="text-center py-3 mb-2">
-              <label className="block text-xs font-semibold text-muted uppercase tracking-widest mb-2">
+              <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-2">
                 Amount
               </label>
               <div className="flex items-center justify-center gap-1">
-                <span className="text-3xl font-semibold text-deepink/40">$</span>
+                <span className="text-3xl font-semibold text-ink/40">$</span>
                 <input
                   value={amountStr}
                   onChange={(e) =>
@@ -224,7 +224,7 @@ export default function PayPage() {
                   placeholder="0"
                   autoFocus
                   aria-label="Amount to pay"
-                  className="w-[5ch] bg-transparent text-5xl font-semibold text-deepink text-center outline-none numerals placeholder:text-deepink/25"
+                  className="w-[5ch] bg-transparent text-5xl font-semibold text-ink text-center outline-none numerals placeholder:text-ink/25"
                 />
               </div>
             </div>
@@ -233,28 +233,28 @@ export default function PayPage() {
           {quote && (
             <Card className="p-4 mb-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">They receive</span>
-                <span className="font-semibold text-emerald numerals">
+                <span className="text-slate">They receive</span>
+                <span className="font-semibold text-sky numerals">
                   {formatMoney(quote.receiveAmount, "NGN")}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Fee</span>
-                <span className="font-medium text-deepink">
+                <span className="text-slate">Fee</span>
+                <span className="font-medium text-ink">
                   {(quote.feePct * 100).toFixed(2)}%
                   {quote.live && (
-                    <span className="text-emerald font-medium"> · live</span>
+                    <span className="text-sky font-medium"> · live</span>
                   )}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Rate</span>
-                <span className="font-medium text-deepink numerals">
+                <span className="text-slate">Rate</span>
+                <span className="font-medium text-ink numerals">
                   1 USD = {formatNumber(quote.effectiveRate, "NGN")} NGN
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted pt-1">
-                <Zap className="w-3.5 h-3.5 text-emerald" /> Gasless · settles
+              <div className="flex items-center gap-1.5 text-xs text-slate pt-1">
+                <Zap className="w-3.5 h-3.5 text-sky" /> Gasless · settles
                 in seconds
               </div>
             </Card>
@@ -265,7 +265,7 @@ export default function PayPage() {
           </Button>
           <button
             onClick={reset}
-            className="w-full mt-3 text-sm font-medium text-muted hover:text-deepink transition"
+            className="w-full mt-3 text-sm font-medium text-slate hover:text-ink transition"
           >
             Scan a different code
           </button>
@@ -274,25 +274,25 @@ export default function PayPage() {
 
       {step === "paying" && (
         <Card className="p-8 flex flex-col items-center gap-3 animate-step-in">
-          <span className="w-10 h-10 rounded-full bg-emerald-50 text-emerald flex items-center justify-center animate-progress-pulse">
+          <span className="w-10 h-10 rounded-full bg-sky-tint text-sky flex items-center justify-center animate-progress-pulse">
             <ScanLine className="w-5 h-5" />
           </span>
-          <div className="font-medium text-deepink">
+          <div className="font-medium text-ink">
             {live ? "Settling on-chain…" : "Processing payment…"}
           </div>
-          <div className="text-xs text-muted">Gasless · sponsored</div>
+          <div className="text-xs text-slate">Gasless · sponsored</div>
         </Card>
       )}
 
       {step === "done" && target && quote && (
         <div className="text-center animate-step-in">
-          <div className="mx-auto w-16 h-16 rounded-full bg-emerald flex items-center justify-center mb-5 shadow-soft-lg">
+          <div className="mx-auto w-16 h-16 rounded-full bg-sky flex items-center justify-center mb-5 shadow-pop-sm">
             <Check className="w-8 h-8 text-white" strokeWidth={2.5} />
           </div>
-          <h2 className="text-2xl font-semibold text-deepink mb-1">
+          <h2 className="text-2xl font-semibold text-ink mb-1">
             Paid {formatMoney(amount, ACCOUNT.currency)}
           </h2>
-          <p className="text-muted mb-6">to {target.label}</p>
+          <p className="text-slate mb-6">to {target.label}</p>
 
           <Card className="p-5 text-left mb-5 space-y-0">
             <RowLine label="They receive">
@@ -308,7 +308,7 @@ export default function PayPage() {
                   href={explorerTxUrl(result.tx)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+                  className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
                 >
                   View tx <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -320,7 +320,7 @@ export default function PayPage() {
                   href={explorerTxUrl(result.payoutTx)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-emerald font-medium hover:underline"
+                  className="inline-flex items-center gap-1 text-sky font-medium hover:underline"
                 >
                   Recipient tx <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -346,8 +346,8 @@ function RowLine({
 }) {
   return (
     <div className="flex items-center justify-between py-2.5 text-[15px] border-b border-black/[0.06] last:border-0">
-      <span className="text-muted">{label}</span>
-      <span className="font-medium text-deepink">{children}</span>
+      <span className="text-slate">{label}</span>
+      <span className="font-medium text-ink">{children}</span>
     </div>
   );
 }
@@ -427,7 +427,7 @@ function Scanner({
   }, [onScanned, onError]);
 
   return (
-    <div className="relative rounded-card overflow-hidden bg-black aspect-square shadow-soft-lg">
+    <div className="relative rounded-card overflow-hidden bg-black aspect-square shadow-pop-sm">
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}

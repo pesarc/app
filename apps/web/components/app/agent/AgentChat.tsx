@@ -100,13 +100,13 @@ export default function AgentChat() {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       <div className="mb-5">
-        <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald uppercase tracking-widest mb-1">
+        <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky uppercase tracking-widest mb-1">
           <Bot className="w-4 h-4" /> Settlement agent · Celo
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
           Just say what to send
         </h1>
-        <p className="text-muted">
+        <p className="text-slate">
           The agent turns plain language into an on-chain settlement and matches
           it peer-to-peer — local currency, zero dollars.
         </p>
@@ -121,7 +121,7 @@ export default function AgentChat() {
               </span>
               <span
                 className={`text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${
-                  budget.live ? "bg-sky-tint text-sky-deep" : "bg-black/[0.05] text-muted"
+                  budget.live ? "bg-sky-tint text-sky-deep" : "bg-black/[0.05] text-slate"
                 }`}
               >
                 {budget.live ? "Live" : "Demo"}
@@ -131,7 +131,7 @@ export default function AgentChat() {
               <span className="text-2xl font-semibold numerals text-harbor">
                 {budget.token} {Math.round(budget.remaining).toLocaleString()}
               </span>
-              <span className="text-xs text-muted">
+              <span className="text-xs text-slate">
                 of {budget.token} {budget.cap.toLocaleString()} cap
               </span>
             </div>
@@ -145,7 +145,7 @@ export default function AgentChat() {
                 transition={{ type: "spring", stiffness: 200, damping: 26 }}
               />
             </div>
-            <p className="text-[11px] text-muted mt-2">
+            <p className="text-[11px] text-slate mt-2">
               The agent can only spend up to this cap — enforced on-chain by your session key.
             </p>
           </Card>
@@ -175,17 +175,17 @@ export default function AgentChat() {
               className="flex justify-start"
             >
               <div className="max-w-[90%]">
-                <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-deepink">
+                <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-ink">
                   {m.text}
                   {(m.submitUrl || m.settlements?.length) && (
                     <div className="mt-2.5 pt-2.5 border-t border-black/[0.06] space-y-1.5">
                       {m.matched && (
-                        <div className="flex items-center gap-1.5 text-xs text-emerald font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-sky font-medium">
                           <Check className="w-3.5 h-3.5" /> Matched peer-to-peer · zero USD
                         </div>
                       )}
                       {m.pending && (
-                        <div className="flex items-center gap-1.5 text-xs text-gold font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-harbor font-medium">
                           <Sparkles className="w-3.5 h-3.5" /> Waiting for opposing flow
                         </div>
                       )}
@@ -194,7 +194,7 @@ export default function AgentChat() {
                           href={m.submitUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-emerald hover:underline"
+                          className="inline-flex items-center gap-1 text-xs text-sky hover:underline"
                         >
                           Intent on-chain <ExternalLink className="w-3 h-3" />
                         </a>
@@ -205,7 +205,7 @@ export default function AgentChat() {
                           href={s.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="block text-xs text-emerald hover:underline"
+                          className="block text-xs text-sky hover:underline"
                         >
                           Settlement ({s.kind}) <ExternalLink className="w-3 h-3 inline" />
                         </a>
@@ -220,7 +220,7 @@ export default function AgentChat() {
         {busy && (
           <div className="flex justify-start">
             <Card className="rounded-2xl rounded-bl-sm px-4 py-3">
-              <Loader2 className="w-4 h-4 animate-spin text-emerald" />
+              <Loader2 className="w-4 h-4 animate-spin text-sky" />
             </Card>
           </div>
         )}
@@ -233,7 +233,7 @@ export default function AgentChat() {
             <button
               key={e}
               onClick={() => send(e)}
-              className="text-xs bg-white border border-black/10 rounded-full px-3 py-1.5 text-deepink/80 hover:border-emerald/40 transition"
+              className="text-xs bg-snow border border-fog rounded-full px-3 py-1.5 text-ink/80 hover:border-sky/40 transition"
             >
               {e}
             </button>
@@ -253,13 +253,13 @@ export default function AgentChat() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="e.g. send 50,000 naira to Ghana"
           aria-label="Message the agent"
-          className="flex-1 bg-white rounded-field border border-black/10 px-4 py-3 text-[15px] text-deepink placeholder:text-muted/70 shadow-soft focus:outline-none focus:border-emerald/50"
+          className="flex-1 bg-snow rounded-field border border-fog px-4 py-3 text-[15px] text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50"
         />
         <button
           type="submit"
           disabled={busy || !input.trim()}
           aria-label="Send"
-          className="w-12 h-12 rounded-full bg-emerald text-white flex items-center justify-center disabled:opacity-40 shrink-0"
+          className="w-12 h-12 rounded-full bg-sky text-white flex items-center justify-center disabled:opacity-40 shrink-0"
         >
           <ArrowUp className="w-5 h-5" />
         </button>
