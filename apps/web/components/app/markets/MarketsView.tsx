@@ -19,7 +19,10 @@ import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
+import { Pagination, usePaged } from "@/components/app/Pagination";
 import { Stagger, StaggerItem } from "@/components/motion";
+
+const PER_PAGE = 4;
 
 type Selection = VenueKind | "all";
 
@@ -105,6 +108,8 @@ export default function MarketsView() {
       ),
     [venuesInScope, filtered, liveByVenue, catalog]
   );
+
+  const paged = usePaged(cards, PER_PAGE, `${cat}|${selected}`);
 
   async function handleClaim(venueKind: VenueKind, marketId: number, key: string) {
     setClaimingKey(key);
@@ -214,7 +219,7 @@ export default function MarketsView() {
       </div>
 
       <Stagger className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-        {cards.map((card) => (
+        {paged.items.map((card) => (
           <StaggerItem key={card.key} pop>
             <MarketCard
               market={card.market}
@@ -240,6 +245,7 @@ export default function MarketsView() {
           </p>
         )}
       </Stagger>
+      <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />
 
       <AnimatePresence>
         {ticket && (
