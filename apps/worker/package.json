@@ -1,0 +1,8 @@
+{
+  "name": "@stablearc/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "tsx watch src/index.ts", "build": "tsc", "lint": "echo ok", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@stablearc/sdk": "workspace:*", "@stablearc/abi": "workspace:*" }
+}
