@@ -29,6 +29,7 @@ export const CELO = {
   intentMatcher: (process.env.NEXT_PUBLIC_CELO_INTENT_MATCHER as `0x${string}`) || "",
   realizedOracle: (process.env.NEXT_PUBLIC_CELO_REALIZED_ORACLE as `0x${string}`) || "",
   predictionMarket: (process.env.NEXT_PUBLIC_CELO_PREDICTION_MARKET as `0x${string}`) || "",
+  agentSessionKeys: (process.env.NEXT_PUBLIC_CELO_AGENT_SESSION_KEYS as `0x${string}`) || "",
 } as const;
 
 export function celoExplorerAddress(addr: string): string {
