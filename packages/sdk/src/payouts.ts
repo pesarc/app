@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { neon } from "@neondatabase/serverless";
-import { DEMO_ACCOUNT } from "@/lib/api/auth";
+import { DEMO_ACCOUNT } from "@stablearc/sdk/api/auth";
 
 // Fiat payout orchestration (testnet sandbox). The crypto leg is real — the
 // swapped cNGN lands in the ramp escrow wallet on-chain — and this module

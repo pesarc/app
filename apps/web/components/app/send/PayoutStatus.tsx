@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { Banknote, Check, Loader2, Smartphone } from "lucide-react";
-import { authedFetch } from "@/lib/api/client";
+import { authedFetch } from "@stablearc/sdk/api/client";
 
 type Status = "initiated" | "processing" | "paid";
 

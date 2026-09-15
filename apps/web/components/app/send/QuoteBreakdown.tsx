@@ -1,6 +1,6 @@
 import { Route, Gauge, Clock, ShieldCheck } from "lucide-react";
-import { type Quote } from "@/lib/quote";
-import { CURRENCIES, formatMoney, formatNumber } from "@/lib/money";
+import { type Quote } from "@stablearc/sdk/quote";
+import { CURRENCIES, formatMoney, formatNumber } from "@stablearc/sdk/money";
 
 /**
  * Advanced-tier breakdown (PRD §9.7). Reveals the FX math, route, and

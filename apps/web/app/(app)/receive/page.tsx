@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, Share2 } from "lucide-react";
-import { ACCOUNT, ALIAS } from "@/lib/account";
-import { CURRENCIES } from "@/lib/money";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
-import { chainLabel } from "@/lib/chain/chains";
+import { ACCOUNT, ALIAS } from "@stablearc/sdk/account";
+import { CURRENCIES } from "@stablearc/sdk/money";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
+import { chainLabel } from "@stablearc/sdk/chain/chains";
 import { Button, Card } from "@/components/app/ui";
 
 export default function ReceivePage() {

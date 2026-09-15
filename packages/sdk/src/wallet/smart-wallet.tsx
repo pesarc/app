@@ -14,8 +14,8 @@ import {
   alchemyWalletTransport,
 } from "@alchemy/wallet-apis";
 import { encodeFunctionData, type LocalAccount } from "viem";
-import { HUB_CHAIN } from "@/lib/chain/chains";
-import { erc20Abi } from "@/lib/chain/abi/erc20";
+import { HUB_CHAIN } from "@stablearc/sdk/chain/chains";
+import { erc20Abi } from "@stablearc/abi";
 import {
   ALCHEMY_API_KEY,
   ALCHEMY_GAS_POLICY_ID,

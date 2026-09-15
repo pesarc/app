@@ -6,10 +6,10 @@
 
 import { useEffect, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ExternalLink } from "lucide-react";
-import { useWallet } from "@/lib/wallet/WalletProvider";
-import { useSmartWallet } from "@/lib/wallet/smartWallet";
-import { fetchOnchainActivity, type OnchainActivity } from "@/lib/chain/history";
-import { explorerTxUrl, chainLabel } from "@/lib/chain/chains";
+import { useWallet } from "@stablearc/sdk/wallet/WalletProvider";
+import { useSmartWallet } from "@stablearc/sdk/wallet/smartWallet";
+import { fetchOnchainActivity, type OnchainActivity } from "@stablearc/sdk/chain/history";
+import { explorerTxUrl, chainLabel } from "@stablearc/sdk/chain/chains";
 import { Card } from "@/components/app/ui";
 
 export type FallbackItem = {

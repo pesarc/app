@@ -4,8 +4,8 @@ import { neon } from "@neondatabase/serverless";
 
 // Account scoping comes from the verified Privy identity (lib/api/auth.ts).
 // Unauthenticated/mock-mode callers share the demo bucket; real users never do.
-export { DEMO_ACCOUNT } from "@/lib/api/auth";
-import { DEMO_ACCOUNT } from "@/lib/api/auth";
+export { DEMO_ACCOUNT } from "@stablearc/sdk/api/auth";
+import { DEMO_ACCOUNT } from "@stablearc/sdk/api/auth";
 
 export type TransferInput = {
   direction: "sent" | "received";

@@ -1,8 +1,8 @@
 // Display helpers for the Markets surface: overlay live on-chain data onto the
 // catalog and derive the numbers cards/sheets show.
 
-import { prices, totalPool, type Market } from "@/lib/markets";
-import { type LiveMarket } from "@/lib/markets.live";
+import { prices, totalPool, type Market } from "@stablearc/sdk/markets";
+import { type LiveMarket } from "@stablearc/sdk/markets.live";
 
 export type Side = "yes" | "no";
 

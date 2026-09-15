@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runSolver, solverConfigured } from "@/lib/solver/execute";
+import { runSolver, solverConfigured } from "@stablearc/sdk/solver/execute";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

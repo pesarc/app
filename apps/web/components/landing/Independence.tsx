@@ -3,7 +3,7 @@
 // the claim is checkable, so the numbers are real or they don't render.
 
 import { ShieldCheck, Zap } from "lucide-react";
-import { computeIndependence } from "@/lib/metrics/independence";
+import { computeIndependence } from "@stablearc/sdk/metrics/independence";
 
 export const revalidate = 60;
 

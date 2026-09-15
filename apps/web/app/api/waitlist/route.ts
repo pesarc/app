@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { addToWaitlist } from "@/lib/waitlist";
+import { addToWaitlist } from "@stablearc/sdk/waitlist";
 
 export const runtime = "nodejs";
 

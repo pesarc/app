@@ -7,8 +7,8 @@ import {
   parseEventLogs,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { rateLimit } from "@/lib/api/guard";
-import { HUB_CHAIN, hubRpcUrl } from "@/lib/chain/chains";
+import { rateLimit } from "@stablearc/sdk/api/guard";
+import { HUB_CHAIN, hubRpcUrl } from "@stablearc/sdk/chain/chains";
 import {
   CORRIDORS,
   HUB_BRIDGE_RECEIVER,
@@ -20,7 +20,7 @@ import {
   spokeGatewayAbi,
   messageTransmitterAbi,
   bridgeReceiverAbi,
-} from "@/lib/chain/corridors";
+} from "@stablearc/sdk/chain/corridors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

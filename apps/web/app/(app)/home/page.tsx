@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Plus, QrCode } from "lucide-react";
-import { ACCOUNT, ACTIVITY } from "@/lib/account";
-import { listTransfers } from "@/lib/transfers";
-import { formatMoney } from "@/lib/money";
-import type { CurrencyCode } from "@/lib/money";
+import { ACCOUNT, ACTIVITY } from "@stablearc/sdk/account";
+import { listTransfers } from "@stablearc/sdk/transfers";
+import { formatMoney } from "@stablearc/sdk/money";
+import type { CurrencyCode } from "@stablearc/sdk/money";
 import { Card } from "@/components/app/ui";
 import { LiveBalance } from "@/components/app/LiveBalance";
 import { ActivityFeed, type FallbackItem } from "@/components/app/ActivityFeed";
