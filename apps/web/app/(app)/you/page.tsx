@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Loader2,
   LineChart,
+  Settings2,
 } from "lucide-react";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
@@ -35,6 +36,7 @@ const MORE = [
   { label: "Earn", href: "/earn", icon: Sprout },
   { label: "Business", href: "/business", icon: Building2 },
   { label: "Local", href: "/corridor", icon: MapPin },
+  { label: "Admin", href: "/admin", icon: Settings2 },
 ];
 
 export default function YouPage() {
