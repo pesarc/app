@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, TrendingDown, X, Check, Search } from "lucide-react";
+import { TrendingUp, TrendingDown, X, Check, Search, Loader2 } from "lucide-react";
 import {
   INSTRUMENTS,
   MARKETS,
@@ -18,6 +18,7 @@ import {
 } from "@pesarc/sdk/invest";
 import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
+import { getBroker } from "@pesarc/sdk/broker";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { Stagger, StaggerItem } from "@/components/motion";
@@ -50,9 +51,16 @@ export default function InvestView() {
 
   useEffect(() => setHoldings(loadHoldings()), []);
 
-  const buy = (inst: Instrument, shares: number) => {
+  const buy = async (inst: Instrument, shares: number) => {
     const m = marketOf(inst);
-    const cost = shares * inst.price;
+    // Route through the broker adapter (simulated by default, real when
+    // NEXT_PUBLIC_BROKER_API_URL is set). Records the paper position on fill.
+    const res = await getBroker().placeOrder({ symbol: inst.symbol, shares, side: "buy" });
+    if (!res.ok) {
+      setTicket(null);
+      return;
+    }
+    const cost = shares * (res.filledPrice ?? inst.price);
     setHoldings((prev) => {
       const existing = prev.find((h) => h.symbol === inst.symbol);
       const next = existing
@@ -256,11 +264,12 @@ function BuySheet({
   inst: Instrument;
   defaultCoin: string;
   onClose: () => void;
-  onBuy: (inst: Instrument, shares: number) => void;
+  onBuy: (inst: Instrument, shares: number) => void | Promise<void>;
 }) {
   const m = marketOf(inst);
   const [sharesStr, setSharesStr] = useState("1");
   const [payWith, setPayWith] = useState(defaultCoin);
+  const [busy, setBusy] = useState(false);
   const shares = parseFloat(sharesStr) || 0;
   const cost = shares * inst.price;
   const valid = shares > 0;
@@ -335,14 +344,31 @@ function BuySheet({
         </div>
 
         <button
-          disabled={!valid}
-          onClick={() => onBuy(inst, shares)}
+          disabled={!valid || busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onBuy(inst, shares);
+            } finally {
+              setBusy(false);
+            }
+          }}
           className="w-full flex items-center justify-center gap-2 bg-sky text-white rounded-btn py-4 text-base font-extrabold shadow-pop hover:-translate-y-0.5 transition-transform disabled:opacity-50 disabled:translate-y-0"
         >
-          <Check className="w-5 h-5" /> Buy {shares > 0 ? formatNumber(shares, "USD") : ""} {inst.symbol}
+          {busy ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" /> Placing order…
+            </>
+          ) : (
+            <>
+              <Check className="w-5 h-5" /> Buy {shares > 0 ? formatNumber(shares, "USD") : ""} {inst.symbol}
+            </>
+          )}
         </button>
         <p className="text-center text-[11.5px] text-slate mt-3">
-          Demo — records a paper position. No real order is placed.
+          {getBroker().live
+            ? "Routed to your connected broker."
+            : "Demo — records a paper position. No real order is placed."}
         </p>
       </motion.div>
     </>
