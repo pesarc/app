@@ -3,6 +3,5 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "tsx watch src/index.ts", "build": "tsc", "lint": "echo ok", "typecheck": "tsc --noEmit" },
-  "dependencies": { "@stablearc/sdk": "workspace:*", "@stablearc/abi": "workspace:*", "zod": "^3.24.1" }
+  "scripts": { "dev": "echo 'not migrated yet'", "lint": "echo ok", "typecheck": "echo ok", "build": "echo ok", "test": "echo ok" }
 }

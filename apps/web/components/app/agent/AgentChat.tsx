@@ -1,0 +1,191 @@
+"use client";
+
+// The StableArc settlement agent — Celo "Agents at Work" submission.
+// Tell it what to send in plain language; it turns that into an on-chain
+// intent and settles it peer-to-peer in local currency, no dollar in the path.
+
+import { useCallback, useRef, useState } from "react";
+import { ArrowUp, Check, ExternalLink, Loader2, Sparkles, Bot } from "lucide-react";
+import { Card } from "@/components/app/ui";
+
+type Msg =
+  | { role: "user"; text: string }
+  | {
+      role: "agent";
+      text: string;
+      matched?: boolean;
+      submitUrl?: string;
+      settlements?: { kind: string; url: string }[];
+      pending?: boolean;
+    };
+
+const EXAMPLES = [
+  "Send 50,000 naira to Ghana",
+  "Move 200 cedis to Kenya for 0x1111111111111111111111111111111111111111",
+  "Pay 30,000 shillings to Nigeria",
+];
+
+export default function AgentChat() {
+  const [msgs, setMsgs] = useState<Msg[]>([
+    {
+      role: "agent",
+      text:
+        "Hi — I'm StableArc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  const send = useCallback(
+    async (text: string) => {
+      if (!text.trim() || busy) return;
+      setMsgs((m) => [...m, { role: "user", text }]);
+      setInput("");
+      setBusy(true);
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      try {
+        const res = await fetch("/api/agent/settle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+        const data = await res.json();
+        setMsgs((m) => [
+          ...m,
+          {
+            role: "agent",
+            text: data.reply ?? "Something went wrong.",
+            matched: data.matched,
+            submitUrl: data.submitUrl,
+            settlements: data.settlements,
+            pending: data.ok && !data.matched && !data.needsInput,
+          },
+        ]);
+      } catch {
+        setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network — try again." }]);
+      }
+      setBusy(false);
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    },
+    [busy],
+  );
+
+  return (
+    <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
+      <div className="mb-5">
+        <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald uppercase tracking-widest mb-1">
+          <Bot className="w-4 h-4" /> Settlement agent · Celo
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-deepink mb-1.5">
+          Just say what to send
+        </h1>
+        <p className="text-muted">
+          The agent turns plain language into an on-chain settlement and matches
+          it peer-to-peer — local currency, zero dollars.
+        </p>
+      </div>
+
+      <div className="space-y-3 mb-4">
+        {msgs.map((m, i) =>
+          m.role === "user" ? (
+            <div key={i} className="flex justify-end">
+              <div className="bg-emerald text-white rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[85%] text-[15px]">
+                {m.text}
+              </div>
+            </div>
+          ) : (
+            <div key={i} className="flex justify-start">
+              <div className="max-w-[90%]">
+                <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-deepink">
+                  {m.text}
+                  {(m.submitUrl || m.settlements?.length) && (
+                    <div className="mt-2.5 pt-2.5 border-t border-black/[0.06] space-y-1.5">
+                      {m.matched && (
+                        <div className="flex items-center gap-1.5 text-xs text-emerald font-medium">
+                          <Check className="w-3.5 h-3.5" /> Matched peer-to-peer · zero USD
+                        </div>
+                      )}
+                      {m.pending && (
+                        <div className="flex items-center gap-1.5 text-xs text-gold font-medium">
+                          <Sparkles className="w-3.5 h-3.5" /> Waiting for opposing flow
+                        </div>
+                      )}
+                      {m.submitUrl && (
+                        <a
+                          href={m.submitUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-emerald hover:underline"
+                        >
+                          Intent on-chain <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {m.settlements?.map((s, j) => (
+                        <a
+                          key={j}
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-emerald hover:underline"
+                        >
+                          Settlement ({s.kind}) <ExternalLink className="w-3 h-3 inline" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
+          ),
+        )}
+        {busy && (
+          <div className="flex justify-start">
+            <Card className="rounded-2xl rounded-bl-sm px-4 py-3">
+              <Loader2 className="w-4 h-4 animate-spin text-emerald" />
+            </Card>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {msgs.length <= 1 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {EXAMPLES.map((e) => (
+            <button
+              key={e}
+              onClick={() => send(e)}
+              className="text-xs bg-white border border-black/10 rounded-full px-3 py-1.5 text-deepink/80 hover:border-emerald/40 transition"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+        className="flex gap-2 sticky bottom-4"
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="e.g. send 50,000 naira to Ghana"
+          aria-label="Message the agent"
+          className="flex-1 bg-white rounded-field border border-black/10 px-4 py-3 text-[15px] text-deepink placeholder:text-muted/70 shadow-soft focus:outline-none focus:border-emerald/50"
+        />
+        <button
+          type="submit"
+          disabled={busy || !input.trim()}
+          aria-label="Send"
+          className="w-12 h-12 rounded-full bg-emerald text-white flex items-center justify-center disabled:opacity-40 shrink-0"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      </form>
+    </div>
+  );
+}
