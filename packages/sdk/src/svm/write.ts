@@ -89,7 +89,7 @@ export async function svmStake(signer: SolanaSigner, p: SvmStakeParams): Promise
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
 
-  return sendSigned(conn, signer, user, new TransactionInstruction({ programId, keys, data: Buffer.from(data) }));
+  return sendSigned(conn, signer, new TransactionInstruction({ programId, keys, data: Buffer.from(data) }));
 }
 
 /** Claim winnings on a finalized market. No args; the market PDA carries the id. */
@@ -122,21 +122,47 @@ export async function svmClaim(signer: SolanaSigner, p: { marketId: number }): P
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
   const data = Buffer.from(CLAIM_DISCRIMINATOR);
-  return sendSigned(conn, signer, user, new TransactionInstruction({ programId, keys, data }));
+  return sendSigned(conn, signer, new TransactionInstruction({ programId, keys, data }));
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
 }
 
 async function sendSigned(
   conn: Connection,
   signer: SolanaSigner,
-  feePayer: PublicKey,
   ix: TransactionInstruction,
 ): Promise<string> {
+  const cfg = svmConfig();
+  const user = new PublicKey(signer.address);
+  // Gasless: the relayer is the fee payer and co-signs + submits server-side, so
+  // the user never needs SOL. Without a relayer configured, the user pays.
+  const sponsored = Boolean(cfg.feePayer);
   const tx = new Transaction().add(ix);
-  tx.feePayer = feePayer;
+  tx.feePayer = sponsored ? new PublicKey(cfg.feePayer) : user;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+
   const unsigned = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
-  const signed = await signer.signTransaction(new Uint8Array(unsigned));
-  const sig = await conn.sendRawTransaction(signed);
+  const userSigned = await signer.signTransaction(new Uint8Array(unsigned));
+
+  if (sponsored) {
+    const res = await fetch("/api/svm/sponsor", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tx: toBase64(new Uint8Array(userSigned)) }),
+    });
+    if (!res.ok) throw new Error(`sponsor failed (${res.status})`);
+    const { signature } = (await res.json()) as { signature: string };
+    return signature;
+  }
+
+  const sig = await conn.sendRawTransaction(userSigned);
   await conn.confirmTransaction(sig, "confirmed");
   return sig;
 }
