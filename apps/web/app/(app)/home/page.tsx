@@ -56,7 +56,7 @@ export default async function HomePage() {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
       {/* Balance */}
-      <Card className="p-6 mb-4 bg-gradient-to-br from-emerald to-emerald-600 border-0 text-white shadow-soft-lg">
+      <Card className="p-6 mb-4 rounded-card-lg bg-gradient-to-br from-harbor to-[#0e3358] border-0 text-white shadow-card-flat">
         <div className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-2">
           Your balance
         </div>
