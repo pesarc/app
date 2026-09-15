@@ -1,52 +1,64 @@
-// Venue-neutral market reads. The UI calls fetchLiveMarkets()/activeVenue()
-// and never cares whether the active home is an EVM chain or Solana — the
-// first step of the "one product, two homes" plan (docs/MULTI_CHAIN.md).
+// Venue-neutral market reads. The UI calls fetchLiveMarkets()/activeVenue() and
+// never cares whether a home is an EVM chain or Solana — the "one product, two
+// homes" plan (docs/MULTI_CHAIN.md). availableVenues() powers a venue switcher.
 
 import { fetchLiveMarkets as fetchEvmMarkets, type LiveMarket } from "./markets.live";
 import { activeChain, explorerAddressUrl } from "./chain/registry";
 import { svmConfig, svmExplorerAccount } from "./svm/config";
 
+export type VenueKind = "evm" | "svm";
+
 export type Venue = {
-  kind: "evm" | "svm";
+  kind: VenueKind;
   label: string;
   /** Explorer link to the live prediction-market contract/program, if any. */
   explorerUrl: string;
 };
 
-/** Is the active venue Solana? Selected via NEXT_PUBLIC_ACTIVE_CHAIN=solana*. */
+function evmVenue(): Venue | null {
+  const c = activeChain();
+  if (!c.predictionMarket) return null;
+  return { kind: "evm", label: c.label, explorerUrl: explorerAddressUrl(c, c.predictionMarket) };
+}
+
+function svmVenue(): Venue | null {
+  // Only surfaced when a Solana program is explicitly configured.
+  if (!process.env.NEXT_PUBLIC_SVM_PREDICTION_MARKET) return null;
+  const c = svmConfig();
+  return { kind: "svm", label: c.label, explorerUrl: svmExplorerAccount(c.predictionMarket, c) };
+}
+
+/** All homes that have a prediction market configured. */
+export function availableVenues(): Venue[] {
+  return [evmVenue(), svmVenue()].filter(Boolean) as Venue[];
+}
+
+/** Whether Solana is the default selection (NEXT_PUBLIC_ACTIVE_CHAIN=solana*). */
 function svmSelected(): boolean {
   const want = (process.env.NEXT_PUBLIC_ACTIVE_CHAIN || "").toLowerCase();
   if (want.startsWith("solana") || want.startsWith("svm")) return true;
-  // Auto-fallback: no EVM prediction market configured but an SVM one is.
-  return !activeChain().predictionMarket && Boolean(svmConfig().predictionMarket) && want === "";
+  return !activeChain().predictionMarket && Boolean(svmVenue());
 }
 
 export function activeVenue(): Venue {
-  if (svmSelected()) {
-    const c = svmConfig();
-    return {
-      kind: "svm",
-      label: c.label,
-      explorerUrl: c.predictionMarket ? svmExplorerAccount(c.predictionMarket, c) : "",
-    };
-  }
-  const c = activeChain();
-  return {
-    kind: "evm",
-    label: c.label,
-    explorerUrl: c.predictionMarket ? explorerAddressUrl(c, c.predictionMarket) : "",
-  };
+  const venues = availableVenues();
+  const want: VenueKind = svmSelected() ? "svm" : "evm";
+  return venues.find((v) => v.kind === want) ?? venues[0] ?? { kind: "evm", label: "", explorerUrl: "" };
 }
 
-/** Live markets from whichever venue is active. Fails soft (null → mock).
- *  The Solana adapter (and @solana/web3.js) is loaded only when SVM is active,
- *  so it never weighs down the EVM path. */
-export async function fetchLiveMarkets(): Promise<LiveMarket[] | null> {
-  if (svmSelected()) {
+/** Live markets from a specific venue. The Solana adapter (+ @solana/web3.js)
+ *  loads lazily, so it never weighs down the EVM path. */
+export async function fetchLiveMarketsFor(kind: VenueKind): Promise<LiveMarket[] | null> {
+  if (kind === "svm") {
     const { fetchSvmMarkets } = await import("./svm/markets.live");
     return fetchSvmMarkets();
   }
   return fetchEvmMarkets();
+}
+
+/** Live markets from whichever venue is active by default. */
+export function fetchLiveMarkets(): Promise<LiveMarket[] | null> {
+  return fetchLiveMarketsFor(activeVenue().kind);
 }
 
 export type { LiveMarket };

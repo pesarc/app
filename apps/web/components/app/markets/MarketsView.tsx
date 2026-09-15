@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio } from "lucide-react";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
-import { fetchLiveMarkets, activeVenue, type LiveMarket } from "@pesarc/sdk/markets.venue";
+import {
+  fetchLiveMarketsFor,
+  availableVenues,
+  activeVenue,
+  type LiveMarket,
+  type VenueKind,
+} from "@pesarc/sdk/markets.venue";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
@@ -17,18 +23,22 @@ export default function MarketsView() {
   );
   const [live, setLive] = useState<LiveMarket[] | null>(null);
 
+  const venues = useMemo(() => availableVenues(), []);
+  const [venueKind, setVenueKind] = useState<VenueKind>(() => activeVenue().kind);
+  const venue = venues.find((v) => v.kind === venueKind) ?? venues[0];
+
   useEffect(() => {
     let alive = true;
-    fetchLiveMarkets().then((m) => {
+    setLive(null);
+    fetchLiveMarketsFor(venueKind).then((m) => {
       if (alive) setLive(m);
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [venueKind]);
 
   const isLive = Boolean(live && live.length > 0);
-  const venue = activeVenue();
 
   const list = useMemo(
     () =>
@@ -44,7 +54,7 @@ export default function MarketsView() {
       <header className="mb-4">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Markets</h1>
-          {isLive && (
+          {isLive && venue && (
             <a
               href={venue.explorerUrl}
               target="_blank"
@@ -60,6 +70,26 @@ export default function MarketsView() {
           Hedge your currency or take a view — settled in local money, never a dollar in the
           path.
         </p>
+
+        {/* Venue switcher — one product, two homes (EVM ⇄ Solana) */}
+        {venues.length > 1 && (
+          <div className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] p-1 mt-3.5">
+            {venues.map((v) => {
+              const active = v.kind === venueKind;
+              return (
+                <button
+                  key={v.kind}
+                  onClick={() => setVenueKind(v.kind)}
+                  className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition-colors ${
+                    active ? "bg-snow text-harbor shadow-card-flat" : "text-slate hover:text-harbor"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Hedge explainer — the wedge, in a navy block. */}
