@@ -1,8 +1,8 @@
-# StableArc · app
+# Pesarc · app
 
 The private product monorepo — web, mobile, backend, and the shared SDK.
 Turborepo + pnpm workspaces. Contracts live in the sibling public repo
-[`stablearc/contracts`](https://github.com/stablearc/contracts).
+[`pesarc/contracts`](https://github.com/pesarc/contracts).
 
 ```
 apps/
