@@ -13,6 +13,7 @@ import {
   Building2,
   MapPin,
   Plus,
+  LineChart,
 } from "lucide-react";
 import { site } from "@pesarc/sdk/site";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -40,10 +41,11 @@ const MAIN: Item[] = [
 ];
 
 const MONEY: Item[] = [
+  { label: "Invest", href: "/invest", icon: LineChart },
+  { label: "Earn", href: "/earn", icon: Sprout },
   { label: "Pay", href: "/pay", icon: QrCode },
   { label: "Receive", href: "/receive", icon: ArrowDownLeft },
   { label: "Add money", href: "/add", icon: Plus },
-  { label: "Earn", href: "/earn", icon: Sprout },
   { label: "Business", href: "/business", icon: Building2 },
   { label: "Local", href: "/corridor", icon: MapPin },
 ];

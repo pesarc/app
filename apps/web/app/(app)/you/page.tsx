@@ -18,6 +18,7 @@ import {
   BadgeCheck,
   ShieldCheck,
   Loader2,
+  LineChart,
 } from "lucide-react";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
@@ -27,6 +28,7 @@ import { ACCOUNT } from "@pesarc/sdk/account";
 import { Segmented } from "@/components/app/ui";
 
 const MORE = [
+  { label: "Invest", href: "/invest", icon: LineChart },
   { label: "Pay", href: "/pay", icon: QrCode },
   { label: "Receive", href: "/receive", icon: ArrowDownLeft },
   { label: "Add money", href: "/add", icon: Plus },
