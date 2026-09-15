@@ -189,6 +189,8 @@ export default function CorridorFlow() {
 
   return (
     <Shell>
+      <div className="lg:grid lg:grid-cols-[1.1fr_1fr] lg:gap-6 lg:items-start">
+      <div>
       {/* The claim, up front */}
       <Card className="p-4 mb-5 flex items-start gap-3 bg-sky-tint/60 border-sky/20">
         <ShieldCheck className="w-5 h-5 text-sky shrink-0 mt-0.5" />
@@ -324,7 +326,9 @@ export default function CorridorFlow() {
           )}
         </Card>
       )}
+      </div>
 
+      <div>
       {/* Your intents */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-slate uppercase tracking-widest">
@@ -351,6 +355,8 @@ export default function CorridorFlow() {
           ))}
         </div>
       )}
+      </div>
+      </div>
     </Shell>
   );
 }
@@ -473,12 +479,12 @@ function CurrencyPicker({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 md:py-10">
       <div className="mb-6">
         <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-1">
           Local corridor
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
+        <h1 className="text-[27px] font-extrabold tracking-tight text-harbor mb-1.5">
           Send locally
         </h1>
         <p className="text-slate">
