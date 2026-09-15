@@ -4,6 +4,7 @@
 // the default currency live now, off the main navigation, so the money screens
 // stay uncluttered.
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Sprout,
@@ -14,6 +15,9 @@ import {
   Plus,
   ChevronRight,
   LogOut,
+  BadgeCheck,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
@@ -33,7 +37,7 @@ const MORE = [
 
 export default function YouPage() {
   const { mode, setMode } = useUIMode();
-  const { sendCurrency, setSendCurrency } = usePrefs();
+  const { sendCurrency, setSendCurrency, kyc, setKyc } = usePrefs();
   const { mode: walletMode, authenticated, address, alias, login, logout } = useWallet();
 
   const signedIn = walletMode === "mock" || authenticated;
@@ -61,6 +65,11 @@ export default function YouPage() {
           </div>
         </div>
       </div>
+
+      {/* Identity verification (KYC) */}
+      <Section title="Verification">
+        <VerificationRow kyc={kyc} setKyc={setKyc} />
+      </Section>
 
       {/* Preferences */}
       <Section title="Preferences">
@@ -139,6 +148,68 @@ export default function YouPage() {
         >
           {authenticated ? <LogOut className="w-4 h-4" /> : null}
           {authenticated ? "Sign out" : "Sign in"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function VerificationRow({
+  kyc,
+  setKyc,
+}: {
+  kyc: "unverified" | "pending" | "verified";
+  setKyc: (s: "unverified" | "pending" | "verified") => void;
+}) {
+  const [starting, setStarting] = useState(false);
+
+  // Demo verification: pending → verified after a short review. A real KYC
+  // provider (Persona/Sumsub) would drive this from a verified webhook.
+  const start = () => {
+    setStarting(true);
+    setKyc("pending");
+    setTimeout(() => {
+      setKyc("verified");
+      setStarting(false);
+    }, 2500);
+  };
+
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-4">
+      <span
+        className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${
+          kyc === "verified" ? "bg-sky-tint/60 text-sky-deep" : "bg-cream text-harbor"
+        }`}
+      >
+        {kyc === "verified" ? <BadgeCheck className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-bold text-ink">Identity verification</div>
+        <div className="text-[12.5px] font-medium text-slate">
+          {kyc === "verified"
+            ? "Verified — bank & mobile-money payouts unlocked."
+            : kyc === "pending"
+            ? "Reviewing your details…"
+            : "Verify once to receive fiat payouts to a bank or wallet."}
+        </div>
+      </div>
+      {kyc === "verified" ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-sky-tint/60 text-sky-deep text-[11px] font-extrabold px-2.5 py-1">
+          <BadgeCheck className="w-3.5 h-3.5" /> Verified
+        </span>
+      ) : (
+        <button
+          onClick={start}
+          disabled={kyc === "pending" || starting}
+          className="inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-sm font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform disabled:opacity-60 disabled:translate-y-0"
+        >
+          {kyc === "pending" ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> Reviewing
+            </>
+          ) : (
+            "Verify"
+          )}
         </button>
       )}
     </div>
