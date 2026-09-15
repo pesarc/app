@@ -14,6 +14,7 @@ import {
   MapPin,
   Plus,
   LineChart,
+  Settings2,
 } from "lucide-react";
 import { site } from "@pesarc/sdk/site";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -48,6 +49,7 @@ const MONEY: Item[] = [
   { label: "Add money", href: "/add", icon: Plus },
   { label: "Business", href: "/business", icon: Building2 },
   { label: "Local", href: "/corridor", icon: MapPin },
+  { label: "Admin", href: "/admin", icon: Settings2 },
 ];
 
 function isActive(pathname: string, href: string): boolean {
