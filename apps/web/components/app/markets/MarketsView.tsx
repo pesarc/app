@@ -11,59 +11,125 @@ import {
   type LiveMarket,
   type VenueKind,
 } from "@pesarc/sdk/markets.venue";
+import { activeChain } from "@pesarc/sdk/chain/registry";
+import { evmClaim } from "@pesarc/sdk/market-write";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, displayPrices, type Side } from "./display";
 import { Stagger, StaggerItem } from "@/components/motion";
 
+type Selection = VenueKind | "all";
+
 export default function MarketsView() {
+  const smart = useSmartWallet();
+  const solanaSigner = useSolanaSigner();
+
   const [cat, setCat] = useState<MarketKind | "all">("all");
-  const [ticket, setTicket] = useState<{ market: Market; live?: LiveMarket; side: Side } | null>(
-    null
-  );
-  const [live, setLive] = useState<LiveMarket[] | null>(null);
+  const [ticket, setTicket] = useState<{
+    market: Market;
+    live?: LiveMarket;
+    side: Side;
+    venueKind: VenueKind;
+    marketId: number;
+  } | null>(null);
 
   const venues = useMemo(() => availableVenues(), []);
-  const [venueKind, setVenueKind] = useState<VenueKind>(() => activeVenue().kind);
-  const venue = venues.find((v) => v.kind === venueKind) ?? venues[0];
+  const [selected, setSelected] = useState<Selection>(() => activeVenue().kind);
+  const [liveByVenue, setLiveByVenue] = useState<Record<string, LiveMarket[] | null>>({});
+  const [claimingKey, setClaimingKey] = useState<string | null>(null);
+
+  const venuesInScope = useMemo(
+    () => (selected === "all" ? venues : venues.filter((v) => v.kind === selected)),
+    [selected, venues]
+  );
 
   useEffect(() => {
     let alive = true;
-    setLive(null);
-    fetchLiveMarketsFor(venueKind).then((m) => {
-      if (alive) setLive(m);
+    venuesInScope.forEach((v) => {
+      fetchLiveMarketsFor(v.kind).then((m) => {
+        if (alive) setLiveByVenue((prev) => ({ ...prev, [v.kind]: m }));
+      });
     });
     return () => {
       alive = false;
     };
-  }, [venueKind]);
+  }, [venuesInScope]);
 
-  const isLive = Boolean(live && live.length > 0);
+  const isLive = venuesInScope.some((v) => (liveByVenue[v.kind]?.length ?? 0) > 0);
+  const soleVenue = venuesInScope.length === 1 ? venuesInScope[0] : null;
 
-  const list = useMemo(
-    () =>
-      (cat === "all" ? MARKETS : MARKETS.filter((m) => m.kind === cat)).map((m) => ({
-        market: m,
-        index: MARKETS.indexOf(m),
-      })),
+  const filtered = useMemo(
+    () => (cat === "all" ? MARKETS : MARKETS.filter((m) => m.kind === cat)),
     [cat]
   );
+
+  const cards = useMemo(
+    () =>
+      venuesInScope.flatMap((v) =>
+        filtered.map((m) => {
+          const index = MARKETS.indexOf(m);
+          const live = overlay(liveByVenue[v.kind] ?? null, index) ?? undefined;
+          return {
+            key: `${v.kind}-${m.id}`,
+            market: m,
+            index,
+            venueKind: v.kind,
+            venueLabel: venuesInScope.length > 1 ? v.label : undefined,
+            live,
+            marketId: live?.id ?? index,
+          };
+        })
+      ),
+    [venuesInScope, filtered, liveByVenue]
+  );
+
+  async function handleClaim(venueKind: VenueKind, marketId: number, key: string) {
+    setClaimingKey(key);
+    try {
+      if (venueKind === "evm" && smart.ready) {
+        const chain = activeChain();
+        if (chain.predictionMarket) {
+          await evmClaim(smart, { predictionMarket: chain.predictionMarket as `0x${string}`, marketId });
+        }
+      } else if (venueKind === "svm" && solanaSigner) {
+        const { svmClaim } = await import("@pesarc/sdk/svm/write");
+        await svmClaim(solanaSigner, { marketId });
+      }
+      const m = await fetchLiveMarketsFor(venueKind);
+      setLiveByVenue((prev) => ({ ...prev, [venueKind]: m }));
+    } catch {
+      /* never hard-fail */
+    }
+    setClaimingKey(null);
+  }
+
+  const options: { value: Selection; label: string }[] = [
+    ...venues.map((v) => ({ value: v.kind as Selection, label: v.label })),
+    ...(venues.length > 1 ? [{ value: "all" as Selection, label: "All" }] : []),
+  ];
 
   return (
     <div className="mx-auto w-full max-w-md lg:max-w-3xl px-4 sm:px-6 py-6 md:py-10">
       <header className="mb-4">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Markets</h1>
-          {isLive && venue && (
+          {isLive && soleVenue && (
             <a
-              href={venue.explorerUrl}
+              href={soleVenue.explorerUrl}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-extrabold px-2.5 py-1 hover:bg-sky-tint transition-colors"
               aria-label="View the prediction market on the block explorer"
             >
-              <Radio className="w-3 h-3" /> Live · {venue.label}
+              <Radio className="w-3 h-3" /> Live · {soleVenue.label}
             </a>
+          )}
+          {isLive && !soleVenue && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-extrabold px-2.5 py-1">
+              <Radio className="w-3 h-3" /> Live · all venues
+            </span>
           )}
         </div>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed">
@@ -71,20 +137,20 @@ export default function MarketsView() {
           path.
         </p>
 
-        {/* Venue switcher — one product, two homes (EVM ⇄ Solana) */}
-        {venues.length > 1 && (
+        {/* Venue switcher — one product, two homes (EVM ⇄ Solana), or All merged */}
+        {options.length > 1 && (
           <div className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] p-1 mt-3.5">
-            {venues.map((v) => {
-              const active = v.kind === venueKind;
+            {options.map((o) => {
+              const active = o.value === selected;
               return (
                 <button
-                  key={v.kind}
-                  onClick={() => setVenueKind(v.kind)}
+                  key={o.value}
+                  onClick={() => setSelected(o.value)}
                   className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-bold transition-colors ${
                     active ? "bg-snow text-harbor shadow-card-flat" : "text-slate hover:text-harbor"
                   }`}
                 >
-                  {v.label}
+                  {o.label}
                 </button>
               );
             })}
@@ -127,19 +193,27 @@ export default function MarketsView() {
       </div>
 
       <Stagger className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-        {list.map(({ market: m, index }) => {
-          const lm = overlay(live, index);
-          return (
-            <StaggerItem key={m.id} pop>
-              <MarketCard
-                market={m}
-                live={lm}
-                onStake={(side) => setTicket({ market: m, live: lm, side })}
-              />
-            </StaggerItem>
-          );
-        })}
-        {list.length === 0 && (
+        {cards.map((card) => (
+          <StaggerItem key={card.key} pop>
+            <MarketCard
+              market={card.market}
+              live={card.live}
+              venueLabel={card.venueLabel}
+              claiming={claimingKey === card.key}
+              onClaim={() => handleClaim(card.venueKind, card.marketId, card.key)}
+              onStake={(side) =>
+                setTicket({
+                  market: card.market,
+                  live: card.live,
+                  side,
+                  venueKind: card.venueKind,
+                  marketId: card.marketId,
+                })
+              }
+            />
+          </StaggerItem>
+        ))}
+        {cards.length === 0 && (
           <p className="text-sm text-slate py-8 text-center lg:col-span-2">
             No markets in this category yet.
           </p>
@@ -151,8 +225,8 @@ export default function MarketsView() {
           <StakeSheet
             key="stake-sheet"
             market={ticket.market}
-            marketId={ticket.live?.id ?? MARKETS.indexOf(ticket.market)}
-            venueKind={venueKind}
+            marketId={ticket.marketId}
+            venueKind={ticket.venueKind}
             side={ticket.side}
             prices={displayPrices(ticket.market, ticket.live)}
             onClose={() => setTicket(null)}

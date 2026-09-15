@@ -45,6 +45,19 @@ export async function evmStake(
   ]);
 }
 
+/** Claim winnings on a finalized EVM market (gasless via the smart wallet). */
+export async function evmClaim(
+  sender: BatchSender,
+  p: { predictionMarket: `0x${string}`; marketId: number },
+): Promise<string | undefined> {
+  const data = encodeFunctionData({
+    abi: predictionMarketAbi,
+    functionName: "claim",
+    args: [BigInt(p.marketId)],
+  });
+  return sender.sendCalls([{ to: p.predictionMarket, data }]);
+}
+
 /** Can we do a real EVM stake right now? */
 export function evmStakeReady(
   sender: BatchSender | null | undefined,
