@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { Shield, Radio } from "lucide-react";
+import { Shield, Radio, Plus } from "lucide-react";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
@@ -18,7 +19,7 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
-import { overlay, displayPrices, type Side } from "./display";
+import { overlay, type Selection as StakeSelection } from "./display";
 import { Pagination, usePaged } from "@/components/app/Pagination";
 import { Stagger, StaggerItem } from "@/components/motion";
 
@@ -34,7 +35,7 @@ export default function MarketsView() {
   const [ticket, setTicket] = useState<{
     market: Market;
     live?: LiveMarket;
-    side: Side;
+    selection: StakeSelection;
     venueKind: VenueKind;
     marketId: number;
   } | null>(null);
@@ -157,6 +158,12 @@ export default function MarketsView() {
               <Radio className="w-3 h-3" /> Live · all venues
             </span>
           )}
+          <Link
+            href="/markets/propose"
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-[13px] font-bold px-3.5 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+          >
+            <Plus className="w-4 h-4" /> Propose
+          </Link>
         </div>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed">
           Hedge your currency or take a view — settled in local money, never a dollar in the
@@ -227,11 +234,11 @@ export default function MarketsView() {
               venueLabel={card.venueLabel}
               claiming={claimingKey === card.key}
               onClaim={() => handleClaim(card.venueKind, card.marketId, card.key)}
-              onStake={(side) =>
+              onStake={(selection) =>
                 setTicket({
                   market: card.market,
                   live: card.live,
-                  side,
+                  selection,
                   venueKind: card.venueKind,
                   marketId: card.marketId,
                 })
@@ -254,8 +261,8 @@ export default function MarketsView() {
             market={ticket.market}
             marketId={ticket.marketId}
             venueKind={ticket.venueKind}
-            side={ticket.side}
-            prices={displayPrices(ticket.market, ticket.live)}
+            selection={ticket.selection}
+            live={ticket.live}
             onClose={() => setTicket(null)}
           />
         )}

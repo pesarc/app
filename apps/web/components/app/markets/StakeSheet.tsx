@@ -13,7 +13,8 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { svmExplorerTx } from "@pesarc/sdk/svm/config";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
-import { type Side } from "./display";
+import { selectionPrice, selectionLabel, type Selection } from "./display";
+import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { type VenueKind } from "@pesarc/sdk/markets.venue";
 import { spring } from "@/components/motion";
 
@@ -21,15 +22,15 @@ export default function StakeSheet({
   market,
   marketId,
   venueKind,
-  side,
-  prices,
+  selection,
+  live,
   onClose,
 }: {
   market: Market;
   marketId: number;
   venueKind: VenueKind;
-  side: Side;
-  prices: { yes: number; no: number };
+  selection: Selection;
+  live?: LiveMarket;
   onClose: () => void;
 }) {
   const smart = useSmartWallet();
@@ -40,7 +41,12 @@ export default function StakeSheet({
   const [busy, setBusy] = useState(false);
   const [txHash, setTxHash] = useState<string>();
 
-  const price = side === "yes" ? prices.yes : prices.no;
+  // Multi-outcome markets are store-backed (the on-chain program is binary),
+  // so they settle as a demo position; binary markets write on-chain.
+  const isBinary = selection.kind === "binary";
+  const isYes = selection.kind === "binary" && selection.side === "yes";
+  const label = selectionLabel(market, selection);
+  const price = selectionPrice(market, selection, live);
   const stake = Number(amount) || 0; // in the chosen stablecoin
 
   // The market settles in its collateral; a non-collateral stablecoin is
@@ -55,25 +61,26 @@ export default function StakeSheet({
   const chain = activeChain();
   const collateralToken = chain.tokens[collateralCcy as "NGN" | "KES" | "GHS" | "USD"];
   const canEvm =
-    venueKind === "evm" && smart.ready && Boolean(chain.predictionMarket) && Boolean(collateralToken);
+    isBinary && venueKind === "evm" && smart.ready && Boolean(chain.predictionMarket) && Boolean(collateralToken);
 
   const confirm = async () => {
     setBusy(true);
     try {
-      if (venueKind === "evm" && canEvm && collateralToken) {
+      // Only binary markets write on-chain; multi settles as a demo position.
+      if (isBinary && venueKind === "evm" && canEvm && collateralToken) {
         const tx = await evmStake(smart, {
           predictionMarket: chain.predictionMarket as `0x${string}`,
           collateralToken,
           marketId,
-          isYes: side === "yes",
+          isYes,
           amount: stakeInCollateral,
         });
         if (tx) setTxHash(tx);
-      } else if (venueKind === "svm" && solanaSigner) {
+      } else if (isBinary && venueKind === "svm" && solanaSigner) {
         const { svmStake } = await import("@pesarc/sdk/svm/write");
         const sig = await svmStake(solanaSigner, {
           marketId,
-          isYes: side === "yes",
+          isYes,
           amount: stakeInCollateral,
         });
         setTxHash(sig);
@@ -112,7 +119,7 @@ export default function StakeSheet({
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-widest text-slate">
-              {side === "yes" ? "Backing Yes" : "Backing No"} · {price}¢
+              Backing {label} · {price}¢
             </div>
             <p className="font-semibold text-ink leading-snug mt-1">
               {market.question}
@@ -132,9 +139,7 @@ export default function StakeSheet({
             <span className="inline-flex w-12 h-12 rounded-full bg-sky/15 items-center justify-center text-sky mb-3">
               <Check className="w-6 h-6" />
             </span>
-            <p className="font-semibold text-ink">
-              {side === "yes" ? "Yes" : "No"} position placed
-            </p>
+            <p className="font-semibold text-ink">{label} position placed</p>
             <p className="text-sm text-slate mt-1">
               {payWith} {stake.toLocaleString()} staked
               {needsSwap ? ` (→ ${market.collateral} ${Math.round(stakeInCollateral).toLocaleString()})` : ""}
@@ -231,7 +236,7 @@ export default function StakeSheet({
                   <Loader2 className="w-4 h-4 animate-spin" /> Staking…
                 </>
               ) : stake > 0 ? (
-                `Stake ${payWith} ${stake.toLocaleString()} on ${side === "yes" ? "Yes" : "No"}`
+                `Stake ${payWith} ${stake.toLocaleString()} on ${label}`
               ) : (
                 "Enter an amount"
               )}
