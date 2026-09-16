@@ -32,7 +32,7 @@ export default function Hero() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.4, ease }}
-        className="absolute inset-y-0 left-1/2 lg:left-[64%] -translate-x-1/2 w-full lg:w-[80%] z-0"
+        className="absolute inset-y-0 left-1/2 lg:left-[54%] -translate-x-1/2 w-full lg:w-[78%] z-0"
       >
         <Globe />
       </motion.div>

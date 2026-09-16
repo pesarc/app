@@ -15,6 +15,7 @@ import {
 } from "@alchemy/wallet-apis";
 import { encodeFunctionData, type LocalAccount } from "viem";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { erc20Abi } from "@pesarc/abi";
 import {
   ALCHEMY_API_KEY,
@@ -85,20 +86,25 @@ export function LiveSmartWalletProvider({
     };
   }, [embedded, signer]);
 
+  // The smart wallet follows the in-session active EVM chain so staking targets
+  // whichever chain the user has selected.
+  const { chain: activeEvm } = useActiveEvmChain();
+
   const client = useMemo(() => {
     if (!isSmartWalletConfigured || !signer) return null;
     try {
       return createSmartWalletClient({
         signer,
         transport: alchemyWalletTransport({ apiKey: ALCHEMY_API_KEY }),
-        chain: HUB_CHAIN,
+        chain: activeEvm.chain,
         paymaster: { policyId: ALCHEMY_GAS_POLICY_ID },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       return null;
     }
-  }, [signer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signer, activeEvm.chain.id]);
 
   const sendCalls = useCallback(
     async (calls: Call[]) => {

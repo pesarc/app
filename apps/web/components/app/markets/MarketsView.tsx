@@ -21,6 +21,8 @@ import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
 import { overlay, type Selection as StakeSelection } from "./display";
 import { Pagination, usePaged } from "@/components/app/Pagination";
+import ChainSelector from "@/components/app/ChainSelector";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { Stagger, StaggerItem } from "@/components/motion";
 
 const PER_PAGE = 4;
@@ -40,7 +42,10 @@ export default function MarketsView() {
     marketId: number;
   } | null>(null);
 
-  const venues = useMemo(() => availableVenues(), []);
+  // Re-derive venues + re-fetch live markets when the active EVM chain switches.
+  const { chainKey } = useActiveEvmChain();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const venues = useMemo(() => availableVenues(), [chainKey]);
   const [selected, setSelected] = useState<Selection>(() => activeVenue().kind);
   const [liveByVenue, setLiveByVenue] = useState<Record<string, LiveMarket[] | null>>({});
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
@@ -169,6 +174,8 @@ export default function MarketsView() {
           Hedge your currency or take a view — settled in local money, never a dollar in the
           path.
         </p>
+
+        <ChainSelector className="mt-3.5" />
 
         {/* Venue switcher — one product, two homes (EVM ⇄ Solana), or All merged */}
         {options.length > 1 && (

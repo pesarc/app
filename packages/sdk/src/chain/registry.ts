@@ -262,9 +262,23 @@ export function configuredChains(): EvmChainConfig[] {
   return allChains().filter((c) => Boolean(c.predictionMarket));
 }
 
-/** The chain the app reads by default. */
+// Runtime override so the app can switch its active EVM chain in-session (set by
+// the chain selector). Falls back to NEXT_PUBLIC_ACTIVE_CHAIN, then the first
+// configured chain.
+let runtimeChainKey: string | null = null;
+
+/** Set (or clear with null) the in-session active EVM chain. */
+export function setActiveChainKey(key: string | null): void {
+  runtimeChainKey = key;
+}
+
+export function getActiveChainKey(): string | null {
+  return runtimeChainKey;
+}
+
+/** The chain the app reads/writes by default (runtime override › env › first). */
 export function activeChain(): EvmChainConfig {
-  const want = process.env.NEXT_PUBLIC_ACTIVE_CHAIN;
+  const want = runtimeChainKey || process.env.NEXT_PUBLIC_ACTIVE_CHAIN;
   const configured = configuredChains();
   if (want) {
     const hit =

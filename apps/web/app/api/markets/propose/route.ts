@@ -28,6 +28,7 @@ const schema = z.object({
   bond: z.number().nonnegative().max(1_000_000_000).optional(),
   bondCoin: z.string().trim().max(8).optional(),
   proposer: z.string().trim().max(64).optional(),
+  chainKey: z.string().trim().max(40).optional(),
 });
 
 export async function POST(request: Request) {
@@ -80,9 +81,13 @@ export async function POST(request: Request) {
   // configured; the pools then live on-chain. Multi-outcome stays store-backed
   // (the contract is binary-only). On-chain failure degrades to store-backed.
   let onChain: Awaited<ReturnType<typeof evmCreateMarketOwner>> | null = null;
-  if (p.type === "binary" && marketsChainReady(p.collateral)) {
+  if (p.type === "binary" && marketsChainReady(p.collateral, p.chainKey)) {
     try {
-      onChain = await evmCreateMarketOwner({ question: p.question, collateral: p.collateral });
+      onChain = await evmCreateMarketOwner({
+        question: p.question,
+        collateral: p.collateral,
+        chainKey: p.chainKey,
+      });
       data.onChainId = onChain.id;
       data.venue = onChain.venue;
       data.chainKey = onChain.chainKey;
