@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button, Card } from "@/components/app/ui";
+import FaucetCard from "@/components/app/FaucetCard";
 import { CORRIDORS, SOLANA_CORRIDOR } from "@pesarc/sdk/chain/corridors";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -97,6 +98,8 @@ export default function AddMoneyPage() {
         Deposit native USDC from another chain — it arrives on the hub over
         Circle CCTP V2 in under a minute.
       </p>
+
+      <FaucetCard />
 
       {/* Corridor picker */}
       <div className="grid grid-cols-2 gap-2 mb-4">
