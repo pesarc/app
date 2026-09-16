@@ -5,6 +5,7 @@
 // intent and settles it peer-to-peer in local currency, no dollar in the path.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowUp,
@@ -17,6 +18,7 @@ import {
   Plus,
   Trash2,
   MessageSquare,
+  BarChart3,
 } from "lucide-react";
 import { Card } from "@/components/app/ui";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
@@ -36,18 +38,19 @@ type Msg =
       submitUrl?: string;
       settlements?: { kind: string; url: string }[];
       pending?: boolean;
+      marketsUrl?: string;
     };
 
 const EXAMPLES = [
   "Send 50,000 naira to Ghana",
-  "Move 200 cedis to Kenya for 0x1111111111111111111111111111111111111111",
-  "Pay 30,000 shillings to Nigeria",
+  "Create a market: will USD/NGN cross ₦2,000 by June?",
+  "New market: 2027 winner? options: Party A, Party B, Party C",
 ];
 
 const GREETING: Msg = {
   role: "agent",
   text:
-    "Hi — I'm Pesarc's settlement agent on Celo. Tell me what you'd like to send between naira, cedis, and shillings, and I'll settle it peer-to-peer in local currency, with no US dollar in the path. Try one of the examples below.",
+    "Hi — I'm Pesarc's settlement agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency — or say “create a market: …” and I'll spin up a prediction market for you. Try an example below.",
 };
 
 // ---- Chat history (per-device, localStorage) ----------------------------
@@ -172,7 +175,8 @@ export default function AgentChat() {
             matched: data.matched,
             submitUrl: data.submitUrl,
             settlements: data.settlements,
-            pending: data.ok && !data.matched && !data.needsInput,
+            marketsUrl: data.marketsUrl,
+            pending: data.ok && !data.matched && !data.needsInput && !data.createdMarket,
           },
         ]);
         // Reflect the spend against the on-chain session-key cap.
@@ -319,6 +323,14 @@ export default function AgentChat() {
                         </a>
                       ))}
                     </div>
+                  )}
+                  {m.marketsUrl && (
+                    <Link
+                      href={m.marketsUrl}
+                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-sky text-white text-xs font-bold px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
+                    >
+                      <BarChart3 className="w-3.5 h-3.5" /> Open Markets
+                    </Link>
                   )}
                 </Card>
               </div>

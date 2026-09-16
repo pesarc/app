@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Server, Settings } from "lucide-react";
 import Globe, { type GlobeControls } from "./Globe";
 import { site } from "@pesarc/sdk/site";
+import { LogoMark } from "@/components/app/Logo";
 
 const COLORS = ["#35E39C", "#F5C451", "#7C9CFF"];
 
@@ -41,9 +42,7 @@ export default function Hero() {
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 flex items-center justify-center rounded bg-white text-black font-mono text-xs font-medium">
-              SA
-            </div>
+            <LogoMark size={32} className="shrink-0 rounded-lg" />
             <span className="text-xl tracking-tight text-white font-medium">
               {site.name}
             </span>
