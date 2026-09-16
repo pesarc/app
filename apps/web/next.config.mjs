@@ -34,6 +34,13 @@ import { fileURLToPath } from "node:url";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Self-contained server bundle for containers (Docker/Podman). Trace from the
+  // monorepo root so workspace deps (@pesarc/*) are bundled into standalone.
+  output: "standalone",
+  outputFileTracingRoot: path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../..",
+  ),
   // globe.gl + three-globe ship ESM only — let Next compile them.
   transpilePackages: ["globe.gl", "three-globe", "@pesarc/sdk", "@pesarc/abi", "@pesarc/ui"],
   images: {

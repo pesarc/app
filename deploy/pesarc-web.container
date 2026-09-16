@@ -1,0 +1,26 @@
+# Podman Quadlet unit — systemd-managed, auto-restart container.
+# Install to /etc/containers/systemd/pesarc-web.container on the droplet, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-web
+#
+# Runtime env (DATABASE_URL, PAYSTACK_SECRET_KEY, *_PK, RAMP_*, NEXT_PUBLIC_*)
+# is read from /etc/pesarc/pesarc.env — keep that file root-only (chmod 600).
+
+[Unit]
+Description=Pesarc web app
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=registry.digitalocean.com/pesarc/pesarc-web:latest
+# Or a locally-built tag: Image=localhost/pesarc-web:latest
+ContainerName=pesarc-web
+EnvironmentFile=/etc/pesarc/pesarc.env
+PublishPort=127.0.0.1:3000:3000
+AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

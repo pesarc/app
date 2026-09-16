@@ -1,0 +1,12 @@
+# Replaces the Vercel cron (apps/web/vercel.json). Drives the settlement solver
+# by hitting the app's own route. Install alongside pesarc-solve.timer in
+# /etc/systemd/system/, then: sudo systemctl enable --now pesarc-solve.timer
+[Unit]
+Description=Pesarc settlement solver tick
+After=network-online.target
+
+[Service]
+Type=oneshot
+# The app is bound to localhost:3000 (behind Caddy). Add an auth header here if
+# /api/cron/solve is protected (e.g. -H "Authorization: Bearer ${CRON_SECRET}").
+ExecStart=/usr/bin/curl -fsS -m 60 http://127.0.0.1:3000/api/cron/solve
