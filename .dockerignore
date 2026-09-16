@@ -1,0 +1,17 @@
+# Keep the build context small and secrets out of image layers.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/out
+.git
+.github
+.vercel
+.claude
+**/.data
+# Secrets: passed at build via --secret and at runtime via --env-file, never copied in.
+.env
+.env.*
+!.env.example
+**/*.log
+**/coverage

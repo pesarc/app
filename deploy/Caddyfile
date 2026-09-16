@@ -1,0 +1,8 @@
+# Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
+# Point your domain's A record at the droplet's public IP first, then replace
+# app.example.com below. Install to /etc/caddy/Caddyfile and `systemctl reload caddy`.
+
+app.example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3000
+}
