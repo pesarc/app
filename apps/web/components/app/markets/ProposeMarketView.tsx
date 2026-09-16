@@ -9,7 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, X, Check, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Plus, X, Check, Loader2, Users, ExternalLink } from "lucide-react";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 
 type Kind = "fx" | "macro" | "sports" | "politics";
@@ -43,6 +43,7 @@ export default function ProposeMarketView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [txUrl, setTxUrl] = useState<string | null>(null);
 
   const cleanOutcomes = outcomes.map((o) => o.trim()).filter(Boolean);
   const validMulti =
@@ -82,6 +83,7 @@ export default function ProposeMarketView() {
       if (!res.ok || !j.ok) {
         setError(j.error ?? "Could not submit — try again.");
       } else {
+        setTxUrl(j.onChain?.txUrl ?? null);
         setDone(true);
       }
     } catch {
@@ -99,10 +101,21 @@ export default function ProposeMarketView() {
         <h1 className="text-[22px] font-extrabold text-harbor tracking-tight mb-1.5">
           Market proposed
         </h1>
-        <p className="text-sm font-medium text-slate mb-6 max-w-xs mx-auto">
-          It&apos;s live on the board with a <span className="font-bold">Community</span> badge.
-          You can propose another or go take a position.
+        <p className="text-sm font-medium text-slate mb-4 max-w-xs mx-auto">
+          {txUrl
+            ? "It's live on the board — and created on-chain. You can propose another or take a position."
+            : "It's live on the board with a Community badge. You can propose another or take a position."}
         </p>
+        {txUrl && (
+          <a
+            href={txUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-sky-tint/50 text-sky-deep text-[13px] font-bold px-4 py-2 mb-6 hover:bg-sky-tint transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> View creation tx on-chain
+          </a>
+        )}
         <div className="flex flex-col gap-2.5">
           <Link
             href="/markets"
@@ -113,6 +126,7 @@ export default function ProposeMarketView() {
           <button
             onClick={() => {
               setDone(false);
+              setTxUrl(null);
               setQuestion("");
               setOutcomes(["", ""]);
               setBond("");

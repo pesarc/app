@@ -42,6 +42,10 @@ export type Market = {
   /** Community-proposed markets carry the proposer + a "proposed" status. */
   proposer?: string;
   status?: "live" | "proposed";
+  /** Set when the market was created on-chain (owner-signed). */
+  onChainId?: number;
+  /** Block-explorer link to the creation tx (on-chain markets). */
+  txUrl?: string;
 };
 
 /** True when the market has named multi-outcome choices. */
