@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   PiggyBank,
@@ -57,7 +58,7 @@ const MODES = [
 
 export function Modes() {
   return (
-    <section id="modes" className="bg-cream py-24 px-6 md:px-12">
+    <section id="modes" className="bg-cream py-16 md:py-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <Reveal className="mb-14">
           <span className="inline-block rounded-pill bg-sky-tint/60 text-sky-deep text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 mb-4">
@@ -94,13 +95,31 @@ export function Modes() {
 
 /* ---------------- Corridor (case study) ---------------- */
 
+// Live remittance routes the visual cycles through — primarily Global-South
+// corridors, plus a couple of Western origins. Mirrors the hero card.
+const CORRIDORS = [
+  { fromFlag: "🇬🇭", fromPlace: "Accra", fromAmount: "₵1,000", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦105k" },
+  { fromFlag: "🇰🇪", fromPlace: "Nairobi", fromAmount: "KSh 5,000", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵470" },
+  { fromFlag: "🇳🇬", fromPlace: "Lagos", fromAmount: "₦150k", toFlag: "🇿🇦", toPlace: "Johannesburg", toAmount: "R 1,700" },
+  { fromFlag: "🇬🇧", fromPlace: "London", fromAmount: "£200", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦408k" },
+  { fromFlag: "🇪🇬", fromPlace: "Cairo", fromAmount: "ج.م 2,000", toFlag: "🇰🇪", toPlace: "Nairobi", toAmount: "KSh 5,300" },
+  { fromFlag: "🇺🇸", fromPlace: "New York", fromAmount: "$300", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵4,600" },
+];
+
 export function Corridor() {
+  const [ci, setCi] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setCi((v) => (v + 1) % CORRIDORS.length), 3200);
+    return () => clearInterval(t);
+  }, []);
+  const c = CORRIDORS[ci];
+
   return (
-    <section id="corridor" className="bg-snow border-y border-fog py-24">
-      <div className="px-6 md:px-12 max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-center">
+    <section id="corridor" className="bg-snow border-y border-fog py-16 md:py-24">
+      <div className="px-6 md:px-12 max-w-7xl mx-auto flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
         {/* Visual */}
         <Reveal className="w-full lg:w-1/2">
-          <div className="relative w-full aspect-square md:aspect-[4/3] rounded-card-lg overflow-hidden bg-harbor shadow-[rgba(19,66,111,0.28)_0px_10px_0px_0px]">
+          <div className="relative w-full aspect-[5/3] sm:aspect-[16/9] lg:aspect-[4/3] rounded-card-lg overflow-hidden bg-harbor shadow-[rgba(19,66,111,0.28)_0px_10px_0px_0px]">
             {/* subtle grid + glow */}
             <div
               className="absolute inset-0 opacity-40"
@@ -112,34 +131,56 @@ export function Corridor() {
             />
             <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-sky/25 blur-[90px]" />
 
-            <div className="absolute inset-0 flex items-center justify-center px-10">
-              <div className="flex items-center w-full max-w-md">
-                <CorridorEnd flag="🇬🇭" place="Accra" sub="You send" amount="₵1,000" />
-                <div className="flex-1 px-3">
-                  <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
-                    <path
-                      d="M0,4 H120"
-                      stroke="#7dc0ff"
-                      strokeWidth="2.5"
-                      fill="none"
-                      strokeDasharray="4 4"
-                      className="animate-flow"
-                      style={{ filter: "drop-shadow(0 0 6px rgba(125,192,255,0.8))" }}
+            <div className="absolute inset-0 flex items-center justify-center px-6 sm:px-10 pb-12 sm:pb-14">
+              <div className="relative flex items-center w-full max-w-md">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={ci}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.45 }}
+                    className="flex items-center w-full"
+                  >
+                    <CorridorEnd
+                      flag={c.fromFlag}
+                      place={c.fromPlace}
+                      sub="You send"
+                      amount={c.fromAmount}
                     />
-                  </svg>
-                </div>
-                <CorridorEnd flag="🇳🇬" place="Lagos" sub="They receive" amount="₦105k" align="right" />
+                    <div className="flex-1 px-3">
+                      <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
+                        <path
+                          d="M0,4 H120"
+                          stroke="#7dc0ff"
+                          strokeWidth="2.5"
+                          fill="none"
+                          strokeDasharray="4 4"
+                          className="animate-flow"
+                          style={{ filter: "drop-shadow(0 0 6px rgba(125,192,255,0.8))" }}
+                        />
+                      </svg>
+                    </div>
+                    <CorridorEnd
+                      flag={c.toFlag}
+                      place={c.toPlace}
+                      sub="They receive"
+                      amount={c.toAmount}
+                      align="right"
+                    />
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
 
-            <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-              <div className="rounded-2xl bg-white/10 backdrop-blur px-4 py-2">
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between">
+              <div className="rounded-2xl bg-white/10 backdrop-blur px-3 py-1.5 sm:px-4 sm:py-2">
                 <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
                   Settlement
                 </span>
-                <span className="text-lg font-extrabold text-white">&lt;30 sec</span>
+                <span className="text-base sm:text-lg font-extrabold text-white">&lt;30 sec</span>
               </div>
-              <div className="rounded-2xl bg-white/10 backdrop-blur px-4 py-2 flex items-center gap-2">
+              <div className="rounded-2xl bg-white/10 backdrop-blur px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-sky" />
                 <span className="text-[11px] font-bold text-white uppercase tracking-widest">
                   Gasless
@@ -150,7 +191,7 @@ export function Corridor() {
         </Reveal>
 
         {/* Copy */}
-        <div className="w-full lg:w-1/2 space-y-7">
+        <div className="w-full lg:w-1/2 space-y-6 lg:space-y-7">
           <Reveal>
             <div className="inline-flex items-center gap-2 rounded-pill bg-sky-tint/60 text-sky-deep px-3 py-1.5">
               <Globe className="w-4 h-4" />
@@ -159,7 +200,7 @@ export function Corridor() {
           </Reveal>
           <Reveal delay={0.05}>
             <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor leading-tight">
-              How ₵1,000 reaches Lagos in under 30 seconds.
+              How money reaches home in under 30 seconds.
             </h2>
           </Reveal>
           <Reveal delay={0.1}>
@@ -197,11 +238,11 @@ function CorridorEnd({
   align?: "left" | "right";
 }) {
   return (
-    <div className={align === "right" ? "text-right" : "text-left"}>
-      <div className="text-2xl mb-2">{flag}</div>
+    <div className={`min-w-0 ${align === "right" ? "text-right" : "text-left"}`}>
+      <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">{flag}</div>
       <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{sub}</div>
-      <div className="text-lg font-extrabold text-white numerals">{amount}</div>
-      <div className="text-xs font-medium text-white/70">{place}</div>
+      <div className="text-base sm:text-lg font-extrabold text-white numerals truncate">{amount}</div>
+      <div className="text-xs font-medium text-white/70 truncate">{place}</div>
     </div>
   );
 }
@@ -225,16 +266,17 @@ const PROTOCOLS = [
   { logo: "/logos/reactive.png", name: "Reactive Network" },
 ];
 
-// Networks we actually run today (contracts deployed / agent settling).
+// Networks we support (deployed / agent settling) or are actively bringing up.
 const NETWORKS = [
-  { logo: "/logos/arc.svg", name: "Arc" },
+  { logo: "/logos/arc.png", name: "Arc" },
   { logo: "/logos/arbitrum.png", name: "Arbitrum" },
   { logo: "/logos/base.png", name: "Base" },
   { logo: "/logos/celo.png", name: "Celo" },
   { logo: "/logos/solana.png", name: "Solana" },
+  { logo: "/logos/ethereum.png", name: "Ethereum" },
+  { logo: "/logos/optimism.png", name: "Optimism" },
+  { logo: "/logos/algorand.png", name: "Algorand" },
   // Not live yet — uncomment as each network ships:
-  // { logo: "/logos/ethereum.png", name: "Ethereum" },
-  // { logo: "/logos/optimism.png", name: "Optimism" },
   // { logo: "/logos/polygon.png", name: "Polygon" },
   // { logo: "/logos/bnb.png", name: "BNB Chain" },
   // { logo: "/logos/avalanche.png", name: "Avalanche" },
@@ -281,7 +323,7 @@ function RailCard({
 
 export function Rails() {
   return (
-    <section id="rails" className="bg-cream py-28 px-6 md:px-12">
+    <section id="rails" className="bg-cream py-16 md:py-28 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <Reveal className="text-center mb-14 max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor mb-5">

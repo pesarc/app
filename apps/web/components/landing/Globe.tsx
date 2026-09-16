@@ -528,8 +528,9 @@ export default function Globe({ controls }: Props) {
       // Region chips — as a ping lands, float a stylish label off the hub with
       // the region and the local stable it settles in. Fades over LABEL_MS.
       labels = labels.filter((l) => now >= l.start && now - l.start < LABEL_MS);
-      // Newest last so it draws on top; cap the count to keep it calm.
-      const shownLabels = labels.slice(-3);
+      // Newest last so it draws on top; cap the count to keep it calm. Suppressed
+      // on small screens, where the globe sits behind the hero copy.
+      const shownLabels = W >= 640 ? labels.slice(-3) : [];
       for (const l of shownLabels) {
         const p = project(l.v, R, cx, cy);
         if (p.z <= 0.08) continue;
