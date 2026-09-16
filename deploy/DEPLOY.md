@@ -103,6 +103,24 @@ systemctl restart pesarc-web
 # or enable podman-auto-update.timer to do it automatically
 ```
 
+## CI/CD — one `git push` (GitHub Actions)
+`.github/workflows/build-image.yml` builds the amd64 image on every push to
+`main` and pushes it to **GHCR** (`ghcr.io/pesarc/pesarc-web`), so you never build
+on the droplet. Set up:
+
+1. Repo secret **`BUILD_DOTENV`** = the `NEXT_PUBLIC_*` lines from `app/.env`
+   (these inline into the client bundle at build; keep server secrets OUT — they
+   live only in `/etc/pesarc/pesarc.env` on the droplet).
+2. To auto-deploy after each build, set repo variable **`DEPLOY_TO_DROPLET=true`**
+   and secrets **`DROPLET_HOST`**, **`DROPLET_USER`**, **`DROPLET_SSH_KEY`**. The
+   deploy job SSHes in and runs `podman pull … && systemctl restart pesarc-web`.
+3. On the droplet, log in so Podman can pull the private image:
+   `podman login ghcr.io -u <github-user>` (password = a PAT with `read:packages`),
+   or make the GHCR package public. `doctl registry login` instead if you prefer DOCR.
+
+That's the "one git push" deploy. Without step 2 it still builds+pushes; you pull
+manually (step 8 below).
+
 ## Moving to another stack later
 The artifact is a plain OCI image + a Postgres URL. To leave DigitalOcean:
 `podman push` the image to any registry and run it on Fly/Render/k8s/another VPS
