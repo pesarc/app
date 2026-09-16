@@ -26,21 +26,19 @@ export async function Independence() {
   const independentShare = 1 - m.dollarTouched;
 
   return (
-    <section
-      id="independence"
-      className="py-24 px-6 md:px-12 max-w-7xl mx-auto relative z-20"
-    >
+    <section id="independence" className="bg-cream py-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
       <div className="mb-12">
-        <div className="flex items-center gap-2 mb-4">
-          <ShieldCheck className="w-5 h-5 text-[#35E39C]" />
-          <span className="font-mono text-xs text-[#35E39C] uppercase tracking-widest">
+        <div className="inline-flex items-center gap-2 rounded-pill bg-sky-tint/60 text-sky-deep px-3 py-1.5 mb-4">
+          <ShieldCheck className="w-4 h-4" />
+          <span className="text-[11px] font-extrabold uppercase tracking-widest">
             Independence · live
           </span>
         </div>
-        <h2 className="text-3xl md:text-5xl tracking-tight font-medium text-white leading-tight mb-4">
+        <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor leading-tight mb-4">
           Money that doesn&apos;t need permission.
         </h2>
-        <p className="text-base md:text-lg text-zinc-400 font-light max-w-2xl leading-relaxed">
+        <p className="text-base md:text-lg text-slate font-medium max-w-2xl leading-relaxed">
           African trade has always cleared through someone else&apos;s currency.
           We measure how little of ours does — and publish it, live from the
           chain, whether it flatters us or not.
@@ -66,18 +64,18 @@ export async function Independence() {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-5 rounded-xl bg-zinc-900/40 border border-zinc-800/50">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="p-6 rounded-card bg-snow border border-fog shadow-card-flat">
           <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-[#35E39C]" />
-            <span className="text-sm font-medium text-white">
+            <Zap className="w-4 h-4 text-sky-deep" />
+            <span className="text-[15px] font-extrabold text-harbor">
               Priced by our own flow
             </span>
           </div>
-          <p className="text-sm text-zinc-400 font-light">
+          <p className="text-[15px] text-slate font-medium leading-relaxed">
             {m.selfPricedPairs.length > 0 ? (
               <>
-                <span className="text-white font-mono">
+                <span className="text-harbor font-bold">
                   {m.selfPricedPairs.join(" · ")}
                 </span>{" "}
                 {m.selfPricedPairs.length === 1 ? "sets its" : "set their"} rate
@@ -89,11 +87,11 @@ export async function Independence() {
             )}
           </p>
         </div>
-        <div className="p-5 rounded-xl bg-zinc-900/40 border border-zinc-800/50">
-          <div className="text-sm font-medium text-white mb-2">
+        <div className="p-6 rounded-card bg-snow border border-fog shadow-card-flat">
+          <div className="text-[15px] font-extrabold text-harbor mb-2">
             Why two numbers
           </div>
-          <p className="text-sm text-zinc-400 font-light">
+          <p className="text-[15px] text-slate font-medium leading-relaxed">
             Not moving dollars isn&apos;t the same as not needing them. A
             transfer can settle in naira and cedis yet still be{" "}
             <em>priced</em> off a dollar feed. The second number is the harder
@@ -102,13 +100,14 @@ export async function Independence() {
         </div>
       </div>
 
-      <p className="mt-6 text-xs font-mono text-zinc-600 uppercase tracking-widest">
+      <p className="mt-6 text-[11px] font-bold text-slate/70 uppercase tracking-widest">
         Computed from on-chain events ·{" "}
         {new Date(m.asOf).toUTCString().replace("GMT", "UTC")} ·{" "}
-        <a href="/api/metrics/independence" className="hover:text-zinc-400 underline">
+        <a href="/api/metrics/independence" className="text-sky-deep hover:underline">
           check it yourself
         </a>
       </p>
+      </div>
     </section>
   );
 }
@@ -125,16 +124,16 @@ function Metric({
   accent?: boolean;
 }) {
   return (
-    <div className="p-6 rounded-xl bg-zinc-900/40 border border-zinc-800/50">
+    <div className="p-6 rounded-card bg-snow border border-fog shadow-card-flat">
       <div
-        className={`text-5xl tracking-tighter font-medium mb-2 ${
-          accent ? "text-[#35E39C]" : "text-white"
+        className={`text-5xl tracking-tight font-extrabold numerals mb-2 ${
+          accent ? "text-sky" : "text-harbor"
         }`}
       >
         {value}
       </div>
-      <div className="text-sm font-medium text-white mb-1">{label}</div>
-      <div className="text-xs text-zinc-500 font-light">{sub}</div>
+      <div className="text-[15px] font-extrabold text-harbor mb-1">{label}</div>
+      <div className="text-[13px] text-slate font-medium">{sub}</div>
     </div>
   );
 }
