@@ -1,0 +1,11 @@
+# Runs the backup nightly at 03:30. Persistent=true catches up if the droplet
+# was off at the scheduled time.
+[Unit]
+Description=Schedule the Pesarc Postgres backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
