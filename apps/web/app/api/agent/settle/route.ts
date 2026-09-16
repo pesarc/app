@@ -57,7 +57,7 @@ function ruleReply(message: string) {
     matched: false,
     reply: `Got it — I'd settle ${Number(amt).toLocaleString()} ${cur}${
       dest ? ` to ${dest}` : ""
-    } peer-to-peer in local currency, no dollar in the path. (Demo mode — set LLM_API_KEY and the agent key to execute this on-chain.)`,
+    } peer-to-peer in local currency. (Demo mode — set LLM_API_KEY and the agent key to execute this on-chain.)`,
   };
 }
 
@@ -206,8 +206,8 @@ export async function POST(request: Request) {
     const didSettle = outcome.settled.length > 0;
 
     const reply = didSettle
-      ? `Done. I matched your ${fmt(intent.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on Celo — no dollar in the path. ${to.flag} ${to.code} is on its way to the recipient.`
-      : `I've placed your ${fmt(intent.amount)} ${from.code}→${to.code} intent on Celo. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically, no dollar involved.`;
+      ? `Done. I matched your ${fmt(intent.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on Celo in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
+      : `I've placed your ${fmt(intent.amount)} ${from.code}→${to.code} intent on Celo. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically.`;
 
     return NextResponse.json({
       ok: true,

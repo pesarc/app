@@ -157,7 +157,7 @@ export default function ProposeMarketView() {
       </div>
       <p className="text-sm font-medium text-slate mb-6 leading-relaxed">
         Create a prediction market — Yes/No or multiple-choice — and seed it with a bond. Settled
-        in local currency, no dollar in the path.
+        in local currency.
       </p>
 
       {/* Type */}

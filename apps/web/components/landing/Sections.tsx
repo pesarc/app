@@ -168,7 +168,7 @@ export function Corridor() {
               highest of any region — and settles in days, not seconds. Pesarc routes
               the same transfer over stablecoin rails for a fraction of a percent,
               credits the recipient instantly from local liquidity, and settles behind
-              the scenes — no dollar in the path.
+              the scenes.
             </p>
           </Reveal>
           <Reveal delay={0.15}>

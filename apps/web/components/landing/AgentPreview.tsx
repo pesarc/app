@@ -34,7 +34,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "settle",
-        text: "Sent ₦50,000 to Ama — GTBank ••4821, settled in local currency, no dollar in the path.",
+        text: "Sent ₦50,000 to Ama — GTBank ••4821, settled in local currency.",
       },
     ],
   },

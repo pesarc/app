@@ -272,9 +272,9 @@ export default function Globe({ controls }: Props) {
         cy,
         R * 1.02
       );
-      ocean.addColorStop(0, "#123a63");
-      ocean.addColorStop(0.55, "#0a2543");
-      ocean.addColorStop(1, "#05101f");
+      ocean.addColorStop(0, "#164675");
+      ocean.addColorStop(0.55, "#0c2c4e");
+      ocean.addColorStop(1, "#07182e");
       ctx.fillStyle = ocean;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -283,11 +283,13 @@ export default function Globe({ controls }: Props) {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Countries (front hemisphere only) — muted teal-navy landmasses that
-      // only lift toward the sky accent near the lit edge.
-      const base = [34, 71, 112];
+      // Countries (front hemisphere only) — clearly brighter than the ocean so
+      // coastlines read crisp, each landmass a slightly different sky-lifted
+      // tone. High land/ocean contrast is what keeps the sphere from looking
+      // soft.
+      const base = [58, 108, 158];
       for (const s of shapes) {
-        const k = 0.08 + 0.4 * s.t;
+        const k = 0.16 + 0.5 * s.t;
         ctx.fillStyle = `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(
           base[1] + (ag - base[1]) * k
         )}, ${Math.round(base[2] + (ab - base[2]) * k)})`;
@@ -337,8 +339,9 @@ export default function Globe({ controls }: Props) {
           if (visiblePts > 1) {
             ctx.closePath();
             ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.08)";
-            ctx.lineWidth = 0.5;
+            // Crisp sky-tinted coastline for definition.
+            ctx.strokeStyle = "rgba(150, 200, 255, 0.30)";
+            ctx.lineWidth = 0.7;
             ctx.stroke();
           }
           ctx.restore();
