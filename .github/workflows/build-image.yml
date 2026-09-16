@@ -1,0 +1,81 @@
+name: Build & push web image
+
+# Builds the amd64 container on every push to main and pushes it to GHCR, so a
+# deploy is one `git push`. Optionally SSHes into the droplet to pull + restart.
+#
+# Required repo secret:
+#   BUILD_DOTENV  — the NEXT_PUBLIC_* lines from app/.env (inlined into the client
+#                   bundle at build; keep it to NEXT_PUBLIC_* — server secrets are
+#                   NOT needed at build and belong on the droplet's env file).
+# Optional (enable the deploy job):
+#   repo variable DEPLOY_TO_DROPLET = "true"
+#   secrets DROPLET_HOST, DROPLET_USER, DROPLET_SSH_KEY
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "Dockerfile"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/build-image.yml"
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/pesarc-web
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: img
+        run: echo "ref=$(echo '${{ env.IMAGE }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Provide build-time .env (NEXT_PUBLIC_* only)
+        run: printf '%s' "${{ secrets.BUILD_DOTENV }}" > .env.ci
+
+      - name: Build & push (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.img.outputs.ref }}:latest
+            ${{ steps.img.outputs.ref }}:${{ github.sha }}
+          secret-files: |
+            dotenv=.env.ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_TO_DROPLET == 'true' }}
+    steps:
+      - name: Pull + restart on the droplet
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -e
+            podman pull ghcr.io/${{ github.repository_owner }}/pesarc-web:latest
+            sudo systemctl restart pesarc-web
