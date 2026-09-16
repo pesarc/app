@@ -258,24 +258,27 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 /* ---------------- Rails (integrations) ---------------- */
 
-const PROTOCOLS = [
+type Logo = { logo: string; name: string; scale?: number };
+
+const PROTOCOLS: Logo[] = [
   { logo: "/logos/uniswap.png", name: "Uniswap v4" },
   { logo: "/logos/usdc.png", name: "Circle CCTP V2" },
+  { logo: "/logos/hyperbridge.svg", name: "Hyperbridge" },
   { logo: "/logos/hyperlane.png", name: "Hyperlane" },
   { logo: "/logos/layerzero.png", name: "LayerZero" },
   { logo: "/logos/reactive.png", name: "Reactive Network" },
 ];
 
 // Networks we support (deployed / agent settling) or are actively bringing up.
-const NETWORKS = [
+const NETWORKS: Logo[] = [
   { logo: "/logos/arc.png", name: "Arc" },
   { logo: "/logos/arbitrum.png", name: "Arbitrum" },
   { logo: "/logos/base.png", name: "Base" },
   { logo: "/logos/celo.png", name: "Celo" },
   { logo: "/logos/solana.png", name: "Solana" },
-  { logo: "/logos/ethereum.png", name: "Ethereum" },
+  { logo: "/logos/ethereum.png", name: "Ethereum", scale: 1.35 },
   { logo: "/logos/optimism.png", name: "Optimism" },
-  { logo: "/logos/algorand.png", name: "Algorand" },
+  { logo: "/logos/algorand.png", name: "Algorand", scale: 1.35 },
   // Not live yet — uncomment as each network ships:
   // { logo: "/logos/polygon.png", name: "Polygon" },
   // { logo: "/logos/bnb.png", name: "BNB Chain" },
@@ -290,20 +293,27 @@ function RailCard({
   logo,
   name,
   compact = false,
+  scale = 1,
 }: {
   logo: string;
   name: string;
   compact?: boolean;
+  scale?: number;
 }) {
+  // Networks (compact) show the bare logo — no circle behind it. Protocols keep
+  // the cream circle. `scale` lets a logo with heavy internal padding read bigger.
+  const iconPx = Math.round((compact ? 34 : 36) * scale);
   return (
     <div
       className={`group rounded-card bg-snow border border-fog shadow-card-flat hover:shadow-pop hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center cursor-default ${
-        compact ? "p-5" : "p-8"
+        compact ? "p-5" : "p-6"
       }`}
     >
       <div
-        className={`rounded-full bg-cream flex items-center justify-center overflow-hidden ${
-          compact ? "w-10 h-10 mb-3" : "w-12 h-12 mb-5"
+        className={`flex items-center justify-center ${
+          compact
+            ? "h-12 mb-3"
+            : "rounded-full bg-cream w-12 h-12 mb-5 overflow-hidden"
         }`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -311,10 +321,15 @@ function RailCard({
           src={logo}
           alt={`${name} logo`}
           loading="lazy"
-          className={compact ? "w-7 h-7 object-contain" : "w-9 h-9 object-contain"}
+          className="object-contain"
+          style={{ width: iconPx, height: iconPx }}
         />
       </div>
-      <span className={`font-bold text-harbor text-center ${compact ? "text-sm" : "text-base"}`}>
+      <span
+        className={`font-bold text-harbor text-center whitespace-nowrap ${
+          compact ? "text-sm" : "text-[15px]"
+        }`}
+      >
         {name}
       </span>
     </div>
@@ -341,7 +356,7 @@ export function Rails() {
             <Reveal className="text-[11px] font-bold text-slate uppercase tracking-widest mb-4 text-center">
               Protocols &amp; rails
             </Reveal>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {PROTOCOLS.map((p, i) => (
                 <Reveal key={p.name} delay={i * 0.05}>
                   <RailCard {...p} />

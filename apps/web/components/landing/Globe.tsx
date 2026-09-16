@@ -354,17 +354,6 @@ export default function Globe({ controls }: Props) {
       lastR = R;
       const [ar, ag, ab] = hexToRgb(c.color);
 
-      // Atmosphere glow — thin rim of sky light, softer than before so the
-      // sphere reads as a deep object rather than a bright bulb.
-      const glowR = R * (1.05 + 0.26 * c.glow);
-      const grad = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, glowR);
-      grad.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, ${0.14 * c.glow})`);
-      grad.addColorStop(1, `rgba(${ar}, ${ag}, ${ab}, 0)`);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
-      ctx.fill();
-
       // Ocean disc — deep harbor night, lit from the upper-left so the sphere
       // has real form. Darker than before (was #1d4e80→#0c2a49).
       const ocean = ctx.createRadialGradient(
