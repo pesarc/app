@@ -10,11 +10,15 @@
 # syntax=docker/dockerfile:1.7
 ARG NODE_VERSION=22
 
-# ---- deps: install the full workspace (cached on lockfile) ----
-FROM node:${NODE_VERSION}-slim AS deps
+# ---- build: install the workspace and compile @pesarc/web to standalone ----
+# Install + build in one stage: copying node_modules across stages makes pnpm
+# re-resolve and re-download, so we keep them together and lean on the pnpm store
+# cache mount to make repeat builds fast.
+FROM node:${NODE_VERSION}-slim AS build
 RUN corepack enable
 WORKDIR /app
-# Only the manifests + lockfile → this layer caches until deps change.
+ENV NEXT_TELEMETRY_DISABLED=1
+# Manifests first so the install layer caches until dependencies change.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/sdk/package.json packages/sdk/package.json
@@ -23,15 +27,6 @@ COPY packages/ui/package.json packages/ui/package.json
 COPY packages/config/package.json packages/config/package.json
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
-
-# ---- build: compile @pesarc/web to a standalone server ----
-FROM node:${NODE_VERSION}-slim AS build
-RUN corepack enable
-WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages ./packages
 COPY . .
 # The root .env is mounted only for this step so NEXT_PUBLIC_* inline into the
 # client bundle; it is never written to a layer. Server secrets are read at run.
