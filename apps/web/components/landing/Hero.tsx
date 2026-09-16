@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Globe from "./Globe";
 import AgentPreview from "./AgentPreview";
+import CorridorPreview from "./CorridorPreview";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
@@ -30,7 +31,7 @@ export default function Hero() {
       {/* Globe — navy sphere, centred, on the back layer. Positioning lives on a
           static wrapper so framer-motion's scale transform can't override the
           centering translate. */}
-      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-full lg:w-[74%] z-0">
+      <div className="absolute inset-y-0 left-1/2 lg:left-[64%] -translate-x-1/2 w-full lg:w-[74%] z-0">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -145,33 +146,8 @@ export default function Hero() {
           <motion.div
             animate={{ y: [0, -7, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="w-[300px] rounded-card bg-snow border border-fog shadow-pop p-4"
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-slate mb-3">
-              <Zap className="w-3.5 h-3.5 text-sky" /> Corridor · live
-            </div>
-            <div className="flex items-center justify-between">
-              <Endpoint flag="🇬🇭" place="Accra" sub="You send" amount="₵1,000" />
-              <div className="flex-1 px-2">
-                <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
-                  <path
-                    d="M0,4 H120"
-                    stroke="#2e96ff"
-                    strokeWidth="2"
-                    fill="none"
-                    strokeDasharray="4 4"
-                    className="animate-flow"
-                  />
-                </svg>
-              </div>
-              <Endpoint flag="🇳🇬" place="Lagos" sub="They get" amount="₦105k" align="right" />
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-cream text-[11px] font-bold">
-              <span className="text-slate">Settles <span className="text-harbor">&lt;30s</span></span>
-              <span className="inline-flex items-center gap-1.5 text-sky-deep">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky" /> Gasless · 0.5%
-              </span>
-            </div>
+            <CorridorPreview />
           </motion.div>
 
           <motion.div
@@ -192,25 +168,3 @@ export default function Hero() {
   );
 }
 
-function Endpoint({
-  flag,
-  place,
-  sub,
-  amount,
-  align = "left",
-}: {
-  flag: string;
-  place: string;
-  sub: string;
-  amount: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <div className={align === "right" ? "text-right" : "text-left"}>
-      <div className="text-xl leading-none mb-1">{flag}</div>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-slate">{sub}</div>
-      <div className="text-[15px] font-extrabold text-harbor numerals">{amount}</div>
-      <div className="text-[11px] font-medium text-slate">{place}</div>
-    </div>
-  );
-}
