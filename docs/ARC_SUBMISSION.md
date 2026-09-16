@@ -35,10 +35,16 @@ moves and settles in stablecoins end to end.
 
 | Chain | Prediction market | Notes |
 |---|---|---|
-| **Arc Testnet** (chain `5042002`) | _deploying_ | USDC is the gas token |
+| **Arc Testnet** (chain `5042002`) | `0xe9f109b826de37A6481eAfC60985B5b36763558B` | Live; USDC is the gas token. Testnet does **not** qualify for the grant |
+| **Arc mainnet** (chain `5042`) | _pending — required for the grant_ | Fund the deployer with USDC on Arc mainnet, then run `DeployArc.s.sol` |
 | Base Sepolia | `0xD6f0f1C8DC2AeD9Fc2886fed19eAfC34f699062E` | |
 | Arbitrum Sepolia | `0x088c60c5C1AC2f519497B36CFA72326e2c4b9904` | |
 | Solana devnet | `2aMC2CKjqwxmLrS6dv98c6pVYEKogRXxEuz3NZpzv8CZ` | |
+
+Arc testnet stack: IntentMatcher `0x5f7Cb34cA29d0554998882B716DC86e0B764f206`,
+RealizedRateOracle `0x48484e904EA964a649D0c73666bA1E91d3Ca2349`, cNGN
+`0xE76E4f347667d973a1B968733bE41738f2AE202C`. USDC (native gas token) is the
+predeploy `0x3600…0000`.
 
 The contracts are chain-agnostic Solidity (Uniswap-style) — deploying to Arc is
 a config + deploy step, and the app already switches chains in-session.
