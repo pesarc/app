@@ -19,7 +19,7 @@ import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { erc20Abi } from "@pesarc/abi";
 import {
   ALCHEMY_API_KEY,
-  ALCHEMY_GAS_POLICY_ID,
+  gasPolicyFor,
   isSmartWalletConfigured,
 } from "./config";
 
@@ -97,7 +97,7 @@ export function LiveSmartWalletProvider({
         signer,
         transport: alchemyWalletTransport({ apiKey: ALCHEMY_API_KEY }),
         chain: activeEvm.chain,
-        paymaster: { policyId: ALCHEMY_GAS_POLICY_ID },
+        paymaster: { policyId: gasPolicyFor(activeEvm.key) },
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

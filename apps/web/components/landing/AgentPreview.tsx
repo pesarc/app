@@ -1,93 +1,133 @@
 "use client";
 
 // Auto-playing preview of the Pesarc agent, cycling through what it can do:
-// settle money, hedge on a prediction market, earn on a corridor, and invest
-// (stocks / DeFi lending). Each scene: user asks → agent works → result, on loop.
+// settle to a contact (asking which chain or bank), hedge on a prediction
+// market, earn on a corridor, and invest (stocks / DeFi lending). Messages
+// slide in from the right. On loop.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, ArrowUp, Check, Shield, Sprout, LineChart, Send } from "lucide-react";
+import { Bot, ArrowUp, Check } from "lucide-react";
 
 type Kind = "settle" | "market" | "earn" | "invest";
 
-type Scene = {
-  kind: Kind;
-  icon: typeof Send;
-  prompt: string;
-  reply: React.ReactNode;
+type Line = {
+  from: "user" | "agent";
+  text: React.ReactNode;
+  visual?: Kind;
+  chips?: string[];
 };
+
+type Scene = { kind: Kind; label: string; lines: Line[] };
 
 const SCENES: Scene[] = [
   {
     kind: "settle",
-    icon: Send,
-    prompt: "Send 1,000 cedis to Lagos",
-    reply: (
-      <>
-        Settled <b className="text-harbor">₵1,000 → ₦105,000</b> peer-to-peer — no dollar in the
-        path.
-      </>
-    ),
+    label: "Send",
+    lines: [
+      { from: "user", text: "Send ₦50,000 to Ama" },
+      {
+        from: "agent",
+        text: "Sure — where should Ama get it?",
+        chips: ["cNGN · Base", "GTBank ••4821"],
+      },
+      { from: "user", text: "GTBank ••4821" },
+      {
+        from: "agent",
+        visual: "settle",
+        text: (
+          <>
+            Sent <b className="text-harbor">₦50,000</b> to Ama — GTBank ••4821, settled in local
+            currency, no dollar in the path.
+          </>
+        ),
+      },
+    ],
   },
   {
     kind: "market",
-    icon: Shield,
-    prompt: "Hedge 50,000 naira against the dollar",
-    reply: (
-      <>
-        Backed <b className="text-harbor">“USD/NGN ≥ ₦1,700 by Dec”</b> — you’re covered if the
-        naira slides.
-      </>
-    ),
+    label: "Hedge",
+    lines: [
+      { from: "user", text: "Hedge 50,000 naira against the dollar" },
+      {
+        from: "agent",
+        visual: "market",
+        text: (
+          <>
+            Backed <b className="text-harbor">“USD/NGN ≥ ₦1,700 by Dec”</b> — you’re covered if the
+            naira slides.
+          </>
+        ),
+      },
+    ],
   },
   {
     kind: "earn",
-    icon: Sprout,
-    prompt: "Put 200,000 naira to work",
-    reply: (
-      <>
-        Deposited to the <b className="text-harbor">NGN↔GHS corridor</b> — 9.2% APY, insured,
-        withdraw anytime.
-      </>
-    ),
+    label: "Earn",
+    lines: [
+      { from: "user", text: "Put 200,000 naira to work" },
+      {
+        from: "agent",
+        visual: "earn",
+        text: (
+          <>
+            Deposited to the <b className="text-harbor">NGN↔GHS corridor</b> — 9.2% APY, insured,
+            withdraw anytime.
+          </>
+        ),
+      },
+    ],
   },
   {
     kind: "invest",
-    icon: LineChart,
-    prompt: "Buy ₦100k of Dangote Cement",
-    reply: (
-      <>
-        Bought <b className="text-harbor">183 DANGCEM</b> — priced &amp; settled in cNGN. Or lend it
-        at 6.4%.
-      </>
-    ),
+    label: "Invest",
+    lines: [
+      { from: "user", text: "Buy ₦100k of Dangote Cement" },
+      {
+        from: "agent",
+        visual: "invest",
+        text: (
+          <>
+            Bought <b className="text-harbor">183 DANGCEM</b> — priced &amp; settled in cNGN. Or lend
+            it at 6.4%.
+          </>
+        ),
+      },
+    ],
   },
 ];
 
-// phase: 0 user · 1 typing · 2 reply+visual · 3 hold → next scene
-const PHASE_MS = [900, 700, 2600, 900];
+const enter = { initial: { opacity: 0, x: 26 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0 } };
 
 export default function AgentPreview() {
   const [scene, setScene] = useState(0);
-  const [phase, setPhase] = useState(0);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const [visible, setVisible] = useState(0);
+  const [typing, setTyping] = useState(false);
 
   useEffect(() => {
-    timer.current = setTimeout(() => {
-      if (phase < PHASE_MS.length - 1) {
-        setPhase((p) => p + 1);
-      } else {
-        setPhase(0);
+    const lines = SCENES[scene].lines;
+    if (visible >= lines.length) {
+      const t = setTimeout(() => {
         setScene((s) => (s + 1) % SCENES.length);
-      }
-    }, PHASE_MS[phase]);
-    return () => clearTimeout(timer.current);
-  }, [phase]);
+        setVisible(0);
+      }, 1900);
+      return () => clearTimeout(t);
+    }
+    const line = lines[visible];
+    if (line.from === "agent") {
+      setTyping(true);
+      const t = setTimeout(() => {
+        setTyping(false);
+        setVisible((v) => v + 1);
+      }, 900);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setVisible((v) => v + 1), 700);
+    return () => clearTimeout(t);
+  }, [scene, visible]);
 
   const s = SCENES[scene];
-  const showUser = phase >= 0;
-  const showTyping = phase === 1;
-  const showReply = phase >= 2;
+  const shown = s.lines.slice(0, visible);
 
   return (
     <div className="w-[300px] rounded-card bg-snow border border-fog shadow-pop overflow-hidden">
@@ -103,39 +143,56 @@ export default function AgentPreview() {
           </div>
         </div>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate">
-          {s.kind === "settle"
-            ? "Send"
-            : s.kind === "market"
-            ? "Hedge"
-            : s.kind === "earn"
-            ? "Earn"
-            : "Invest"}
+          {s.label}
         </span>
       </div>
 
       {/* Chat */}
-      <div className="px-3.5 py-4 space-y-2.5 min-h-[184px] flex flex-col justify-end">
+      <div className="px-3.5 py-4 space-y-2 min-h-[210px] flex flex-col justify-end overflow-hidden">
         <AnimatePresence mode="popLayout">
-          {showUser && (
-            <motion.div
-              key={`u-${scene}`}
-              layout
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
-            >
-              {s.prompt}
-            </motion.div>
+          {shown.map((line, i) =>
+            line.from === "user" ? (
+              <motion.div
+                key={`${scene}-u-${i}`}
+                layout
+                {...enter}
+                className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
+              >
+                {line.text}
+              </motion.div>
+            ) : (
+              <motion.div
+                key={`${scene}-a-${i}`}
+                layout
+                {...enter}
+                className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
+              >
+                <span className="flex items-start gap-1.5">
+                  {line.visual && <Check className="w-3.5 h-3.5 text-sky shrink-0 mt-0.5" />}
+                  <span>{line.text}</span>
+                </span>
+                {line.chips && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {line.chips.map((c) => (
+                      <span
+                        key={c}
+                        className="rounded-full bg-snow border border-fog text-harbor text-[11px] font-bold px-2.5 py-1"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {line.visual && <SceneVisual kind={line.visual} />}
+              </motion.div>
+            ),
           )}
 
-          {showTyping && (
+          {typing && (
             <motion.div
-              key={`t-${scene}`}
+              key={`${scene}-typing`}
               layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              {...enter}
               className="self-start bg-cream rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
             >
               {[0, 1, 2].map((i) => (
@@ -146,23 +203,6 @@ export default function AgentPreview() {
                   transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
                 />
               ))}
-            </motion.div>
-          )}
-
-          {showReply && (
-            <motion.div
-              key={`r-${scene}`}
-              layout
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
-            >
-              <span className="flex items-start gap-1.5">
-                <Check className="w-3.5 h-3.5 text-sky shrink-0 mt-0.5" />
-                <span>{s.reply}</span>
-              </span>
-              <SceneVisual kind={s.kind} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -207,14 +247,13 @@ function SceneVisual({ kind }: { kind: Kind }) {
       </div>
     );
   }
-  // settle → a quick fill bar
   return (
     <div className="mt-2 h-1.5 rounded-full bg-fog overflow-hidden">
       <motion.div
         className="h-full rounded-full bg-sky"
-        initial={{ width: "10%" }}
+        initial={{ width: "12%" }}
         animate={{ width: "100%" }}
-        transition={{ duration: 1.4, ease: "easeInOut" }}
+        transition={{ duration: 1.2, ease: "easeInOut" }}
       />
     </div>
   );

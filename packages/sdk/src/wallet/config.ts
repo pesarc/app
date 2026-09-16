@@ -9,6 +9,18 @@ export const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || "";
 export const ALCHEMY_GAS_POLICY_ID =
   process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID || "";
 
+// Per-chain Alchemy Gas Manager policy. Set a chain-specific policy to sponsor
+// gas there; otherwise the default policy is used (which can itself cover
+// multiple networks when configured that way in the Alchemy dashboard).
+// NEXT_PUBLIC_* must be static literals to inline client-side.
+export function gasPolicyFor(chainKey: string): string {
+  const perChain: Record<string, string> = {
+    "arbitrum-sepolia": process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID_ARB_SEPOLIA || "",
+    "base-sepolia": process.env.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID_BASE_SEPOLIA || "",
+  };
+  return perChain[chainKey] || ALCHEMY_GAS_POLICY_ID;
+}
+
 // Optional destination for testnet sends (demo recipients have no on-chain
 // address). Falls back to a self-send when empty, which still proves the
 // gasless on-chain path.
