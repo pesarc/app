@@ -4,10 +4,13 @@
 #
 # Runtime env (DATABASE_URL, PAYSTACK_SECRET_KEY, *_PK, RAMP_*, NEXT_PUBLIC_*)
 # is read from /etc/pesarc/pesarc.env — keep that file root-only (chmod 600).
+# DATABASE_URL points at the co-located Postgres by container name:
+#   postgres://pesarc:<pw>@pesarc-db:5432/pesarc
+# (name resolution needs the ufw rule documented in DEPLOY.md — see "Firewall").
 
 [Unit]
 Description=Pesarc web app
-After=network-online.target
+After=network-online.target pesarc-db.service
 Wants=network-online.target
 
 [Container]
@@ -16,6 +19,10 @@ Image=ghcr.io/pesarc/pesarc-web:latest
 # Alternatives: registry.digitalocean.com/pesarc/pesarc-web:latest, or a
 # locally-built tag: localhost/pesarc-web:latest
 ContainerName=pesarc-web
+Network=pesarc.network
+# Register the container name as a resolvable alias for aardvark-dns. Quadlet
+# has no first-class NetworkAlias key on this podman version, so pass it through.
+PodmanArgs=--network-alias pesarc-web
 EnvironmentFile=/etc/pesarc/pesarc.env
 PublishPort=127.0.0.1:3000:3000
 AutoUpdate=registry
