@@ -2,10 +2,13 @@
 
 // Auto-playing preview of the Pesarc agent, cycling through what it can do:
 // settle to a contact (asking which chain or bank), hedge on a prediction
-// market, earn on a corridor, and invest (stocks / DeFi lending). Messages
-// slide in from the right. On loop.
+// market, earn on a corridor, and invest (stocks / DeFi lending).
+//
+// The chat area is a FIXED height with its own scroll, so the streaming replies
+// never change the card's height. Agent replies stream in character by
+// character rather than popping in.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, ArrowUp, Check } from "lucide-react";
 
@@ -13,7 +16,7 @@ type Kind = "settle" | "market" | "earn" | "invest";
 
 type Line = {
   from: "user" | "agent";
-  text: React.ReactNode;
+  text: string;
   visual?: Kind;
   chips?: string[];
 };
@@ -26,21 +29,12 @@ const SCENES: Scene[] = [
     label: "Send",
     lines: [
       { from: "user", text: "Send ₦50,000 to Ama" },
-      {
-        from: "agent",
-        text: "Sure — where should Ama get it?",
-        chips: ["cNGN · Base", "GTBank ••4821"],
-      },
+      { from: "agent", text: "Sure — where should Ama get it?", chips: ["cNGN · Base", "GTBank ••4821"] },
       { from: "user", text: "GTBank ••4821" },
       {
         from: "agent",
         visual: "settle",
-        text: (
-          <>
-            Sent <b className="text-harbor">₦50,000</b> to Ama — GTBank ••4821, settled in local
-            currency, no dollar in the path.
-          </>
-        ),
+        text: "Sent ₦50,000 to Ama — GTBank ••4821, settled in local currency, no dollar in the path.",
       },
     ],
   },
@@ -52,12 +46,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "market",
-        text: (
-          <>
-            Backed <b className="text-harbor">“USD/NGN ≥ ₦1,700 by Dec”</b> — you’re covered if the
-            naira slides.
-          </>
-        ),
+        text: "Backed “USD/NGN ≥ ₦1,700 by Dec” — you’re covered if the naira slides.",
       },
     ],
   },
@@ -69,12 +58,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "earn",
-        text: (
-          <>
-            Deposited to the <b className="text-harbor">NGN↔GHS corridor</b> — 9.2% APY, insured,
-            withdraw anytime.
-          </>
-        ),
+        text: "Deposited to the NGN↔GHS corridor — 9.2% APY, insured, withdraw anytime.",
       },
     ],
   },
@@ -86,55 +70,72 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "invest",
-        text: (
-          <>
-            Bought <b className="text-harbor">183 DANGCEM</b> — priced &amp; settled in cNGN. Or lend
-            it at 6.4%.
-          </>
-        ),
+        text: "Bought 183 DANGCEM — priced & settled in cNGN. Or lend it at 6.4%.",
       },
     ],
   },
 ];
 
-// Slide in from the right but stay within the card (the chat area clips
-// overflow), and exit with a plain fade — no layout reflow.
-const enter = {
-  initial: { opacity: 0, x: 14 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.28, ease: "easeOut" as const },
-};
+const STREAM_MS = 22; // per 2 chars
 
 export default function AgentPreview() {
   const [scene, setScene] = useState(0);
-  const [visible, setVisible] = useState(0);
+  const [visible, setVisible] = useState(0); // fully-revealed line count
   const [typing, setTyping] = useState(false);
+  const [streamed, setStreamed] = useState(""); // partial text of the streaming agent line
+  const streamRef = useRef<ReturnType<typeof setInterval>>();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const lines = SCENES[scene].lines;
+
     if (visible >= lines.length) {
       const t = setTimeout(() => {
         setScene((s) => (s + 1) % SCENES.length);
         setVisible(0);
+        setStreamed("");
+        setTyping(false);
       }, 1900);
       return () => clearTimeout(t);
     }
+
     const line = lines[visible];
-    if (line.from === "agent") {
-      setTyping(true);
-      const t = setTimeout(() => {
-        setTyping(false);
-        setVisible((v) => v + 1);
-      }, 900);
+    if (line.from === "user") {
+      const t = setTimeout(() => setVisible((v) => v + 1), 700);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setVisible((v) => v + 1), 700);
-    return () => clearTimeout(t);
+
+    // Agent: brief typing indicator, then stream the reply in.
+    setTyping(true);
+    const t1 = setTimeout(() => {
+      setTyping(false);
+      let i = 0;
+      streamRef.current = setInterval(() => {
+        i += 2;
+        setStreamed(line.text.slice(0, i));
+        if (i >= line.text.length) {
+          clearInterval(streamRef.current);
+          setStreamed("");
+          setVisible((v) => v + 1);
+        }
+      }, STREAM_MS);
+    }, 450);
+
+    return () => {
+      clearTimeout(t1);
+      if (streamRef.current) clearInterval(streamRef.current);
+    };
   }, [scene, visible]);
 
-  const s = SCENES[scene];
-  const shown = s.lines.slice(0, visible);
+  // Keep the newest content in view within the fixed-height scroll area.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [visible, streamed, typing]);
+
+  const lines = SCENES[scene].lines;
+  const shown = lines.slice(0, visible);
+  const streamingLine = streamed ? lines[visible] : null;
 
   return (
     <div className="w-[300px] rounded-card bg-snow border border-fog shadow-pop overflow-hidden">
@@ -150,66 +151,86 @@ export default function AgentPreview() {
           </div>
         </div>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate">
-          {s.label}
+          {SCENES[scene].label}
         </span>
       </div>
 
-      {/* Chat */}
-      <div className="px-3.5 py-4 space-y-2 min-h-[210px] flex flex-col justify-end overflow-hidden">
-        <AnimatePresence initial={false}>
-          {shown.map((line, i) =>
-            line.from === "user" ? (
+      {/* Chat — FIXED height, own scroll (streaming never resizes the card) */}
+      <div ref={scrollRef} className="h-[210px] overflow-y-auto px-3.5 py-4 no-scrollbar">
+        <div className="flex flex-col justify-end gap-2 min-h-full">
+          <AnimatePresence initial={false}>
+            {shown.map((line, i) =>
+              line.from === "user" ? (
+                <motion.div
+                  key={`${scene}-u-${i}`}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
+                >
+                  {line.text}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`${scene}-a-${i}`}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
+                >
+                  <span className="flex items-start gap-1.5">
+                    {line.visual && <Check className="w-3.5 h-3.5 text-sky shrink-0 mt-0.5" />}
+                    <span>{line.text}</span>
+                  </span>
+                  {line.chips && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {line.chips.map((c) => (
+                        <span
+                          key={c}
+                          className="rounded-full bg-snow border border-fog text-harbor text-[11px] font-bold px-2.5 py-1"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {line.visual && <SceneVisual kind={line.visual} />}
+                </motion.div>
+              ),
+            )}
+
+            {typing && (
               <motion.div
-                key={`${scene}-u-${i}`}
-                {...enter}
-                className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
+                key={`${scene}-typing`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="self-start bg-cream rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
               >
-                {line.text}
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-slate"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
+                  />
+                ))}
               </motion.div>
-            ) : (
-              <motion.div
-                key={`${scene}-a-${i}`}
-                {...enter}
+            )}
+
+            {streamingLine && (
+              <div
+                key={`${scene}-stream`}
                 className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
               >
-                <span className="flex items-start gap-1.5">
-                  {line.visual && <Check className="w-3.5 h-3.5 text-sky shrink-0 mt-0.5" />}
-                  <span>{line.text}</span>
-                </span>
-                {line.chips && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {line.chips.map((c) => (
-                      <span
-                        key={c}
-                        className="rounded-full bg-snow border border-fog text-harbor text-[11px] font-bold px-2.5 py-1"
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {line.visual && <SceneVisual kind={line.visual} />}
-              </motion.div>
-            ),
-          )}
-
-          {typing && (
-            <motion.div
-              key={`${scene}-typing`}
-              {...enter}
-              className="self-start bg-cream rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
-            >
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-slate"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
-                />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {streamed}
+                <span className="inline-block w-[2px] h-[13px] align-middle ml-0.5 bg-sky animate-pulse" />
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Composer (decorative) */}
