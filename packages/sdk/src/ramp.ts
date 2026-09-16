@@ -176,6 +176,9 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
         };
         const recipient = rec?.data?.recipient_code;
         if (!recRes.ok || !recipient) {
+          console.warn(
+            `[ramp:paystack] recipient creation failed for ${input.reference}: ${rec?.message ?? recRes.status}`,
+          );
           return { partnerRef: localRef(), status: "initiated" };
         }
 
@@ -196,7 +199,12 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
           data?: { status?: string; transfer_code?: string; reference?: string };
         };
         const partnerRef = tr?.data?.transfer_code ?? input.reference;
-        if (!trRes.ok) return { partnerRef, status: "initiated" };
+        if (!trRes.ok) {
+          console.warn(
+            `[ramp:paystack] transfer failed for ${input.reference}: ${tr?.message ?? trRes.status}`,
+          );
+          return { partnerRef, status: "initiated" };
+        }
         return { partnerRef, status: mapProviderStatus(tr?.data?.status) };
       } catch {
         return { partnerRef: localRef(), status: "initiated" };
