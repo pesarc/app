@@ -264,7 +264,6 @@ const PROTOCOLS: Logo[] = [
   { logo: "/logos/uniswap.png", name: "Uniswap v4" },
   { logo: "/logos/usdc.png", name: "Circle CCTP V2" },
   { logo: "/logos/hyperbridge.webp", name: "Hyperbridge" },
-  { logo: "/logos/hyperlane.png", name: "Hyperlane" },
   { logo: "/logos/layerzero.png", name: "LayerZero" },
   { logo: "/logos/reactive.png", name: "Reactive Network" },
 ];

@@ -89,11 +89,9 @@ export async function recordTransfer(
            ${input.txHash ?? null})
       `;
       return { ok: true };
-    } catch (err) {
-      return {
-        ok: false,
-        error: err instanceof Error ? err.message : "Neon insert failed",
-      };
+    } catch {
+      // Neon unreachable / bad credential — fall back to the file store so a
+      // transfer is never silently lost (mirrors createPayout in payouts.ts).
     }
   }
   return recordToFile(input, account);
@@ -115,7 +113,7 @@ export async function listTransfers(
       `;
       return (rows as any[]).map(mapRow);
     } catch {
-      return [];
+      // Fall back to the file store rather than hiding file-persisted transfers.
     }
   }
   return listFromFile(account, limit);
