@@ -27,18 +27,22 @@ export default function Hero() {
         }}
       />
 
-      {/* Globe — navy sphere, right of centre, on the back layer */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.4, ease }}
-        className="absolute inset-y-0 left-1/2 lg:left-[54%] -translate-x-1/2 w-full lg:w-[78%] z-0"
-      >
-        <Globe />
-      </motion.div>
+      {/* Globe — navy sphere, centred, on the back layer. Positioning lives on a
+          static wrapper so framer-motion's scale transform can't override the
+          centering translate. */}
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-full lg:w-[74%] z-0">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.4, ease }}
+          className="w-full h-full"
+        >
+          <Globe />
+        </motion.div>
+      </div>
 
       {/* Cream fade keeps the headline legible over the globe */}
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-cream via-cream/85 to-transparent lg:via-cream/55" />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-cream via-cream/70 to-transparent lg:via-cream/40" />
 
       <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-6 md:py-8">
         {/* Header */}
