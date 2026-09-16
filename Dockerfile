@@ -28,10 +28,13 @@ COPY packages/config/package.json packages/config/package.json
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY . .
-# The root .env is mounted only for this step so NEXT_PUBLIC_* inline into the
-# client bundle; it is never written to a layer. Server secrets are read at run.
+# pnpm re-verifies (and re-installs) deps before running any script by default —
+# skip it here, deps are already installed above, so `build` never re-hits the
+# registry. The root .env is mounted only for this step so NEXT_PUBLIC_* inline
+# into the client bundle; it is never written to a layer. Server env is read at run.
 RUN --mount=type=secret,id=dotenv,target=/app/.env \
-    pnpm --filter @pesarc/web build
+    printf '\nverify-deps-before-run=false\n' >> .npmrc \
+ && pnpm --filter @pesarc/web build
 
 # ---- runner: minimal image, non-root ----
 FROM node:${NODE_VERSION}-slim AS runner
