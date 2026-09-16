@@ -70,5 +70,7 @@ export function toMarket(data: Record<string, unknown>, index: number): Market |
     outcomes: isMulti ? outcomes : undefined,
     status,
     proposer,
+    onChainId: data.onChainId != null ? Number(data.onChainId) : undefined,
+    txUrl: data.txUrl ? String(data.txUrl) : undefined,
   };
 }

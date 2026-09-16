@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@pesarc/sdk/api/guard";
 import { createCatalog } from "@pesarc/sdk/catalog";
+import { evmCreateMarketOwner, marketsChainReady } from "@pesarc/sdk/market-create";
 
 // Public "propose a market" endpoint. Anyone can propose a prediction market —
 // binary (Yes/No) or multi-outcome — and seed it with an initial bond. The
@@ -75,9 +76,31 @@ export async function POST(request: Request) {
     data.poolNo = bond / 2;
   }
 
+  // Binary markets are created on-chain (owner-signed) when the markets chain is
+  // configured; the pools then live on-chain. Multi-outcome stays store-backed
+  // (the contract is binary-only). On-chain failure degrades to store-backed.
+  let onChain: Awaited<ReturnType<typeof evmCreateMarketOwner>> | null = null;
+  if (p.type === "binary" && marketsChainReady(p.collateral)) {
+    try {
+      onChain = await evmCreateMarketOwner({ question: p.question, collateral: p.collateral });
+      data.onChainId = onChain.id;
+      data.venue = onChain.venue;
+      data.chainKey = onChain.chainKey;
+      data.txHash = onChain.tx;
+      data.txUrl = onChain.txUrl;
+      data.status = "live";
+      // On-chain pools start empty (real stakes); don't seed display pools.
+      data.poolYes = 0;
+      data.poolNo = 0;
+    } catch (e) {
+      onChain = null;
+      data.onChainError = e instanceof Error ? e.message.slice(0, 140) : "on-chain create failed";
+    }
+  }
+
   try {
     const item = await createCatalog("markets", data);
-    return NextResponse.json({ ok: true, item });
+    return NextResponse.json({ ok: true, item, onChain });
   } catch {
     return NextResponse.json({ ok: false, error: "could not save proposal" }, { status: 500 });
   }

@@ -1,4 +1,4 @@
-import { Shield, Sun, Users } from "lucide-react";
+import { Shield, Sun, Users, Link2 } from "lucide-react";
 import { isMulti, outcomePrices, type Market } from "@pesarc/sdk/markets";
 import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Selection } from "./display";
@@ -66,6 +66,16 @@ export default function MarketCard({
               <span className="inline-flex items-center gap-1 rounded-full bg-harbor/10 text-harbor text-[11px] font-bold px-2 py-0.5">
                 <Users className="w-[11px] h-[11px]" /> Community
               </span>
+            )}
+            {market.txUrl && (
+              <a
+                href={market.txUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-bold px-2 py-0.5 hover:bg-sky-tint transition-colors"
+              >
+                <Link2 className="w-[11px] h-[11px]" /> On-chain
+              </a>
             )}
           </div>
         </div>
