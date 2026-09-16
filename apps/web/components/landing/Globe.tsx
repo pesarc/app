@@ -7,7 +7,7 @@
 // dataset arrives. Same GlobeControls API as before, so the hero's Network
 // Tuner keeps working unchanged.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type GlobeControls = {
   /** How often payment pings fire (0..2). */
@@ -88,6 +88,22 @@ function hashStr(s: string): number {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
+function fmtPop(n?: number): string {
+  if (!n) return "—";
+  if (n >= 1e9) return trimZeros((n / 1e9).toFixed(2)) + "B";
+  if (n >= 1e6) return trimZeros((n / 1e6).toFixed(n >= 1e7 ? 0 : 1)) + "M";
+  if (n >= 1e3) return Math.round(n / 1e3) + "K";
+  return String(n);
+}
+function fmtUSD(n?: number): string {
+  if (!n) return "—";
+  if (n >= 1e12) return "$" + trimZeros((n / 1e12).toFixed(2)) + "T";
+  if (n >= 1e9) return "$" + Math.round(n / 1e9) + "B";
+  if (n >= 1e6) return "$" + Math.round(n / 1e6) + "M";
+  return "$" + n;
+}
+
 type Vec3 = [number, number, number];
 
 function toVec3(lat: number, lng: number): Vec3 {
@@ -116,6 +132,9 @@ function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
   ];
 }
 
+type CountryStat = { pop: number; gdp: number };
+type HoverInfo = { name: string; stat?: CountryStat; x: number; y: number };
+
 type Arc = { a: Vec3; b: Vec3; start: number };
 type Ring = { v: Vec3; start: number };
 // A landed ping surfaces a stylish region chip near the destination hub.
@@ -125,6 +144,12 @@ export default function Globe({ controls }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctrlRef = useRef(controls ?? DEFAULT_CONTROLS);
   ctrlRef.current = controls ?? DEFAULT_CONTROLS;
+
+  // Hovered country (screen-space) — drives the info tooltip. Set from the
+  // pointer-move hit-test inside the effect via this stable ref.
+  const [hover, setHover] = useState<HoverInfo | null>(null);
+  const setHoverRef = useRef(setHover);
+  setHoverRef.current = setHover;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -137,7 +162,10 @@ export default function Globe({ controls }: Props) {
     let spawnTimer: ReturnType<typeof setTimeout>;
     let countries: Country[] = [];
     // Per-country precomputed unit vectors (built once when data arrives).
-    let shapes: { t: number; rings: Vec3[][] }[] = [];
+    let shapes: { name: string; t: number; rings: Vec3[][] }[] = [];
+    let stats: Record<string, CountryStat> = {};
+    let hoveredIdx = -1; // country under the pointer (front hemisphere only)
+    let pointer: { x: number; y: number } | null = null; // canvas-space
     let arcs: Arc[] = [];
     let rings: Ring[] = [];
     let labels: Label[] = [];
@@ -151,6 +179,10 @@ export default function Globe({ controls }: Props) {
     let W = 0;
     let H = 0;
     let dpr = 1;
+    // Last frame's globe geometry, so the pointer hit-test matches what's drawn.
+    let lastR = 0;
+    let lastCx = 0;
+    let lastCy = 0;
 
     const TILT = -14 * DEG; // view latitude, like the old pointOfView lat:14
 
@@ -175,12 +207,23 @@ export default function Globe({ controls }: Props) {
         if (disposed) return;
         countries = data;
         shapes = countries.map((c) => ({
+          name: c.n,
           t: hashStr(c.n),
           rings: c.p.map((ring) => ring.map(([lng, lat]) => toVec3(lat, lng))),
         }));
       })
       .catch(() => {
         /* offline — globe renders without countries */
+      });
+
+    // Population + GDP per country (approximate) for the hover tooltip.
+    fetch("/datasets/country-stats.json")
+      .then((r) => r.json())
+      .then((s: Record<string, CountryStat>) => {
+        if (!disposed) stats = s;
+      })
+      .catch(() => {
+        /* tooltip simply omits the figures */
       });
 
     // Rotate a unit vector by current view (Y-axis rotation + X tilt),
@@ -197,6 +240,63 @@ export default function Globe({ controls }: Props) {
       const y2 = v[1] * ct - z1 * st;
       const z2 = v[1] * st + z1 * ct;
       return { x: cx - x1 * R, y: cy - y2 * R, z: z2 };
+    };
+
+    // Project a vertex, clamping back-facing points to the horizon edge — mirrors
+    // how the countries are drawn, so hit-testing matches the visible outline.
+    const projClamp = (v: Vec3, R: number, cx: number, cy: number) => {
+      const p = project(v, R, cx, cy);
+      if (p.z > 0) return { x: p.x, y: p.y };
+      const dx = p.x - cx;
+      const dy = p.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      return { x: cx + (dx / d) * R, y: cy + (dy / d) * R };
+    };
+
+    const pointInRing = (px: number, py: number, pts: { x: number; y: number }[]) => {
+      let inside = false;
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const xi = pts[i].x;
+        const yi = pts[i].y;
+        const xj = pts[j].x;
+        const yj = pts[j].y;
+        if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    };
+
+    // Which country (if any) is under a canvas-space point. Front hemisphere
+    // only; on overlap picks the nearer landmass.
+    const hitTest = (px: number, py: number): number => {
+      const R = lastR;
+      const cx = lastCx;
+      const cy = lastCy;
+      if (!R || Math.hypot(px - cx, py - cy) > R) return -1;
+      let best = -1;
+      let bestZ = -Infinity;
+      for (let i = 0; i < shapes.length; i++) {
+        for (const ring of shapes[i].rings) {
+          let zsum = 0;
+          let front = 0;
+          for (const v of ring) {
+            const p = project(v, R, cx, cy);
+            zsum += p.z;
+            if (p.z > 0) front++;
+          }
+          if (front < 3) continue;
+          const pts = ring.map((v) => projClamp(v, R, cx, cy));
+          if (pointInRing(px, py, pts)) {
+            const z = zsum / ring.length;
+            if (z > bestZ) {
+              bestZ = z;
+              best = i;
+            }
+          }
+        }
+      }
+      return best;
     };
 
     // Weighted pick — Global-South hubs surface ~2× as often (Pesarc's corridors).
@@ -249,6 +349,9 @@ export default function Globe({ controls }: Props) {
       const cx = W / 2;
       const cy = H / 2;
       const R = Math.min(W, H) * 0.36;
+      lastCx = cx;
+      lastCy = cy;
+      lastR = R;
       const [ar, ag, ab] = hexToRgb(c.color);
 
       // Atmosphere glow — thin rim of sky light, softer than before so the
@@ -288,11 +391,15 @@ export default function Globe({ controls }: Props) {
       // tone. High land/ocean contrast is what keeps the sphere from looking
       // soft.
       const base = [58, 108, 158];
-      for (const s of shapes) {
+      for (let si = 0; si < shapes.length; si++) {
+        const s = shapes[si];
+        const isHover = si === hoveredIdx;
         const k = 0.16 + 0.5 * s.t;
-        ctx.fillStyle = `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(
-          base[1] + (ag - base[1]) * k
-        )}, ${Math.round(base[2] + (ab - base[2]) * k)})`;
+        ctx.fillStyle = isHover
+          ? "rgb(93, 173, 255)"
+          : `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(
+              base[1] + (ag - base[1]) * k
+            )}, ${Math.round(base[2] + (ab - base[2]) * k)})`;
         for (const ring of s.rings) {
           let any = false;
           ctx.beginPath();
@@ -339,9 +446,9 @@ export default function Globe({ controls }: Props) {
           if (visiblePts > 1) {
             ctx.closePath();
             ctx.fill();
-            // Crisp sky-tinted coastline for definition.
-            ctx.strokeStyle = "rgba(150, 200, 255, 0.30)";
-            ctx.lineWidth = 0.7;
+            // Crisp sky-tinted coastline for definition; brighter when hovered.
+            ctx.strokeStyle = isHover ? "rgba(210, 233, 255, 0.95)" : "rgba(150, 200, 255, 0.30)";
+            ctx.lineWidth = isHover ? 1.1 : 0.7;
             ctx.stroke();
           }
           ctx.restore();
@@ -497,18 +604,42 @@ export default function Globe({ controls }: Props) {
     raf = requestAnimationFrame(frame);
 
     // Drag to rotate (the globe was draggable before)
+    const clearHover = () => {
+      pointer = null;
+      if (hoveredIdx !== -1) {
+        hoveredIdx = -1;
+        setHoverRef.current(null);
+      }
+    };
     const down = (e: PointerEvent) => {
       dragging = true;
       lastX = e.clientX;
+      clearHover();
       canvas.setPointerCapture(e.pointerId);
     };
     const move = (e: PointerEvent) => {
-      if (!dragging) return;
-      const dx = e.clientX - lastX;
-      lastX = e.clientX;
-      // Content follows the pointer (screen x decreases as rotation grows).
-      rotation -= dx * 0.005;
-      dragVel = -dx * 0.0015;
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (dragging) {
+        const dx = e.clientX - lastX;
+        lastX = e.clientX;
+        // Content follows the pointer (screen x decreases as rotation grows).
+        rotation -= dx * 0.005;
+        dragVel = -dx * 0.0015;
+        return;
+      }
+      // Hover: find the country under the pointer and surface its stats. The
+      // tooltip follows the cursor, so we update position every move.
+      pointer = { x: px, y: py };
+      const idx = hitTest(px, py);
+      hoveredIdx = idx;
+      if (idx === -1) {
+        setHoverRef.current(null);
+      } else {
+        const s = shapes[idx];
+        setHoverRef.current({ name: s.name, stat: stats[s.name], x: px, y: py });
+      }
     };
     const up = () => {
       dragging = false;
@@ -517,6 +648,7 @@ export default function Globe({ controls }: Props) {
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
+    canvas.addEventListener("pointerleave", clearHover);
 
     // Don't burn CPU when the hero is scrolled offscreen. (Hidden tabs are
     // already handled natively — browsers suspend requestAnimationFrame.)
@@ -535,12 +667,31 @@ export default function Globe({ controls }: Props) {
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);
       canvas.removeEventListener("pointercancel", up);
+      canvas.removeEventListener("pointerleave", clearHover);
     };
   }, []);
 
   return (
     <div className="absolute inset-0 z-[1]">
-      <canvas ref={canvasRef} className="cursor-grab active:cursor-grabbing" />
+      <canvas ref={canvasRef} className="cursor-grab active:cursor-grabbing touch-none" />
+      {hover && (
+        <div
+          className="pointer-events-none absolute z-10"
+          style={{ left: hover.x, top: hover.y, transform: "translate(-50%, calc(-100% - 12px))" }}
+        >
+          <div className="rounded-xl bg-[#06162a]/90 border border-sky/40 px-3 py-2 shadow-pop min-w-[130px] whitespace-nowrap">
+            <div className="text-[12px] font-extrabold text-white leading-tight">{hover.name}</div>
+            <div className="mt-1 flex items-center gap-3 text-[10.5px] font-bold">
+              <span className="text-[#8fbcff]">
+                Pop <span className="text-white">{fmtPop(hover.stat?.pop)}</span>
+              </span>
+              <span className="text-[#8fbcff]">
+                GDP <span className="text-white">{fmtUSD(hover.stat?.gdp)}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

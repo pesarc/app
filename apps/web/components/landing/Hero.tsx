@@ -45,13 +45,15 @@ export default function Hero() {
       {/* Cream fade keeps the headline legible over the globe */}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-cream via-cream/70 to-transparent lg:via-cream/40" />
 
-      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-6 md:py-8">
+      {/* pointer-events-none so the globe underneath stays hoverable/draggable;
+          interactive children opt back in with pointer-events-auto. */}
+      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-6 md:py-8 pointer-events-none">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease }}
-          className="flex items-center justify-between"
+          className="flex items-center justify-between pointer-events-auto"
         >
           <Link href="/" className="flex items-center gap-2.5">
             <LogoMark size={34} className="rounded-xl shadow-pop-sm" />
@@ -79,7 +81,7 @@ export default function Hero() {
 
         {/* Headline */}
         <div className="flex-1 flex items-center">
-          <div className="w-full max-w-2xl">
+          <div className="w-full max-w-2xl pointer-events-auto">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -141,7 +143,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.5 }}
-          className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-3 mt-10 lg:mt-0"
+          className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-3 mt-10 lg:mt-0 pointer-events-auto"
         >
           <motion.div
             animate={{ y: [0, -7, 0] }}

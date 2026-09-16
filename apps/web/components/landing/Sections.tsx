@@ -225,20 +225,23 @@ const PROTOCOLS = [
   { logo: "/logos/reactive.png", name: "Reactive Network" },
 ];
 
+// Networks we actually run today (contracts deployed / agent settling).
 const NETWORKS = [
+  { logo: "/logos/arc.svg", name: "Arc" },
   { logo: "/logos/arbitrum.png", name: "Arbitrum" },
-  { logo: "/logos/ethereum.png", name: "Ethereum" },
   { logo: "/logos/base.png", name: "Base" },
-  { logo: "/logos/optimism.png", name: "Optimism" },
-  { logo: "/logos/polygon.png", name: "Polygon" },
-  { logo: "/logos/bnb.png", name: "BNB Chain" },
-  { logo: "/logos/avalanche.png", name: "Avalanche" },
   { logo: "/logos/celo.png", name: "Celo" },
   { logo: "/logos/solana.png", name: "Solana" },
-  { logo: "/logos/sui.png", name: "Sui" },
-  { logo: "/logos/aptos.png", name: "Aptos" },
-  { logo: "/logos/tron.png", name: "Tron" },
-  { logo: "/logos/stellar.png", name: "Stellar" },
+  // Not live yet — uncomment as each network ships:
+  // { logo: "/logos/ethereum.png", name: "Ethereum" },
+  // { logo: "/logos/optimism.png", name: "Optimism" },
+  // { logo: "/logos/polygon.png", name: "Polygon" },
+  // { logo: "/logos/bnb.png", name: "BNB Chain" },
+  // { logo: "/logos/avalanche.png", name: "Avalanche" },
+  // { logo: "/logos/sui.png", name: "Sui" },
+  // { logo: "/logos/aptos.png", name: "Aptos" },
+  // { logo: "/logos/tron.png", name: "Tron" },
+  // { logo: "/logos/stellar.png", name: "Stellar" },
 ];
 
 function RailCard({
