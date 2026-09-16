@@ -3,7 +3,7 @@
 Ready-to-paste answers for the two programs.
 
 **Hosted demo (Vercel preview, READY):**
-https://pesarc-dbmv81wzr-jorshimayors-projects.vercel.app
+https://pesarc-7iqxnr0ly-jorshimayors-projects.vercel.app
 ⚠️ It's currently behind **Vercel Authentication** (Deployment Protection) —
 judges can't open it until that's turned off: Vercel → project `pesarc-web` →
 Settings → Deployment Protection → set Vercel Authentication to *Disabled*. The
@@ -24,7 +24,7 @@ deployment link (needs the Arc-mainnet deploy below).
 | **Last name** | Obafemi |
 | **Location** | ⟨your city / country⟩ |
 | **Do you already have an idea you want to build?** | Yes — **Pesarc**, a stablecoin-native cross-border settlement network + AI agent for the Global South. Send, hold, earn, invest and hedge money across borders in **local-currency stablecoins** (cNGN, cKES, cGHS…), gasless, with a real fiat off-ramp to banks and mobile money. |
-| **Do you already have a project you're working on? (URL)** | Yes. Live app: **https://pesarc-dbmv81wzr-jorshimayors-projects.vercel.app** · App repo: https://github.com/pesarc/app · Contracts (public): https://github.com/pesarc/contracts |
+| **Do you already have a project you're working on? (URL)** | Yes. Live app: **https://pesarc-7iqxnr0ly-jorshimayors-projects.vercel.app** · App repo: https://github.com/pesarc/app · Contracts (public): https://github.com/pesarc/contracts |
 | **Arbitrum One wallet address** | `0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1` *(operator wallet — swap for a personal address if you'd rather receive prizes there)* |
 | **Agree to T&C** | Yes |
 | **Subscribe to newsletter** | Your call — Yes is fine |

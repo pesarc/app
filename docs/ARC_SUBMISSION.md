@@ -101,7 +101,7 @@ flowchart TD
 
 - Contracts (public): https://github.com/pesarc/contracts
 - App: https://github.com/pesarc/app
-- Demo URL (Vercel preview): https://pesarc-dbmv81wzr-jorshimayors-projects.vercel.app
+- Demo URL (Vercel preview): https://pesarc-7iqxnr0ly-jorshimayors-projects.vercel.app
   (turn off Vercel Deployment Protection to make it public)
 
 > **Microgrant eligibility:** this program requires a live **Arc _mainnet_**
