@@ -15,6 +15,9 @@ export type Resolver =
   | { kind: "oracle"; feed: string } // RealizedRateOracle TWAP
   | { kind: "attested"; attestor: string }; // bonded attestor + dispute window
 
+/** One choice in a multi-outcome market, with its parimutuel pool. */
+export type Outcome = { label: string; pool: number };
+
 export type Market = {
   id: string;
   kind: MarketKind;
@@ -32,7 +35,32 @@ export type Market = {
   hedge: boolean;
   /** One-line "why this is a hedge, not a bet" for the card. */
   hedgeNote?: string;
+  /** "binary" (Yes/No, default) or "multi" (2–8 named outcomes). */
+  type?: "binary" | "multi";
+  /** Present for multi markets — the choices and their pools. */
+  outcomes?: Outcome[];
+  /** Community-proposed markets carry the proposer + a "proposed" status. */
+  proposer?: string;
+  status?: "live" | "proposed";
 };
+
+/** True when the market has named multi-outcome choices. */
+export function isMulti(m: Market): boolean {
+  return m.type === "multi" && Array.isArray(m.outcomes) && m.outcomes.length >= 2;
+}
+
+/** Implied probability (%) for each multi outcome, from the parimutuel pools. */
+export function outcomePrices(m: Market): number[] {
+  const outs = m.outcomes ?? [];
+  const total = outs.reduce((s, o) => s + o.pool, 0);
+  if (total === 0) return outs.map(() => Math.round(100 / Math.max(1, outs.length)));
+  return outs.map((o) => Math.round((o.pool / total) * 100));
+}
+
+/** Total liquidity across a multi market's outcomes. */
+export function multiTotalPool(m: Market): number {
+  return (m.outcomes ?? []).reduce((s, o) => s + o.pool, 0);
+}
 
 export const MARKETS: Market[] = [
   {

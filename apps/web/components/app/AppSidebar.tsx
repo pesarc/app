@@ -17,6 +17,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { site } from "@pesarc/sdk/site";
+import { LogoMark } from "@/components/app/Logo";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import {
   Sidebar,
@@ -60,9 +61,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
     <Sidebar collapsible="icon" className="border-sidebar-border">
       <SidebarHeader>
         <Link href="/" className="flex items-center gap-2.5 px-1 py-1">
-          <span className="w-8 h-8 shrink-0 flex items-center justify-center rounded-xl bg-sky text-white font-extrabold text-sm shadow-pop-sm">
-            P
-          </span>
+          <LogoMark size={32} className="shrink-0 rounded-xl shadow-pop-sm" />
           <span className="text-lg font-extrabold tracking-tight text-harbor group-data-[collapsible=icon]:hidden">
             {site.name}
           </span>

@@ -18,6 +18,9 @@ import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { Button, Card } from "@/components/app/ui";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
+import { Pagination, usePaged } from "@/components/app/Pagination";
+
+const POOLS_PER_PAGE = 4;
 
 type Position = { poolId: string; principal: number };
 
@@ -176,6 +179,7 @@ function ChoiceCard({
 /* ---------------- Advanced: full pool list ---------------- */
 
 function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
+  const paged = usePaged(POOLS, POOLS_PER_PAGE);
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
@@ -186,7 +190,7 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {POOLS.map((pool) => (
+      {paged.items.map((pool) => (
         <Card key={pool.id} className="p-5">
           <div className="flex items-start justify-between mb-3">
             <div>
@@ -222,6 +226,8 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
         </Card>
       ))}
       </div>
+
+      <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />
 
       <p className="text-xs text-slate leading-relaxed pt-1 px-1">
         Variable APY. Corridor pools carry residual peg risk, backstopped by the
