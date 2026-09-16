@@ -95,7 +95,15 @@ flowchart TD
 
 - Contracts (public): https://github.com/pesarc/contracts
 - App: https://github.com/pesarc/app
-- Demo URL: _hosted preview (Vercel) — pending_
+- Demo URL (Vercel preview): https://pesarc-dbmv81wzr-jorshimayors-projects.vercel.app
+  (turn off Vercel Deployment Protection to make it public)
+
+> **Microgrant eligibility:** this program requires a live **Arc _mainnet_**
+> deployment. The Arc row above is testnet (chain `5042002`) and does not
+> qualify on its own — deploy PredictionMarket + IntentMatcher to Arc mainnet
+> (fund operator `0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1` with USDC on Arc
+> mainnet for gas) and record the address + tx here before submitting. See
+> `docs/HACKATHON_APPLICATIONS.md`.
 
 ---
 
