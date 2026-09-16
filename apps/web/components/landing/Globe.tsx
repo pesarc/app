@@ -22,7 +22,16 @@ export type GlobeControls = {
   color: string;
 };
 
-type Props = { controls: GlobeControls };
+type Props = { controls?: GlobeControls };
+
+// Relief defaults — a calm sky-accented globe when no live tuner drives it.
+const DEFAULT_CONTROLS: GlobeControls = {
+  signalRate: 1.2,
+  dotSize: 1,
+  spin: 0.1,
+  glow: 0.9,
+  color: "#2e96ff",
+};
 
 type Country = { n: string; p: [number, number][][] };
 
@@ -101,8 +110,8 @@ type Ring = { v: Vec3; start: number };
 
 export default function Globe({ controls }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ctrlRef = useRef(controls);
-  ctrlRef.current = controls;
+  const ctrlRef = useRef(controls ?? DEFAULT_CONTROLS);
+  ctrlRef.current = controls ?? DEFAULT_CONTROLS;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -241,8 +250,9 @@ export default function Globe({ controls }: Props) {
         cy,
         R
       );
-      ocean.addColorStop(0, "#16161a");
-      ocean.addColorStop(1, "#0b0b0e");
+      // Harbor-navy sphere — reads as a deep, on-brand globe on the cream canvas.
+      ocean.addColorStop(0, "#1d4e80");
+      ocean.addColorStop(1, "#0c2a49");
       ctx.fillStyle = ocean;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -251,8 +261,9 @@ export default function Globe({ controls }: Props) {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Countries (front hemisphere only)
-      const base = [24, 24, 27];
+      // Countries (front hemisphere only) — landmasses in a lighter harbor tone
+      // that lifts toward the sky accent.
+      const base = [43, 88, 136];
       for (const s of shapes) {
         const k = 0.18 + 0.7 * s.t;
         ctx.fillStyle = `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(

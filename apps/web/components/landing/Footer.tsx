@@ -34,16 +34,16 @@ const COLUMNS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#09090b] pt-20 pb-10 px-6 md:px-12 relative z-20 border-t border-zinc-900">
+    <footer className="bg-harbor text-white pt-20 pb-10 px-6 md:px-12">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
         <div className="lg:col-span-2 flex flex-col items-start">
           <div className="flex items-center gap-3 mb-6">
-            <LogoMark size={26} className="shrink-0 rounded-lg" />
-            <span className="text-lg tracking-tight text-white font-medium">
+            <LogoMark size={28} className="shrink-0 rounded-lg" />
+            <span className="text-lg tracking-tight text-white font-extrabold">
               {site.name}
             </span>
           </div>
-          <p className="text-sm text-zinc-500 font-light leading-relaxed max-w-xs mb-6">
+          <p className="text-sm text-white/60 font-medium leading-relaxed max-w-xs mb-6">
             One gasless app to send, hold, earn, and settle money across
             borders. Money the way you already think about it.
           </p>
@@ -51,7 +51,7 @@ export default function Footer() {
 
         {COLUMNS.map((col) => (
           <div key={col.title}>
-            <h4 className="text-xs font-mono text-white uppercase tracking-widest mb-4">
+            <h4 className="text-[11px] font-extrabold text-white/50 uppercase tracking-widest mb-4">
               {col.title}
             </h4>
             <ul className="space-y-3">
@@ -59,7 +59,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm font-light text-zinc-500 hover:text-white transition-colors"
+                    className="text-sm font-medium text-white/70 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -70,14 +70,14 @@ export default function Footer() {
         ))}
       </div>
 
-      <div className="max-w-7xl mx-auto pt-8 border-t border-zinc-900/60 flex flex-col md:flex-row items-center justify-between gap-4">
-        <span className="text-xs font-light text-zinc-600">
+      <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+        <span className="text-xs font-medium text-white/50">
           © {new Date().getFullYear()} {site.name}. All rights reserved.
         </span>
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-            All Systems Operational
+          <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+          <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
+            All systems operational
           </span>
         </div>
       </div>

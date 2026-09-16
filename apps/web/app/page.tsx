@@ -6,7 +6,7 @@ import Footer from "@/components/landing/Footer";
 
 export default function Home() {
   return (
-    <>
+    <div className="bg-cream text-ink [color-scheme:light]">
       <Hero />
       <Modes />
       <Corridor />
@@ -15,6 +15,6 @@ export default function Home() {
       <EngineCTA />
       <Waitlist />
       <Footer />
-    </>
+    </div>
   );
 }
