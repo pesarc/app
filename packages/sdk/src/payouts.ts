@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getSql } from "./db";
 import { DEMO_ACCOUNT } from "@pesarc/sdk/api/auth";
-import { getRampAdapter, type PayoutStatus as RampPayoutStatus } from "./ramp";
+import { selectAdapter, adapterByName, type PayoutStatus as RampPayoutStatus } from "./ramp";
 
 // Fiat payout orchestration (testnet sandbox). The crypto leg is real — the
 // swapped cNGN lands in the ramp escrow wallet on-chain — and this module
@@ -36,8 +36,10 @@ export type PayoutRow = PayoutInput & {
   id: string;
   status: PayoutStatus;
   createdAt: string;
-  /** Simulated partner payout reference. */
+  /** Partner payout reference (provider transfer id / simulated ref). */
   partnerRef: string;
+  /** Which ramp provider handled this payout (routes status/webhook back). */
+  provider?: string;
 };
 
 const hasNeon = () => Boolean(process.env.DATABASE_URL);
@@ -75,6 +77,7 @@ async function createSchema(sql: Sql) {
   // Payouts predate per-user scoping + webhook-driven status — upgrade in place.
   await sql`ALTER TABLE payouts ADD COLUMN IF NOT EXISTS account text NOT NULL DEFAULT 'demo'`;
   await sql`ALTER TABLE payouts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'initiated'`;
+  await sql`ALTER TABLE payouts ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'simulated'`;
   await sql`CREATE INDEX IF NOT EXISTS payouts_account_ref_idx ON payouts (account, reference)`;
   await sql`CREATE INDEX IF NOT EXISTS payouts_partner_ref_idx ON payouts (partner_ref)`;
 }
@@ -83,8 +86,10 @@ export async function createPayout(
   input: PayoutInput,
   account = DEMO_ACCOUNT,
 ): Promise<PayoutRow> {
-  // Hand the payout to the ramp provider (real when configured, else simulated).
-  const { partnerRef, status } = await getRampAdapter().initiate(input);
+  // Route to the best configured provider for this payout (currency/method),
+  // and remember which one handled it so status/webhook resolve back to it.
+  const adapter = selectAdapter(input);
+  const { partnerRef, status } = await adapter.initiate(input);
   const row: PayoutRow = {
     ...input,
     account,
@@ -92,6 +97,7 @@ export async function createPayout(
     status,
     createdAt: new Date().toISOString(),
     partnerRef,
+    provider: adapter.name,
   };
 
   if (hasNeon()) {
@@ -99,9 +105,9 @@ export async function createPayout(
       const sql = sqlClient();
       await ensureSchema(sql);
       const inserted = await sql`
-        INSERT INTO payouts (account, reference, beneficiary, method, amount_ngn, tx_hash, partner_ref, status)
+        INSERT INTO payouts (account, reference, beneficiary, method, amount_ngn, tx_hash, partner_ref, status, provider)
         VALUES (${account}, ${input.reference}, ${input.beneficiary}, ${input.method},
-                ${input.amountNgn}, ${input.txHash ?? null}, ${row.partnerRef}, ${row.status})
+                ${input.amountNgn}, ${input.txHash ?? null}, ${row.partnerRef}, ${row.status}, ${row.provider ?? "simulated"})
         RETURNING id, created_at
       `;
       row.id = String((inserted[0] as { id: unknown }).id);
@@ -149,8 +155,14 @@ export async function getPayout(
         amountNgn: Number(r.amount_ngn),
         txHash: (r.tx_hash as string) ?? undefined,
         partnerRef: String(r.partner_ref),
+        provider: (r.provider as string) ?? "simulated",
         createdAt,
-        status: await resolveStatus(createdAt, String(r.partner_ref), r.status as PayoutStatus),
+        status: await resolveStatus(
+          createdAt,
+          String(r.partner_ref),
+          (r.provider as string) ?? "simulated",
+          r.status as PayoutStatus,
+        ),
       };
     } catch {
       /* fall through */
@@ -164,17 +176,27 @@ export async function getPayout(
       (r) => r.reference === reference && (r.account ?? DEMO_ACCOUNT) === account,
     ) ?? null;
   if (!row) return null;
-  return { ...row, status: await resolveStatus(row.createdAt, row.partnerRef, row.status) };
+  return {
+    ...row,
+    status: await resolveStatus(
+      row.createdAt,
+      row.partnerRef,
+      row.provider ?? "simulated",
+      row.status,
+    ),
+  };
 }
 
 /** With a real provider the stored (webhook-driven) status is authoritative;
- *  the simulator derives it from elapsed time. */
+ *  the simulator derives it from elapsed time. Routed to the provider that
+ *  actually handled the payout. */
 async function resolveStatus(
   createdAt: string,
   partnerRef: string,
+  provider: string,
   stored?: PayoutStatus,
 ): Promise<PayoutStatus> {
-  const adapter = getRampAdapter();
+  const adapter = adapterByName(provider);
   if (adapter.name !== "simulated") return stored ?? "initiated";
   return adapter.statusFor(createdAt, partnerRef);
 }

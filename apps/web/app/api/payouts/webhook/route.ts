@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { mapProviderStatus, rampProvider } from "@pesarc/sdk/ramp";
+import { mapProviderStatus } from "@pesarc/sdk/ramp";
 import { updatePayoutStatus } from "@pesarc/sdk/payouts";
 
-// Off-ramp provider webhook. A licensed payout partner POSTs status updates here
-// (accepted → processing → paid / failed). The body is verified against the
-// active provider's signing scheme, then the stored payout — keyed by the
-// partner's reference — is updated. This is the source of truth for real payouts.
+// Multi-provider off-ramp webhook. A payout partner POSTs status updates here
+// (accepted → processing → paid / failed). The caller is identified by its
+// signature header, verified with that provider's scheme, then the stored payout
+// — keyed by the partner's reference — is updated. Source of truth for payouts.
 //
-//  • paystack — HMAC-SHA512 of the raw body keyed with PAYSTACK_SECRET_KEY,
+//  • paystack   — HMAC-SHA512 of the raw body keyed with PAYSTACK_SECRET_KEY,
 //    header x-paystack-signature; body { event: "transfer.*", data: {...} }.
-//  • generic  — HMAC-SHA256 keyed with RAMP_WEBHOOK_SECRET, header
+//  • flutterwave— static `verif-hash` header == FLUTTERWAVE_WEBHOOK_HASH;
+//    body { event: "transfer.*", data: { id, reference, status } }.
+//  • generic    — HMAC-SHA256 keyed with RAMP_WEBHOOK_SECRET, header
 //    x-ramp-signature (or x-webhook-signature).
 
 export const runtime = "nodejs";
@@ -27,6 +29,13 @@ function hmacEquals(
   const a = Buffer.from(expected);
   const b = Buffer.from(signature.replace(/^sha(256|512)=/, ""));
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function constEquals(a: string | null, b: string): boolean {
+  if (!a) return false;
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 async function handlePaystack(request: Request, raw: string) {
@@ -58,6 +67,33 @@ async function handlePaystack(request: Request, raw: string) {
   return NextResponse.json({ ok: true, updated, status });
 }
 
+async function handleFlutterwave(request: Request, raw: string) {
+  const secret = process.env.FLUTTERWAVE_WEBHOOK_HASH;
+  if (!secret) {
+    return NextResponse.json({ ok: false, error: "webhook not configured" }, { status: 503 });
+  }
+  // Flutterwave sends a static shared secret in `verif-hash` (not an HMAC).
+  if (!constEquals(request.headers.get("verif-hash"), secret)) {
+    return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
+  }
+  let body: { event?: string; data?: { id?: number | string; reference?: string; status?: string } };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid body" }, { status: 400 });
+  }
+  if (!body.event?.startsWith("transfer")) {
+    return NextResponse.json({ ok: true, ignored: body.event ?? null });
+  }
+  const partnerRef = body.data?.id != null ? String(body.data.id) : body.data?.reference;
+  if (!partnerRef) {
+    return NextResponse.json({ ok: false, error: "missing partner reference" }, { status: 400 });
+  }
+  const status = mapProviderStatus(body.data?.status);
+  const updated = await updatePayoutStatus(String(partnerRef), status);
+  return NextResponse.json({ ok: true, updated, status });
+}
+
 async function handleGeneric(request: Request, raw: string) {
   const secret = process.env.RAMP_WEBHOOK_SECRET;
   if (!secret) {
@@ -85,7 +121,8 @@ async function handleGeneric(request: Request, raw: string) {
 
 export async function POST(request: Request) {
   const raw = await request.text();
-  return rampProvider() === "paystack"
-    ? handlePaystack(request, raw)
-    : handleGeneric(request, raw);
+  // Identify the caller by its signature header, then verify with that scheme.
+  if (request.headers.get("x-paystack-signature")) return handlePaystack(request, raw);
+  if (request.headers.get("verif-hash")) return handleFlutterwave(request, raw);
+  return handleGeneric(request, raw);
 }

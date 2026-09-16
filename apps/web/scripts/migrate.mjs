@@ -80,6 +80,8 @@ const statements = [
   `ALTER TABLE payouts ADD COLUMN IF NOT EXISTS account text NOT NULL DEFAULT 'demo'`,
   // Webhook-driven status (initiated → processing → paid / failed).
   `ALTER TABLE payouts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'initiated'`,
+  // Which ramp provider handled the payout (multi-provider routing).
+  `ALTER TABLE payouts ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'simulated'`,
   // Lookups are always (account, reference) — never reference alone.
   `CREATE INDEX IF NOT EXISTS payouts_account_ref_idx
      ON payouts (account, reference)`,
