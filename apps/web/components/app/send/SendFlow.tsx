@@ -39,6 +39,7 @@ import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
 import { Avatar, Button, Card } from "@/components/app/ui";
 import { QuoteBreakdown, formatEta } from "./QuoteBreakdown";
 import { PayoutStatus } from "./PayoutStatus";
+import BankDetails, { type BankDestination } from "./BankDetails";
 import { authedPostJson } from "@pesarc/sdk/api/client";
 import { sendReference } from "@pesarc/sdk/reference";
 
@@ -55,6 +56,7 @@ export default function SendFlow() {
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [amountStr, setAmountStr] = useState("");
   const [payout, setPayout] = useState<PayoutMethod>("bank");
+  const [bankDest, setBankDest] = useState<BankDestination | null>(null);
   const [txHash, setTxHash] = useState<string>();
   const [payoutTxHash, setPayoutTxHash] = useState<string>();
   const [actualReceive, setActualReceive] = useState<number>();
@@ -116,6 +118,7 @@ export default function SendFlow() {
     setRecipient(null);
     setAmountStr("");
     setPayout("bank");
+    setBankDest(null);
     setTxHash(undefined);
     setActualReceive(undefined);
   };
@@ -149,6 +152,8 @@ export default function SendFlow() {
             setAmountStr={setAmountStr}
             payout={payout}
             setPayout={setPayout}
+            bankDest={bankDest}
+            onBankChange={setBankDest}
             quote={quote}
             advanced={isAdvanced}
             onBack={() => setStep("recipient")}
@@ -184,6 +189,7 @@ export default function SendFlow() {
           <SuccessStep
             recipient={recipient}
             quote={quote}
+            bankDest={bankDest}
             txHash={txHash}
             payoutTxHash={payoutTxHash}
             actualReceive={actualReceive}
@@ -341,6 +347,8 @@ function AmountStep({
   setAmountStr,
   payout,
   setPayout,
+  bankDest,
+  onBankChange,
   quote,
   advanced,
   onBack,
@@ -352,6 +360,8 @@ function AmountStep({
   setAmountStr: (s: string) => void;
   payout: PayoutMethod;
   setPayout: (p: PayoutMethod) => void;
+  bankDest: BankDestination | null;
+  onBankChange: (v: BankDestination | null) => void;
   quote: Quote | null;
   advanced: boolean;
   onBack: () => void;
@@ -360,7 +370,9 @@ function AmountStep({
   const sendC = CURRENCIES[sendCurrency];
   const amount = parseFloat(amountStr) || 0;
   const insufficient = amount > ACCOUNT.balance;
-  const valid = amount > 0 && !insufficient;
+  // A bank payout needs a usable bank destination before we can review.
+  const bankReady = payout !== "bank" || bankDest !== null;
+  const valid = amount > 0 && !insufficient && bankReady;
   const savings =
     quote && quote.receiveAmount > quote.legacyReceiveAmount
       ? quote.receiveAmount - quote.legacyReceiveAmount
@@ -492,6 +504,13 @@ function AmountStep({
           );
         })}
       </div>
+
+      {/* Bank destination — collected inline for a real fiat payout */}
+      {payout === "bank" && (
+        <div className="mb-5">
+          <BankDetails onChange={onBankChange} />
+        </div>
+      )}
 
       {/* Basic vs Advanced detail (Advanced toggled in Settings) */}
       {quote && valid && (
@@ -742,6 +761,7 @@ function SettlingStep({
 function SuccessStep({
   recipient,
   quote,
+  bankDest,
   txHash,
   payoutTxHash,
   actualReceive,
@@ -749,6 +769,7 @@ function SuccessStep({
 }: {
   recipient: Recipient;
   quote: Quote;
+  bankDest: BankDestination | null;
   txHash?: string;
   payoutTxHash?: string;
   actualReceive?: number;
@@ -787,13 +808,16 @@ function SuccessStep({
     if (quote.payout === "bank" || quote.payout === "mobile_money") {
       authedPostJson("/api/payouts", {
           reference: ref,
-          beneficiary: recipient.name,
+          beneficiary: bankDest?.accountName || recipient.name,
           method: quote.payout,
           amountNgn: actualReceive ?? quote.receiveAmount,
           txHash: payoutTxHash ?? txHash,
+          accountName: bankDest?.accountName,
+          accountNumber: bankDest?.accountNumber,
+          bankCode: bankDest?.bankCode,
         }).catch(() => {});
     }
-  }, [recipient, quote, payoutLabel, ref, txHash, payoutTxHash, actualReceive]);
+  }, [recipient, quote, payoutLabel, ref, txHash, payoutTxHash, actualReceive, bankDest]);
 
   const share = async () => {
     const text = `I sent ${formatMoney(
