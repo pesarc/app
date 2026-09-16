@@ -172,6 +172,7 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
         });
         const rec = (await recRes.json()) as {
           status?: boolean;
+          message?: string;
           data?: { recipient_code?: string };
         };
         const recipient = rec?.data?.recipient_code;
@@ -196,6 +197,7 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
         });
         const tr = (await trRes.json()) as {
           status?: boolean;
+          message?: string;
           data?: { status?: string; transfer_code?: string; reference?: string };
         };
         const partnerRef = tr?.data?.transfer_code ?? input.reference;
