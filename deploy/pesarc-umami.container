@@ -1,0 +1,38 @@
+# Podman Quadlet unit — self-hosted Umami analytics.
+# Install to /etc/containers/systemd/pesarc-umami.container, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-umami
+#
+# Reuses the shared pesarc.network + the co-located Postgres (its own `umami`
+# database + role). Config in /etc/pesarc/umami.env (chmod 600):
+#   DATABASE_URL=postgresql://umami:<pw>@pesarc-db:5432/umami
+#   DATABASE_TYPE=postgresql
+#   APP_SECRET=<openssl rand -hex 32>
+# Create the DB/role once:
+#   podman exec pesarc-db psql -U pesarc -d pesarc \
+#     -c "CREATE ROLE umami LOGIN PASSWORD '<pw>'" \
+#     -c "CREATE DATABASE umami OWNER umami"
+#
+# Exposed via Caddy at analytics.pesarc.xyz (dashboard + /script.js tracker).
+# NOTE: default login is admin / umami — CHANGE IT immediately; the dashboard is
+# public. On a <=1GB droplet add swap first (see DEPLOY.md) so it doesn't OOM.
+
+[Unit]
+Description=Umami analytics
+After=network-online.target pesarc-db.service
+Wants=network-online.target
+Requires=pesarc-db.service
+
+[Container]
+Image=ghcr.io/umami-software/umami:postgresql-latest
+ContainerName=pesarc-umami
+Network=pesarc.network
+PodmanArgs=--network-alias pesarc-umami
+EnvironmentFile=/etc/pesarc/umami.env
+PublishPort=127.0.0.1:3001:3000
+
+[Service]
+Restart=always
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target default.target
