@@ -70,12 +70,12 @@ export default function Hero() {
                 {item.label}
               </a>
             ))}
-            <Link
-              href="/home"
+            <a
+              href={`${site.appUrl}/home`}
               className="inline-flex items-center gap-1.5 rounded-pill bg-white text-harbor text-[13px] font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
             >
               Open app <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            </a>
           </nav>
         </motion.header>
 

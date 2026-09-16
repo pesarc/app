@@ -7,6 +7,10 @@ export const site = {
   description:
     "Pesarc is one gasless app to send, hold, earn, and settle money across borders. No seed phrase, no gas tokens, no crypto jargon — money the way you already think about it.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://pesarc.money",
+  // The dashboard lives on its own host in production (app.pesarc.xyz) while the
+  // landing lives on the apex. Set NEXT_PUBLIC_APP_URL to that origin so the
+  // landing's "Open app" CTA crosses to it; unset (dev) → relative same-origin.
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || "",
   ogImage: "/og.png",
   keywords: [
     "stablecoin payments",
