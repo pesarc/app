@@ -97,7 +97,14 @@ const SCENES: Scene[] = [
   },
 ];
 
-const enter = { initial: { opacity: 0, x: 26 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0 } };
+// Slide in from the right but stay within the card (the chat area clips
+// overflow), and exit with a plain fade — no layout reflow.
+const enter = {
+  initial: { opacity: 0, x: 14 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.28, ease: "easeOut" as const },
+};
 
 export default function AgentPreview() {
   const [scene, setScene] = useState(0);
@@ -149,12 +156,11 @@ export default function AgentPreview() {
 
       {/* Chat */}
       <div className="px-3.5 py-4 space-y-2 min-h-[210px] flex flex-col justify-end overflow-hidden">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence initial={false}>
           {shown.map((line, i) =>
             line.from === "user" ? (
               <motion.div
                 key={`${scene}-u-${i}`}
-                layout
                 {...enter}
                 className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
               >
@@ -163,7 +169,6 @@ export default function AgentPreview() {
             ) : (
               <motion.div
                 key={`${scene}-a-${i}`}
-                layout
                 {...enter}
                 className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
               >
@@ -191,7 +196,6 @@ export default function AgentPreview() {
           {typing && (
             <motion.div
               key={`${scene}-typing`}
-              layout
               {...enter}
               className="self-start bg-cream rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
             >
