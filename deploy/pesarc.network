@@ -1,0 +1,12 @@
+# Podman Quadlet network — the private bridge the web app and Postgres share.
+# Install to /etc/containers/systemd/pesarc.network on the droplet, then:
+#   sudo systemctl daemon-reload
+# Referenced by pesarc-web.container / pesarc-db.container as Network=pesarc.network.
+#
+# The subnet is pinned so it stays stable across recreation — the ufw rule that
+# lets containers reach aardvark-dns (see DEPLOY.md "Firewall") is written
+# against this exact CIDR.
+
+[Network]
+Subnet=10.89.0.0/24
+Gateway=10.89.0.1

@@ -60,14 +60,30 @@ Set a real `DATABASE_URL` here (fix the current bad Neon credential), plus
 build, but keeping them in this file too is harmless.
 
 ## 4. Run it (systemd-managed via Quadlet)
-Copy `deploy/pesarc-web.container` to `/etc/containers/systemd/`, edit the
-`Image=` line to your registry tag, then:
+Copy all three units to `/etc/containers/systemd/` — the shared network, the
+Postgres DB, and the web app — edit the web unit's `Image=` line to your
+registry tag, then bring them up:
 ```bash
+cp deploy/pesarc.network deploy/pesarc-db.container deploy/pesarc-web.container \
+   /etc/containers/systemd/
+# db.env holds POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB (chmod 600)
 sudo systemctl daemon-reload
+sudo systemctl start pesarc-db        # start Postgres first
 sudo systemctl start pesarc-web
 systemctl status pesarc-web           # should be active (running)
 curl -fsS http://127.0.0.1:3000/ | head -c 200
 ```
+`DATABASE_URL` in `pesarc.env` reaches the DB by container name:
+`postgres://pesarc:<pw>@pesarc-db:5432/pesarc`. That name only resolves once the
+firewall lets containers reach aardvark-dns — **do section 6's ufw rules or every
+DB call hangs and silently falls back to an ephemeral file store.**
+
+Run the schema once against the live DB (idempotent):
+```bash
+podman cp deploy/schema.sql pesarc-db:/tmp/schema.sql   # or pipe scripts/migrate.mjs' DDL
+podman exec pesarc-db psql -U pesarc -d pesarc -f /tmp/schema.sql
+```
+
 `AutoUpdate=registry` + `podman auto-update` (or a timer) pulls new images on
 redeploy. Quadlet restarts the container on crash/boot.
 
@@ -85,6 +101,28 @@ systemctl reload caddy      # auto-provisions a Let's Encrypt cert
 ufw allow 80,443/tcp && ufw allow OpenSSH && ufw --force enable
 ```
 The container only listens on `127.0.0.1:3000`; Caddy is the public TLS edge.
+
+### Firewall — REQUIRED for container DNS (Podman + ufw gotcha)
+ufw's defaults break Podman's networking in two ways, and the symptom is nasty:
+containers can't resolve **any** name (not `pesarc-db`, not `api.paystack.co`),
+so DB writes hang then fall back to a throwaway file store and external API calls
+fail — all silently. Container→container TCP still works, which makes it look
+like only DNS is broken. Fixes, against the pinned `10.89.0.0/24` subnet:
+```bash
+# 1. Let containers reach aardvark-dns on the bridge gateway (10.89.0.1:53).
+#    This is what makes both internal names AND external DNS resolve.
+ufw allow from 10.89.0.0/24 comment 'podman containers -> host (DNS/aardvark)'
+
+# 2. Allow forwarded traffic so containers can reach the internet (netavark NATs).
+sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
+ufw reload
+```
+Verify from inside the app container:
+```bash
+podman exec pesarc-web getent hosts pesarc-db          # -> 10.89.0.x
+podman exec pesarc-web node -e 'require("dns").resolve4("api.paystack.co",(e,a)=>console.log(e||a))'
+```
+Both must return quickly. A ~6 s hang means the ufw rules aren't applied.
 
 ## 7. Settlement cron (replaces vercel.json)
 Copy `deploy/pesarc-solve.service` and `deploy/pesarc-solve.timer` to
@@ -124,5 +162,8 @@ manually (step 8 below).
 ## Moving to another stack later
 The artifact is a plain OCI image + a Postgres URL. To leave DigitalOcean:
 `podman push` the image to any registry and run it on Fly/Render/k8s/another VPS
-with the same env file. Neon Postgres is already host-agnostic; DO Managed
-Postgres would be a `pg_dump | pg_restore` away. Nothing else is tied to the host.
+with the same env file. The DB is self-hosted Postgres in the `pesarc-db`
+container (volume `pesarc-db-data`) — move it with `pg_dump | pg_restore`, or
+point `DATABASE_URL` at any managed Postgres (Neon, DO Managed, RDS): the driver
+(`postgres` / postgres.js) speaks standard TCP + optional TLS, so nothing is tied
+to the host. Nothing else is host-specific.
