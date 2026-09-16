@@ -133,6 +133,23 @@ systemctl list-timers pesarc-solve.timer
 ```
 No Hobby-plan cap here — the timer defaults to every 5 minutes.
 
+## 7b. Database backups (nightly, free/local)
+Copy `deploy/pesarc-db-backup.sh` to `/usr/local/bin/` (chmod 755) and the
+service+timer to `/etc/systemd/system/`, then:
+```bash
+systemctl enable --now pesarc-db-backup.timer
+systemctl start pesarc-db-backup.service     # run one now
+ls -lh /var/backups/pesarc/                   # gzipped dumps, rotated (14 days)
+```
+Dumps go to the droplet's own disk — no paid service. **Restore:**
+```bash
+zcat /var/backups/pesarc/pesarc-YYYYmmdd-HHMMSS.sql.gz \
+  | podman exec -i pesarc-db psql -U pesarc -d pesarc
+```
+Local dumps do NOT survive losing the whole droplet. For that, add an off-box
+copy (the only paid part — DO Spaces ~$5/mo or any S3) at the end of the script:
+`s3cmd put "$out" s3://<bucket>/pesarc/` (or `rclone copy`).
+
 ## 8. Redeploy
 Build + push a new image (step 0), then on the droplet:
 ```bash

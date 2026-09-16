@@ -1,0 +1,11 @@
+# Nightly Postgres backup (see pesarc-db-backup.sh). Install to
+# /etc/systemd/system/ alongside pesarc-db-backup.timer, then:
+#   sudo systemctl enable --now pesarc-db-backup.timer
+[Unit]
+Description=Pesarc Postgres nightly backup
+After=pesarc-db.service
+Requires=pesarc-db.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pesarc-db-backup.sh
