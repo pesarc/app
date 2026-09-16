@@ -12,7 +12,7 @@
 //   3. set its NEXT_PUBLIC_<PREFIX>_* addresses in env,
 //   4. (optional) NEXT_PUBLIC_ACTIVE_CHAIN=<key> to make it the default.
 
-import { createPublicClient, http, type Chain } from "viem";
+import { createPublicClient, defineChain, http, type Chain } from "viem";
 import {
   celo,
   celoSepolia,
@@ -26,6 +26,17 @@ import {
   mainnet,
   sepolia,
 } from "viem/chains";
+
+// Circle's Arc — a stablecoin-native L1 where USDC is the gas token. Not in
+// viem/chains yet, so we define it. Testnet params from Arc's docs.
+const arcTestnet: Chain = defineChain({
+  id: 5042002,
+  name: "Arc Testnet",
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet.arc.io"] } },
+  blockExplorers: { default: { name: "Arc Explorer", url: "https://explorer.testnet.arc.io" } },
+  testnet: true,
+});
 
 export type TokenSymbol = "NGN" | "KES" | "GHS" | "USD";
 
@@ -73,6 +84,21 @@ const CATALOG: CatalogEntry[] = [
       tokenKES: process.env.NEXT_PUBLIC_CELO_TOKEN_KES,
       tokenGHS: process.env.NEXT_PUBLIC_CELO_TOKEN_GHS,
       tokenUSD: process.env.NEXT_PUBLIC_CELO_TOKEN_USD,
+    },
+  },
+  {
+    key: "arc-testnet", label: "Arc Testnet", chain: arcTestnet, testnet: true,
+    raw: {
+      rpc: process.env.NEXT_PUBLIC_ARC_TESTNET_RPC_URL,
+      predictionMarket: process.env.NEXT_PUBLIC_ARC_TESTNET_PREDICTION_MARKET,
+      realizedOracle: process.env.NEXT_PUBLIC_ARC_TESTNET_REALIZED_ORACLE,
+      intentMatcher: process.env.NEXT_PUBLIC_ARC_TESTNET_INTENT_MATCHER,
+      agentSessionKeys: process.env.NEXT_PUBLIC_ARC_TESTNET_AGENT_SESSION_KEYS,
+      agentKey: process.env.NEXT_PUBLIC_ARC_TESTNET_AGENT_KEY,
+      tokenNGN: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_NGN,
+      tokenKES: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_KES,
+      tokenGHS: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_GHS,
+      tokenUSD: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_USD,
     },
   },
   {

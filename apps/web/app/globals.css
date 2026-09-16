@@ -213,3 +213,12 @@ input[type="range"]:focus {
 .animate-progress-pulse {
   animation: progressPulse 1.4s ease-in-out infinite;
 }
+
+/* Hidden scrollbar (used in the landing agent preview's fixed-height chat). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
