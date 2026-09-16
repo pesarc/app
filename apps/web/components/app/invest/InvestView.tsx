@@ -150,7 +150,7 @@ export default function InvestView() {
         <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Invest</h1>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed max-w-xl">
           Buy stocks &amp; ETFs across African and global markets — priced and settled in local
-          currency, no dollar in the path.
+          currency.
         </p>
       </header>
 

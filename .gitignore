@@ -8,4 +8,4 @@ dist/
 .env.*
 !.env.example
 .DS_Store
-CLAUDE.md
+CLAUDE.md.vercel

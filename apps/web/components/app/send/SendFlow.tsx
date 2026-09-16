@@ -519,7 +519,7 @@ function AmountStep({
 
       <div className="flex items-center justify-center gap-1.5 mt-4 text-[12.5px] font-medium text-slate">
         <ShieldCheck className="w-3.5 h-3.5 text-sky-deep" />
-        Recipient screened · gasless · no dollar in the path
+        Recipient screened · gasless · settled in local currency
       </div>
     </div>
   );
