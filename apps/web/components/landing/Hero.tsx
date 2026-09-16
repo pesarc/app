@@ -13,15 +13,15 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-screen overflow-hidden bg-cream [color-scheme:light]">
+    <section className="relative w-full min-h-screen overflow-hidden bg-gradient-to-b from-[#0a1f38] via-[#0b2440] to-[#081a30] [color-scheme:dark]">
       {/* Soft sky glow, top-right */}
-      <div className="pointer-events-none absolute -top-40 right-[-10%] w-[680px] h-[680px] rounded-full bg-sky/10 blur-[130px]" />
+      <div className="pointer-events-none absolute -top-40 right-[-10%] w-[680px] h-[680px] rounded-full bg-sky/20 blur-[130px]" />
       {/* Faint dotted grid */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.5]"
+        className="pointer-events-none absolute inset-0 opacity-[0.6]"
         style={{
           backgroundImage:
-            "radial-gradient(rgba(19,66,111,0.06) 1px, transparent 1px)",
+            "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
           backgroundSize: "26px 26px",
           maskImage: "radial-gradient(circle at 70% 40%, black 30%, transparent 78%)",
           WebkitMaskImage: "radial-gradient(circle at 70% 40%, black 30%, transparent 78%)",
@@ -42,8 +42,8 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      {/* Cream fade keeps the headline legible over the globe */}
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-cream via-cream/70 to-transparent lg:via-cream/40" />
+      {/* Dark fade keeps the headline legible over the globe */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-r from-[#0a1f38] via-[#0a1f38]/70 to-transparent lg:via-[#0a1f38]/40" />
 
       {/* pointer-events-none so the globe underneath stays hoverable/draggable;
           interactive children opt back in with pointer-events-auto. */}
@@ -57,7 +57,7 @@ export default function Hero() {
         >
           <Link href="/" className="flex items-center gap-2.5">
             <LogoMark size={34} className="rounded-xl shadow-pop-sm" />
-            <span className="text-xl font-extrabold tracking-tight text-harbor">{site.name}</span>
+            <span className="text-xl font-extrabold tracking-tight text-white">{site.name}</span>
           </Link>
 
           <nav className="flex items-center gap-2 sm:gap-6">
@@ -65,14 +65,14 @@ export default function Hero() {
               <a
                 key={item.href}
                 href={item.href}
-                className="hidden sm:inline text-[13px] font-bold text-slate hover:text-harbor transition-colors"
+                className="hidden sm:inline text-[13px] font-bold text-white/60 hover:text-white transition-colors"
               >
                 {item.label}
               </a>
             ))}
             <Link
               href="/home"
-              className="inline-flex items-center gap-1.5 rounded-pill bg-harbor text-white text-[13px] font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-white text-harbor text-[13px] font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
             >
               Open app <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -86,7 +86,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease, delay: 0.1 }}
-              className="inline-flex items-center gap-2 rounded-pill bg-sky-tint/60 text-sky-deep text-[12px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 mb-6"
+              className="inline-flex items-center gap-2 rounded-pill bg-sky/15 text-sky text-[12px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 mb-6"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-sky animate-pulse" />
               Stablecoin settlement network
@@ -96,7 +96,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.18 }}
-              className="text-[15vw] sm:text-7xl lg:text-8xl font-extrabold tracking-tight text-harbor leading-[0.95] text-balance"
+              className="text-[15vw] sm:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-[0.95] text-balance"
             >
               Send money
               <br />
@@ -107,7 +107,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.28 }}
-              className="mt-6 max-w-md text-base md:text-lg text-slate font-medium leading-relaxed"
+              className="mt-6 max-w-md text-base md:text-lg text-white/70 font-medium leading-relaxed"
             >
               One gasless app to send, hold, earn, and settle money across borders.
               No seed phrase, no gas, no jargon — just money, the way you already
@@ -127,7 +127,7 @@ export default function Hero() {
                 Get early access
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </a>
-              <div className="inline-flex items-center gap-2 text-[13px] font-bold text-slate">
+              <div className="inline-flex items-center gap-2 text-[13px] font-bold text-white/70">
                 <span className="relative flex w-2 h-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-[#4ade80] opacity-70 animate-ping" />
                   <span className="relative inline-flex rounded-full w-2 h-2 bg-[#22c55e]" />
@@ -161,7 +161,7 @@ export default function Hero() {
         </motion.div>
 
         {/* Meta */}
-        <div className="hidden lg:flex absolute bottom-8 left-12 flex-col gap-0.5 text-[11px] font-bold uppercase tracking-widest text-slate/70">
+        <div className="hidden lg:flex absolute bottom-8 left-12 flex-col gap-0.5 text-[11px] font-bold uppercase tracking-widest text-white/40">
           <span>{site.protocolVersion}</span>
           <span>Gasless · Non-custodial</span>
         </div>
