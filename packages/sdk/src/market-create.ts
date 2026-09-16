@@ -3,14 +3,14 @@
 // user's behalf by the protocol owner key (server-side). Binary markets only —
 // the contract is Yes/No; multi-outcome stays store-backed.
 //
-// Targets the markets chain (Arb Sepolia by default), whose deployed market is
-// owned by the operator key we hold. Activated by MARKET_OWNER_PK (falls back
-// to SETTLE_OPERATOR_PK). Until a key is present the propose route falls back to
-// the off-chain store.
+// Chain-generic: it targets whichever EVM chain the request names (from the
+// registry), defaulting to the active chain. Activated by MARKET_OWNER_PK (falls
+// back to SETTLE_OPERATOR_PK). Until a key is present the propose route falls
+// back to the off-chain store.
 
 import { createWalletClient, createPublicClient, http, parseUnits, zeroAddress } from "viem";
-import { arbitrumSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { activeChain, chainByKey, type EvmChainConfig } from "./chain/registry";
 
 const ZERO = zeroAddress as `0x${string}`;
 const ZERO_BYTES32 = `0x${"0".repeat(64)}` as `0x${string}`;
@@ -45,38 +45,19 @@ const MARKET_ABI = [
     ],
     outputs: [{ name: "id", type: "uint256" }],
   },
-  { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
 ] as const;
 
 const DECIMALS_ABI = [
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
 ] as const;
 
-// The chain prediction markets are created on. Arb Sepolia: the deployed market
-// is owned by the operator key we hold, so the owner path works end-to-end.
-const MARKET_CHAIN = arbitrumSepolia;
-
-function rpcUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_ARB_SEPOLIA_RPC_URL ||
-    process.env.ARB_SEPOLIA_RPC_URL ||
-    MARKET_CHAIN.rpcUrls.default.http[0]
-  );
+function resolveChain(chainKey?: string): EvmChainConfig {
+  return (chainKey && chainByKey(chainKey)) || activeChain();
 }
 
-function predictionMarket(): `0x${string}` | "" {
-  return (process.env.NEXT_PUBLIC_ARB_SEPOLIA_PREDICTION_MARKET as `0x${string}`) || "";
-}
-
-function collateralAddress(code: string): `0x${string}` | "" {
-  const bare = code.replace(/^c/i, "").toUpperCase();
-  const map: Record<string, string | undefined> = {
-    NGN: process.env.NEXT_PUBLIC_ARB_TOKEN_NGN,
-    GHS: process.env.NEXT_PUBLIC_ARB_TOKEN_GHS,
-    KES: process.env.NEXT_PUBLIC_ARB_TOKEN_KES,
-    USD: process.env.NEXT_PUBLIC_ARB_TOKEN_USD,
-  };
-  return (map[bare] as `0x${string}`) || "";
+function collateralAddress(chain: EvmChainConfig, code: string): `0x${string}` | "" {
+  const bare = code.replace(/^c/i, "").toUpperCase() as "NGN" | "GHS" | "KES" | "USD";
+  return (chain.tokens[bare] as `0x${string}`) || "";
 }
 
 function ownerKey(): `0x${string}` | null {
@@ -85,27 +66,24 @@ function ownerKey(): `0x${string}` | null {
   return (k.startsWith("0x") ? k : `0x${k}`) as `0x${string}`;
 }
 
-/** Can the server create binary markets on-chain right now? */
-export function marketsChainReady(collateralCode = "cNGN"): boolean {
-  return Boolean(ownerKey() && predictionMarket() && collateralAddress(collateralCode));
+function txUrl(chain: EvmChainConfig, tx: string): string {
+  const base = chain.chain.blockExplorers?.default.url ?? "";
+  return base ? `${base}/tx/${tx}` : tx;
 }
 
-/** Block-explorer tx URL for the markets chain. */
-export function marketTxUrl(tx: string): string {
-  const base = MARKET_CHAIN.blockExplorers?.default.url ?? "https://sepolia.arbiscan.io";
-  return `${base}/tx/${tx}`;
+/** Can the server create binary markets on-chain on the given chain right now? */
+export function marketsChainReady(collateralCode = "cNGN", chainKey?: string): boolean {
+  const chain = resolveChain(chainKey);
+  return Boolean(ownerKey() && chain.predictionMarket && collateralAddress(chain, collateralCode));
 }
-
-export const MARKET_CHAIN_KEY = "arbitrum-sepolia";
-export const MARKET_VENUE = "evm" as const;
 
 type CreateArgs = {
   question: string;
-  /** collateral stablecoin symbol, e.g. "cNGN". */
-  collateral: string;
-  closeTime?: number; // unix secs; default now + 7d
-  resolveTime?: number; // unix secs; default close + 7d
-  disputeWindowSecs?: number; // default 1d
+  collateral: string; // e.g. "cNGN"
+  chainKey?: string; // target EVM chain (defaults to active)
+  closeTime?: number;
+  resolveTime?: number;
+  disputeWindowSecs?: number;
 };
 
 /** Create a binary market on-chain, signed by the owner key. Returns id + tx. */
@@ -118,14 +96,15 @@ export async function evmCreateMarketOwner(a: CreateArgs): Promise<{
   collateralToken: string;
 }> {
   const pk = ownerKey();
-  const pm = predictionMarket();
-  const collateral = collateralAddress(a.collateral);
+  const chain = resolveChain(a.chainKey);
+  const pm = chain.predictionMarket;
+  const collateral = collateralAddress(chain, a.collateral);
   if (!pk) throw new Error("owner key (MARKET_OWNER_PK / SETTLE_OPERATOR_PK) not configured");
-  if (!pm) throw new Error("prediction market not deployed on the markets chain");
-  if (!collateral) throw new Error(`no collateral token for ${a.collateral} on the markets chain`);
+  if (!pm) throw new Error(`prediction market not deployed on ${chain.key}`);
+  if (!collateral) throw new Error(`no collateral token for ${a.collateral} on ${chain.key}`);
 
   const account = privateKeyToAccount(pk);
-  const publicClient = createPublicClient({ chain: MARKET_CHAIN, transport: http(rpcUrl()) });
+  const publicClient = createPublicClient({ chain: chain.chain, transport: http(chain.rpcUrl) });
 
   let decimals = 18;
   try {
@@ -144,8 +123,6 @@ export async function evmCreateMarketOwner(a: CreateArgs): Promise<{
   const disputeWindow = BigInt(a.disputeWindowSecs ?? 86400);
   const bond = parseUnits("50", decimals); // attested markets require bond > 0
 
-  // Attested community market: no oracle feed, resolved by the bonded attestor
-  // (the owner) inside a dispute window.
   const source = {
     kind: 1, // Attested
     tokenIn: ZERO,
@@ -175,15 +152,14 @@ export async function evmCreateMarketOwner(a: CreateArgs): Promise<{
     args,
   });
 
-  const wallet = createWalletClient({ account, chain: MARKET_CHAIN, transport: http(rpcUrl()) });
+  const wallet = createWalletClient({ account, chain: chain.chain, transport: http(chain.rpcUrl) });
   const tx = await wallet.writeContract(request);
-  const id = Number(result);
   return {
-    id,
+    id: Number(result),
     tx,
-    txUrl: marketTxUrl(tx),
-    chainKey: MARKET_CHAIN_KEY,
-    venue: MARKET_VENUE,
+    txUrl: txUrl(chain, tx),
+    chainKey: chain.key,
+    venue: "evm",
     collateralToken: collateral,
   };
 }

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Plus, X, Check, Loader2, Users, ExternalLink } from "lucide-react";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 
 type Kind = "fx" | "macro" | "sports" | "politics";
 type Collateral = "cNGN" | "cKES" | "cGHS";
@@ -30,6 +31,7 @@ const COLLATERALS: { value: Collateral; flag: string }[] = [
 
 export default function ProposeMarketView() {
   const { alias, address } = useWallet();
+  const { chainKey } = useActiveEvmChain();
 
   const [type, setType] = useState<"binary" | "multi">("binary");
   const [question, setQuestion] = useState("");
@@ -77,6 +79,7 @@ export default function ProposeMarketView() {
           bond: Number(bond) || 0,
           bondCoin: collateral,
           proposer: alias || address || "community",
+          chainKey,
         }),
       });
       const j = await res.json();

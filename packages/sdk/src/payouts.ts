@@ -63,29 +63,30 @@ async function createSchema(sql: Sql) {
       amount_ngn   numeric NOT NULL,
       tx_hash      text,
       partner_ref  text NOT NULL,
+      status       text NOT NULL DEFAULT 'initiated',
       created_at   timestamptz NOT NULL DEFAULT now()
     )
   `;
-  // Payouts predate per-user scoping — upgrade in place.
+  // Payouts predate per-user scoping + webhook-driven status — upgrade in place.
   await sql`ALTER TABLE payouts ADD COLUMN IF NOT EXISTS account text NOT NULL DEFAULT 'demo'`;
+  await sql`ALTER TABLE payouts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'initiated'`;
   await sql`CREATE INDEX IF NOT EXISTS payouts_account_ref_idx ON payouts (account, reference)`;
-}
-
-function partnerRef(): string {
-  return `RMP-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+  await sql`CREATE INDEX IF NOT EXISTS payouts_partner_ref_idx ON payouts (partner_ref)`;
 }
 
 export async function createPayout(
   input: PayoutInput,
   account = DEMO_ACCOUNT,
 ): Promise<PayoutRow> {
+  // Hand the payout to the ramp provider (real when configured, else simulated).
+  const { partnerRef, status } = await getRampAdapter().initiate(input);
   const row: PayoutRow = {
     ...input,
     account,
     id: String(Date.now()),
-    status: "initiated",
+    status,
     createdAt: new Date().toISOString(),
-    partnerRef: partnerRef(),
+    partnerRef,
   };
 
   if (hasNeon()) {
@@ -93,9 +94,9 @@ export async function createPayout(
       const sql = sqlClient();
       await ensureSchema(sql);
       const inserted = await sql`
-        INSERT INTO payouts (account, reference, beneficiary, method, amount_ngn, tx_hash, partner_ref)
+        INSERT INTO payouts (account, reference, beneficiary, method, amount_ngn, tx_hash, partner_ref, status)
         VALUES (${account}, ${input.reference}, ${input.beneficiary}, ${input.method},
-                ${input.amountNgn}, ${input.txHash ?? null}, ${row.partnerRef})
+                ${input.amountNgn}, ${input.txHash ?? null}, ${row.partnerRef}, ${row.status})
         RETURNING id, created_at
       `;
       row.id = String((inserted[0] as { id: unknown }).id);
@@ -144,7 +145,7 @@ export async function getPayout(
         txHash: (r.tx_hash as string) ?? undefined,
         partnerRef: String(r.partner_ref),
         createdAt,
-        status: await getRampAdapter().statusFor(createdAt, String(r.partner_ref)),
+        status: await resolveStatus(createdAt, String(r.partner_ref), r.status as PayoutStatus),
       };
     } catch {
       /* fall through */
@@ -158,7 +159,52 @@ export async function getPayout(
       (r) => r.reference === reference && (r.account ?? DEMO_ACCOUNT) === account,
     ) ?? null;
   if (!row) return null;
-  return { ...row, status: await getRampAdapter().statusFor(row.createdAt, row.partnerRef) };
+  return { ...row, status: await resolveStatus(row.createdAt, row.partnerRef, row.status) };
+}
+
+/** With a real provider the stored (webhook-driven) status is authoritative;
+ *  the simulator derives it from elapsed time. */
+async function resolveStatus(
+  createdAt: string,
+  partnerRef: string,
+  stored?: PayoutStatus,
+): Promise<PayoutStatus> {
+  const adapter = getRampAdapter();
+  if (adapter.name !== "simulated") return stored ?? "initiated";
+  return adapter.statusFor(createdAt, partnerRef);
+}
+
+/**
+ * Apply a provider status update (from /api/payouts/webhook) to the stored
+ * payout, keyed by the partner's reference. Idempotent.
+ */
+export async function updatePayoutStatus(
+  partnerRef: string,
+  status: PayoutStatus,
+): Promise<boolean> {
+  if (hasNeon()) {
+    try {
+      const sql = sqlClient();
+      await ensureSchema(sql);
+      const res = await sql`
+        UPDATE payouts SET status = ${status} WHERE partner_ref = ${partnerRef} RETURNING id
+      `;
+      if (res.length > 0) return true;
+    } catch {
+      /* fall through to file store */
+    }
+  }
+  const rows = await readFileRows();
+  let changed = false;
+  const next = rows.map((r) => {
+    if (r.partnerRef === partnerRef) {
+      changed = true;
+      return { ...r, status };
+    }
+    return r;
+  });
+  if (changed) await rewriteFile(next);
+  return changed;
 }
 
 /* ---- local JSONL fallback (zero-config dev) ---- */
@@ -186,5 +232,15 @@ async function readFileRows(): Promise<PayoutRow[]> {
       .map((l) => JSON.parse(l) as PayoutRow);
   } catch {
     return [];
+  }
+}
+
+async function rewriteFile(rows: PayoutRow[]) {
+  try {
+    const file = filePath();
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, rows.map((r) => JSON.stringify(r)).join("\n") + "\n", "utf8");
+  } catch {
+    /* best-effort */
   }
 }
