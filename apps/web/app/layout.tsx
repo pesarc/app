@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { site } from "@pesarc/sdk/site";
+import Analytics from "@/components/Analytics";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -75,6 +76,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <Analytics />
       </body>
     </html>
   );
