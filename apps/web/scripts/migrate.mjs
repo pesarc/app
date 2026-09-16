@@ -9,7 +9,7 @@
 //
 // Safe to run repeatedly — every statement is idempotent.
 
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 import { readFileSync } from "node:fs";
 
 // Load .env when run outside Next (which injects it automatically).
@@ -30,7 +30,8 @@ if (!url) {
   process.exit(1);
 }
 
-const sql = neon(url);
+const needsSsl = /[?&]sslmode=require/.test(url) || /\.neon\.tech|\.ondigitalocean\.com/.test(url);
+const sql = postgres(url, { ssl: needsSsl ? "require" : false, max: 1 });
 
 const statements = [
   // --- waitlist ---
@@ -77,14 +78,19 @@ const statements = [
    )`,
   // Pre-scoping payouts default to the demo bucket.
   `ALTER TABLE payouts ADD COLUMN IF NOT EXISTS account text NOT NULL DEFAULT 'demo'`,
+  // Webhook-driven status (initiated → processing → paid / failed).
+  `ALTER TABLE payouts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'initiated'`,
   // Lookups are always (account, reference) — never reference alone.
   `CREATE INDEX IF NOT EXISTS payouts_account_ref_idx
      ON payouts (account, reference)`,
+  // Webhook updates key by the partner's reference.
+  `CREATE INDEX IF NOT EXISTS payouts_partner_ref_idx ON payouts (partner_ref)`,
 ];
 
 let n = 0;
 for (const stmt of statements) {
-  await sql(stmt);
+  await sql.unsafe(stmt);
   n++;
 }
 console.log(`migrations applied: ${n} statements ok`);
+await sql.end();
