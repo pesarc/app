@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@pesarc/sdk/api/guard";
+import { parseCreateMarket } from "@pesarc/sdk/agent/market-intent";
+import { createCatalog } from "@pesarc/sdk/catalog";
 import { parseSettlementRequest } from "@pesarc/sdk/celo/agent";
 import { llmConfigured } from "@pesarc/sdk/llm/extract";
 import {
@@ -83,6 +85,51 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ ok: false, reply: "Say what you'd like to send." }, { status: 400 });
+  }
+
+  // Create-a-market intent — works without the LLM. The agent turns plain
+  // language into a proposed prediction market (binary or multi-outcome).
+  const spec = parseCreateMarket(parsed.data.message);
+  if (spec) {
+    try {
+      const data: Record<string, unknown> = {
+        question: spec.question,
+        kind: spec.kind,
+        collateral: spec.collateral,
+        flag: spec.kind === "sports" ? "⚽" : spec.kind === "politics" ? "🏛️" : "🌍",
+        closes: spec.closes ?? "TBD",
+        resolves: spec.resolves ?? "TBD",
+        resolver: "attested",
+        type: spec.type,
+        status: "proposed",
+        proposer: "AI agent",
+        bond: 0,
+        bondCoin: spec.collateral,
+      };
+      if (spec.type === "multi" && spec.outcomes) {
+        data.outcomes = spec.outcomes.map((label) => ({ label, pool: 0 }));
+      } else {
+        data.poolYes = 0;
+        data.poolNo = 0;
+      }
+      await createCatalog("markets", data);
+      const outcomesLine =
+        spec.type === "multi" && spec.outcomes
+          ? ` with ${spec.outcomes.length} outcomes (${spec.outcomes.join(", ")})`
+          : " (Yes / No)";
+      return NextResponse.json({
+        ok: true,
+        matched: false,
+        createdMarket: true,
+        marketsUrl: "/markets",
+        reply: `Done — I created your ${spec.type === "multi" ? "multi-outcome" : "binary"} market${outcomesLine}: “${spec.question}”. It's live on the board with a Community badge, settled in ${spec.collateral}. Open Markets to seed it and take a position.`,
+      });
+    } catch {
+      return NextResponse.json({
+        ok: false,
+        reply: "I understood the market but couldn't save it — try again in a moment.",
+      });
+    }
   }
 
   // Usable without keys: when the agent can't act on-chain (no LLM or agent

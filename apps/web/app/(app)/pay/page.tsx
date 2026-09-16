@@ -52,19 +52,21 @@ function parseScan(raw: string): Target | null {
     return { address, label: `${address.slice(0, 6)}…${address.slice(-4)}` };
   }
 
-  // Pesarc pay link: https://pesarc.money/pay/<alias>?to=0x..&amount=..
+  // Pesarc pay link: <origin>/pay?name=@alias&to=0x..&amount=.. (also accepts
+  // the legacy /pay/<alias> path form).
   try {
     const url = new URL(text);
+    if (!url.pathname.includes("/pay")) return null;
     const m = url.pathname.match(/\/pay\/([^/]+)/);
-    if (!m) return null;
-    const alias = decodeURIComponent(m[1]);
+    const alias = m ? decodeURIComponent(m[1]) : "";
+    const name = url.searchParams.get("name");
     const to = url.searchParams.get("to") || "";
     const amt = parseFloat(url.searchParams.get("amount") || "");
+    const label = name || (alias ? `@${alias}` : "");
+    if (!label && !/^0x[0-9a-fA-F]{40}$/.test(to)) return null;
     return {
-      address: /^0x[0-9a-fA-F]{40}$/.test(to)
-        ? (to as `0x${string}`)
-        : undefined,
-      label: url.searchParams.get("name") || `@${alias}`,
+      address: /^0x[0-9a-fA-F]{40}$/.test(to) ? (to as `0x${string}`) : undefined,
+      label: label || `${to.slice(0, 6)}…${to.slice(-4)}`,
       amount: Number.isFinite(amt) && amt > 0 ? amt : undefined,
     };
   } catch {
@@ -93,6 +95,20 @@ export default function PayPage() {
     setTarget(t);
     setStep("details");
     return true;
+  }, []);
+
+  // Deep link from a Receive link/QR: /pay?name=@alias&to=0x..&amount=..
+  // Pre-fill the target and skip straight to the details step.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const search = window.location.search;
+    if (!search || !/[?&](name|to|amount)=/.test(search)) return;
+    const t = parseScan(`${window.location.origin}/pay${search}`);
+    if (t) {
+      setTarget(t);
+      if (t.amount) setAmountStr(String(t.amount));
+      setStep("details");
+    }
   }, []);
 
   /* ---- live quote (oracle mid + exact pool output) ---- */

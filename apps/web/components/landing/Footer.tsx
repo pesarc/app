@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { site } from "@pesarc/sdk/site";
+import { LogoMark } from "@/components/app/Logo";
 
 const COLUMNS = [
   {
@@ -37,9 +38,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
         <div className="lg:col-span-2 flex flex-col items-start">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-6 h-6 flex items-center justify-center rounded bg-white text-black font-mono text-[10px] font-medium">
-              SA
-            </div>
+            <LogoMark size={26} className="shrink-0 rounded-lg" />
             <span className="text-lg tracking-tight text-white font-medium">
               {site.name}
             </span>

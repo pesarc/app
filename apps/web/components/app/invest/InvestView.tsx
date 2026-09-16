@@ -21,7 +21,10 @@ import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { getBroker } from "@pesarc/sdk/broker";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
+import { Pagination, usePaged } from "@/components/app/Pagination";
 import { Stagger, StaggerItem } from "@/components/motion";
+
+const PER_PAGE = 8;
 
 type Holding = { symbol: string; shares: number; costCcy: string; cost: number };
 const KEY = "pesarc.holdings";
@@ -139,6 +142,8 @@ export default function InvestView() {
     );
   }, [filter, query, instruments]);
 
+  const paged = usePaged(list, PER_PAGE, `${filter}|${query}`);
+
   return (
     <div className="mx-auto w-full max-w-md lg:max-w-5xl px-4 sm:px-6 py-6 md:py-10">
       <header className="mb-4">
@@ -232,7 +237,7 @@ export default function InvestView() {
           </div>
 
           <Stagger className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {list.map((inst) => (
+            {paged.items.map((inst) => (
               <StaggerItem key={inst.symbol} pop>
                 <InstrumentCard inst={inst} onBuy={() => setTicket(inst)} />
               </StaggerItem>
@@ -243,6 +248,7 @@ export default function InvestView() {
               </p>
             )}
           </Stagger>
+          <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />
         </div>
       </div>
 
