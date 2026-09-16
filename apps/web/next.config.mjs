@@ -41,6 +41,14 @@ const nextConfig = {
     path.dirname(fileURLToPath(import.meta.url)),
     "../..",
   ),
+  // Keep the Postgres driver external (don't bundle) and FORCE it into the
+  // standalone trace — Next's tracer misses it because it's imported from the
+  // transpiled @pesarc/sdk package, which silently drops DB writes to a file
+  // fallback in the container.
+  serverExternalPackages: ["postgres"],
+  outputFileTracingIncludes: {
+    "**/*": ["./node_modules/postgres/**/*"],
+  },
   // globe.gl + three-globe ship ESM only — let Next compile them.
   transpilePackages: ["globe.gl", "three-globe", "@pesarc/sdk", "@pesarc/abi", "@pesarc/ui"],
   images: {
