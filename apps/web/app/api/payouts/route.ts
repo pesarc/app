@@ -13,6 +13,10 @@ const schema = z.object({
   method: z.enum(["bank", "mobile_money"]),
   amountNgn: z.number().positive(),
   txHash: z.string().trim().max(80).optional(),
+  // Structured destination for a real off-ramp (used at initiate, not stored).
+  accountName: z.string().trim().max(120).optional(),
+  accountNumber: z.string().trim().max(24).regex(/^\d+$/).optional(),
+  bankCode: z.string().trim().max(12).optional(),
 });
 
 /** Creates a fiat payout (sandbox ramp partner), owned by the caller. */

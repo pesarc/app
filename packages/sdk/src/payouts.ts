@@ -23,6 +23,11 @@ export type PayoutInput = {
   amountNgn: number;
   /** On-chain tx that funded the escrow. */
   txHash?: string;
+  // Structured destination for a real provider (Paystack et al.). Used only to
+  // create the transfer at initiate time; NOT persisted (no account PII at rest).
+  accountName?: string;
+  accountNumber?: string;
+  bankCode?: string;
 };
 
 export type PayoutRow = PayoutInput & {
