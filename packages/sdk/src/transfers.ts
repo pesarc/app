@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
+import { getSql } from "./db";
 
 // Account scoping comes from the verified Privy identity (lib/api/auth.ts).
 // Unauthenticated/mock-mode callers share the demo bucket; real users never do.
@@ -31,7 +31,7 @@ export type TransferRow = TransferInput & {
 const hasNeon = () => Boolean(process.env.DATABASE_URL);
 
 function sqlClient() {
-  return neon(process.env.DATABASE_URL!);
+  return getSql();
 }
 
 type Sql = ReturnType<typeof sqlClient>;

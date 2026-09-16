@@ -5,7 +5,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
+import { getSql } from "./db";
 
 export type CatalogKind = "markets" | "stocks" | "agents";
 export const CATALOG_KINDS: CatalogKind[] = ["markets", "stocks", "agents"];
@@ -19,7 +19,7 @@ export type CatalogItem = {
 
 const hasNeon = () => Boolean(process.env.DATABASE_URL);
 function sql() {
-  return neon(process.env.DATABASE_URL!);
+  return getSql();
 }
 type Sql = ReturnType<typeof sql>;
 

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
+import { getSql } from "./db";
 
 export type WaitlistEntry = {
   email: string;
@@ -41,7 +41,7 @@ export async function addToWaitlist(entry: WaitlistEntry): Promise<StoreResult> 
 
 async function addViaNeon(entry: WaitlistEntry): Promise<StoreResult> {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = getSql();
 
     // Idempotent schema bootstrap — cheap, runs once meaningfully.
     await sql`

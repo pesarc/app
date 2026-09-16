@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
+import { getSql } from "./db";
 import { DEMO_ACCOUNT } from "@pesarc/sdk/api/auth";
 import { getRampAdapter, type PayoutStatus as RampPayoutStatus } from "./ramp";
 
@@ -43,7 +43,7 @@ export type PayoutRow = PayoutInput & {
 const hasNeon = () => Boolean(process.env.DATABASE_URL);
 
 function sqlClient() {
-  return neon(process.env.DATABASE_URL!);
+  return getSql();
 }
 
 type Sql = ReturnType<typeof sqlClient>;

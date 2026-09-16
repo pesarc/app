@@ -14,12 +14,12 @@
   },
   "dependencies": {
     "@alchemy/wallet-apis": "^5.0.6",
-    "@neondatabase/serverless": "^0.10.4",
     "@pesarc/abi": "workspace:*",
     "@privy-io/react-auth": "^3.32.0",
     "@privy-io/server-auth": "^1.32.5",
     "@solana/web3.js": "^1.99.0",
     "next": "15.2.8",
+    "postgres": "^3.4.5",
     "react": "18.3.1",
     "viem": "^2.30.1"
   },
