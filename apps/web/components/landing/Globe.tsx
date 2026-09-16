@@ -35,27 +35,38 @@ const DEFAULT_CONTROLS: GlobeControls = {
 
 type Country = { n: string; p: [number, number][][] };
 
-// Financial hubs across every continent — pings hop between these.
-const HUBS: { name: string; lat: number; lng: number }[] = [
-  { name: "Lagos", lat: 6.5, lng: 3.4 },
-  { name: "Nairobi", lat: -1.29, lng: 36.82 },
-  { name: "Accra", lat: 5.6, lng: -0.19 },
-  { name: "Johannesburg", lat: -26.2, lng: 28.04 },
-  { name: "London", lat: 51.5, lng: -0.12 },
-  { name: "Frankfurt", lat: 50.11, lng: 8.68 },
-  { name: "New York", lat: 40.71, lng: -74.0 },
-  { name: "Toronto", lat: 43.65, lng: -79.38 },
-  { name: "São Paulo", lat: -23.55, lng: -46.63 },
-  { name: "Mumbai", lat: 19.07, lng: 72.87 },
-  { name: "Dubai", lat: 25.2, lng: 55.27 },
-  { name: "Singapore", lat: 1.35, lng: 103.82 },
-  { name: "Shanghai", lat: 31.23, lng: 121.47 },
-  { name: "Sydney", lat: -33.87, lng: 151.21 },
+// Financial hubs across every continent — pings hop between these. Each carries
+// a short region + settlement stat so the globe can surface stylish region info
+// as an arc lands. Global-South corridors are weighted (Pesarc's home turf).
+type Hub = {
+  name: string;
+  region: string;
+  stat: string;
+  lat: number;
+  lng: number;
+  south?: boolean;
+};
+const HUBS: Hub[] = [
+  { name: "Lagos", region: "Nigeria", stat: "cNGN · ₦", lat: 6.5, lng: 3.4, south: true },
+  { name: "Nairobi", region: "Kenya", stat: "cKES · KSh", lat: -1.29, lng: 36.82, south: true },
+  { name: "Accra", region: "Ghana", stat: "cGHS · ₵", lat: 5.6, lng: -0.19, south: true },
+  { name: "Johannesburg", region: "South Africa", stat: "cZAR · R", lat: -26.2, lng: 28.04, south: true },
+  { name: "Cairo", region: "Egypt", stat: "cEGP · £", lat: 30.04, lng: 31.24, south: true },
+  { name: "Mumbai", region: "India", stat: "cINR · ₹", lat: 19.07, lng: 72.87, south: true },
+  { name: "São Paulo", region: "Brazil", stat: "cBRL · R$", lat: -23.55, lng: -46.63, south: true },
+  { name: "Manila", region: "Philippines", stat: "cPHP · ₱", lat: 14.6, lng: 120.98, south: true },
+  { name: "Dubai", region: "UAE", stat: "USDC · $", lat: 25.2, lng: 55.27, south: true },
+  { name: "London", region: "United Kingdom", stat: "USDC · £", lat: 51.5, lng: -0.12 },
+  { name: "Frankfurt", region: "Germany", stat: "USDC · €", lat: 50.11, lng: 8.68 },
+  { name: "New York", region: "United States", stat: "USDC · $", lat: 40.71, lng: -74.0 },
+  { name: "Singapore", region: "Singapore", stat: "USDC · $", lat: 1.35, lng: 103.82 },
+  { name: "Sydney", region: "Australia", stat: "USDC · $", lat: -33.87, lng: 151.21 },
 ];
 
 const DEG = Math.PI / 180;
 const FLIGHT_MS = 1600;
 const RING_MS = 1400;
+const LABEL_MS = 2600;
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
@@ -107,6 +118,8 @@ function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
 
 type Arc = { a: Vec3; b: Vec3; start: number };
 type Ring = { v: Vec3; start: number };
+// A landed ping surfaces a stylish region chip near the destination hub.
+type Label = { hub: Hub; v: Vec3; start: number };
 
 export default function Globe({ controls }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -127,6 +140,9 @@ export default function Globe({ controls }: Props) {
     let shapes: { t: number; rings: Vec3[][] }[] = [];
     let arcs: Arc[] = [];
     let rings: Ring[] = [];
+    let labels: Label[] = [];
+    // Precomputed hub unit-vectors (network nodes drawn on the front face).
+    const hubVecs = HUBS.map((h) => toVec3(h.lat, h.lng));
     let rotation = -6 * DEG; // matches the old initial point of view
     let dragging = false;
     let lastX = 0;
@@ -183,23 +199,27 @@ export default function Globe({ controls }: Props) {
       return { x: cx - x1 * R, y: cy - y2 * R, z: z2 };
     };
 
+    // Weighted pick — Global-South hubs surface ~2× as often (Pesarc's corridors).
+    const pickHub = (not = -1) => {
+      for (let tries = 0; tries < 8; tries++) {
+        const k = Math.floor(Math.random() * HUBS.length);
+        if (k === not) continue;
+        if (HUBS[k].south || Math.random() < 0.5) return k;
+      }
+      return not === 0 ? 1 : 0;
+    };
+
     const spawn = () => {
       if (disposed) return;
       const c = ctrlRef.current;
-      const i = Math.floor(Math.random() * HUBS.length);
-      let j = Math.floor(Math.random() * HUBS.length);
-      if (j === i) j = (j + 1) % HUBS.length;
+      const i = pickHub();
+      const j = pickHub(i);
       const now = performance.now();
-      arcs.push({
-        a: toVec3(HUBS[i].lat, HUBS[i].lng),
-        b: toVec3(HUBS[j].lat, HUBS[j].lng),
-        start: now,
-      });
-      rings.push({ v: toVec3(HUBS[i].lat, HUBS[i].lng), start: now });
-      rings.push({
-        v: toVec3(HUBS[j].lat, HUBS[j].lng),
-        start: now + FLIGHT_MS,
-      });
+      arcs.push({ a: hubVecs[i], b: hubVecs[j], start: now });
+      rings.push({ v: hubVecs[i], start: now });
+      rings.push({ v: hubVecs[j], start: now + FLIGHT_MS });
+      // Reveal the destination region as the ping lands.
+      labels.push({ hub: HUBS[j], v: hubVecs[j], start: now + FLIGHT_MS });
       const interval = lerp(2600, 500, c.signalRate / 2);
       spawnTimer = setTimeout(spawn, interval * (0.6 + Math.random() * 0.7));
     };
@@ -231,41 +251,43 @@ export default function Globe({ controls }: Props) {
       const R = Math.min(W, H) * 0.36;
       const [ar, ag, ab] = hexToRgb(c.color);
 
-      // Atmosphere glow
-      const glowR = R * (1.08 + 0.35 * c.glow);
-      const grad = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, glowR);
-      grad.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, ${0.22 * c.glow})`);
+      // Atmosphere glow — thin rim of sky light, softer than before so the
+      // sphere reads as a deep object rather than a bright bulb.
+      const glowR = R * (1.05 + 0.26 * c.glow);
+      const grad = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, glowR);
+      grad.addColorStop(0, `rgba(${ar}, ${ag}, ${ab}, ${0.14 * c.glow})`);
       grad.addColorStop(1, `rgba(${ar}, ${ag}, ${ab}, 0)`);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ocean disc
+      // Ocean disc — deep harbor night, lit from the upper-left so the sphere
+      // has real form. Darker than before (was #1d4e80→#0c2a49).
       const ocean = ctx.createRadialGradient(
-        cx - R * 0.35,
-        cy - R * 0.35,
-        R * 0.2,
+        cx - R * 0.4,
+        cy - R * 0.4,
+        R * 0.15,
         cx,
         cy,
-        R
+        R * 1.02
       );
-      // Harbor-navy sphere — reads as a deep, on-brand globe on the cream canvas.
-      ocean.addColorStop(0, "#1d4e80");
-      ocean.addColorStop(1, "#0c2a49");
+      ocean.addColorStop(0, "#123a63");
+      ocean.addColorStop(0.55, "#0a2543");
+      ocean.addColorStop(1, "#05101f");
       ctx.fillStyle = ocean;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, 0.25)`;
+      ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, 0.18)`;
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Countries (front hemisphere only) — landmasses in a lighter harbor tone
-      // that lifts toward the sky accent.
-      const base = [43, 88, 136];
+      // Countries (front hemisphere only) — muted teal-navy landmasses that
+      // only lift toward the sky accent near the lit edge.
+      const base = [34, 71, 112];
       for (const s of shapes) {
-        const k = 0.18 + 0.7 * s.t;
+        const k = 0.08 + 0.4 * s.t;
         ctx.fillStyle = `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(
           base[1] + (ag - base[1]) * k
         )}, ${Math.round(base[2] + (ab - base[2]) * k)})`;
@@ -377,6 +399,96 @@ export default function Globe({ controls }: Props) {
             ctx.fill();
           }
         }
+      }
+
+      // Network nodes — every hub the arcs can reach shows as a small node on
+      // the front face, so the sphere reads as a live network, not a texture.
+      for (let h = 0; h < hubVecs.length; h++) {
+        const p = project(hubVecs[h], R, cx, cy);
+        if (p.z <= 0.05) continue;
+        const dim = 0.35 + 0.55 * p.z;
+        ctx.fillStyle = HUBS[h].south
+          ? `rgba(${ar}, ${ag}, ${ab}, ${dim})`
+          : `rgba(150, 179, 214, ${0.5 * dim})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, HUBS[h].south ? 1.5 : 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Region chips — as a ping lands, float a stylish label off the hub with
+      // the region and the local stable it settles in. Fades over LABEL_MS.
+      labels = labels.filter((l) => now >= l.start && now - l.start < LABEL_MS);
+      // Newest last so it draws on top; cap the count to keep it calm.
+      const shownLabels = labels.slice(-3);
+      for (const l of shownLabels) {
+        const p = project(l.v, R, cx, cy);
+        if (p.z <= 0.08) continue;
+        const t = (now - l.start) / LABEL_MS;
+        // ease-out rise + fade at the tail
+        const rise = 1 - Math.pow(1 - Math.min(t * 3, 1), 2);
+        const alpha = t > 0.72 ? 1 - (t - 0.72) / 0.28 : 1;
+        if (alpha <= 0) continue;
+
+        const oy = -14 - 12 * rise; // lift above the node
+        const lx = p.x;
+        const ly = p.y + oy;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font =
+          "700 11px ui-sans-serif, system-ui, -apple-system, 'Manrope', sans-serif";
+        const title = l.hub.name;
+        const sub = `${l.hub.region} · ${l.hub.stat}`;
+        ctx.font =
+          "600 9.5px ui-sans-serif, system-ui, -apple-system, 'Manrope', sans-serif";
+        const subW = ctx.measureText(sub).width;
+        ctx.font =
+          "800 11px ui-sans-serif, system-ui, -apple-system, 'Manrope', sans-serif";
+        const titleW = ctx.measureText(title).width;
+        const padX = 9;
+        const w = Math.max(titleW, subW) + padX * 2;
+        const hgt = 30;
+        const bx = lx - w / 2;
+        const by = ly - hgt;
+
+        // connector line from node up to the chip
+        ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.5 * alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(lx, by + hgt);
+        ctx.stroke();
+
+        // frosted-dark chip
+        const r = 8;
+        ctx.beginPath();
+        ctx.moveTo(bx + r, by);
+        ctx.arcTo(bx + w, by, bx + w, by + hgt, r);
+        ctx.arcTo(bx + w, by + hgt, bx, by + hgt, r);
+        ctx.arcTo(bx, by + hgt, bx, by, r);
+        ctx.arcTo(bx, by, bx + w, by, r);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(6, 20, 38, 0.82)";
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.55 * alpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // accent dot + title + subtitle
+        ctx.fillStyle = `rgb(${ar}, ${ag}, ${ab})`;
+        ctx.beginPath();
+        ctx.arc(bx + padX + 2, by + 11, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.font =
+          "800 11px ui-sans-serif, system-ui, -apple-system, 'Manrope', sans-serif";
+        ctx.fillText(title, bx + padX + 8, by + 11);
+        ctx.fillStyle = "rgba(197, 216, 240, 0.9)";
+        ctx.font =
+          "600 9.5px ui-sans-serif, system-ui, -apple-system, 'Manrope', sans-serif";
+        ctx.fillText(sub, bx + padX, by + 22);
+        ctx.restore();
       }
     };
     raf = requestAnimationFrame(frame);
