@@ -24,15 +24,18 @@ export default function ReceivePage() {
   const address = smart.address as string | undefined;
 
   // The pay link doubles as the QR payload the Scan & Pay flow parses:
-  // alias for display, `to` for the real on-chain payout, `amount` to
-  // pre-fill — so paying it is a single tap.
+  // `name` for display, `to` for the real on-chain payout, `amount` to
+  // pre-fill — so paying it is a single tap. Built against the CURRENT origin
+  // (localhost in dev, the real domain in prod) so the link/QR actually opens
+  // the running app and routes into /pay, rather than a dead external URL.
   const link = useMemo(() => {
-    const base = `https://pesarc.money/pay/${ALIAS.replace("@", "")}`;
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "https://pesarc.money";
     const params = new URLSearchParams();
+    params.set("name", ALIAS);
     if (live && address) params.set("to", address);
     if (amount) params.set("amount", amount);
-    const qs = params.toString();
-    return qs ? `${base}?${qs}` : base;
+    return `${origin}/pay?${params.toString()}`;
   }, [live, address, amount]);
 
   // Generate a real, scannable QR for the payment target.
