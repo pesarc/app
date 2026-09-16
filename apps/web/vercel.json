@@ -3,7 +3,8 @@
   "crons": [
     {
       "path": "/api/cron/solve",
-      "schedule": "*/5 * * * *"
+      "//": "Daily to stay within the Hobby plan's cron limit; on Pro restore */5 * * * * for near-real-time solving. The route can also be driven on demand.",
+      "schedule": "0 6 * * *"
     }
   ]
 }
