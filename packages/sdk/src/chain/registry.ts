@@ -28,7 +28,9 @@ import {
 } from "viem/chains";
 
 // Circle's Arc — a stablecoin-native L1 where USDC is the gas token. Not in
-// viem/chains yet, so we define it. Testnet params from Arc's docs.
+// viem/chains yet, so we define it. Params from Arc's docs (docs.arc.io) and
+// Circle's USDC address book: on Arc, USDC is a native predeploy at
+// 0x3600000000000000000000000000000000000000 (same on testnet + mainnet).
 const arcTestnet: Chain = defineChain({
   id: 5042002,
   name: "Arc Testnet",
@@ -36,6 +38,17 @@ const arcTestnet: Chain = defineChain({
   rpcUrls: { default: { http: ["https://rpc.testnet.arc.io"] } },
   blockExplorers: { default: { name: "Arc Explorer", url: "https://explorer.testnet.arc.io" } },
   testnet: true,
+});
+
+// Arc mainnet (live since 2026-09-16). Chain id 5042; verify against
+// docs.arc.io before a production launch.
+const arcMainnet: Chain = defineChain({
+  id: 5042,
+  name: "Arc",
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.mainnet.arc.io"] } },
+  blockExplorers: { default: { name: "Arc Explorer", url: "https://explorer.arc.io" } },
+  testnet: false,
 });
 
 export type TokenSymbol = "NGN" | "KES" | "GHS" | "USD";
@@ -99,6 +112,23 @@ const CATALOG: CatalogEntry[] = [
       tokenKES: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_KES,
       tokenGHS: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_GHS,
       tokenUSD: process.env.NEXT_PUBLIC_ARC_TESTNET_TOKEN_USD,
+    },
+  },
+  {
+    // Arc mainnet — required for the Circle/Arc microgrant. USDC is the native
+    // gas token; TOKEN_USD defaults to the predeploy 0x3600…0000.
+    key: "arc", label: "Arc", chain: arcMainnet, testnet: false,
+    raw: {
+      rpc: process.env.NEXT_PUBLIC_ARC_RPC_URL,
+      predictionMarket: process.env.NEXT_PUBLIC_ARC_PREDICTION_MARKET,
+      realizedOracle: process.env.NEXT_PUBLIC_ARC_REALIZED_ORACLE,
+      intentMatcher: process.env.NEXT_PUBLIC_ARC_INTENT_MATCHER,
+      agentSessionKeys: process.env.NEXT_PUBLIC_ARC_AGENT_SESSION_KEYS,
+      agentKey: process.env.NEXT_PUBLIC_ARC_AGENT_KEY,
+      tokenNGN: process.env.NEXT_PUBLIC_ARC_TOKEN_NGN,
+      tokenKES: process.env.NEXT_PUBLIC_ARC_TOKEN_KES,
+      tokenGHS: process.env.NEXT_PUBLIC_ARC_TOKEN_GHS,
+      tokenUSD: process.env.NEXT_PUBLIC_ARC_TOKEN_USD,
     },
   },
   {

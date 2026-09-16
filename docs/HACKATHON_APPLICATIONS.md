@@ -75,13 +75,19 @@ off-ramp on an Arbitrum-first path.
   switches chains in-session — deploying to Arc is a config + deploy step.
 
 ### Path to eligibility (Arc mainnet)
-1. Add Arc **mainnet** to the chain registry (chain id, RPC, USDC address).
-2. Fund operator `0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1` with **USDC on Arc
+1. ✅ Arc **mainnet** is in the chain registry (chain id `5042`, RPC
+   `rpc.mainnet.arc.io`, native USDC predeploy `0x3600…0000`).
+2. ✅ Deploy script `contracts/evm/script/DeployArc.s.sol` is written and
+   **validated on Arc testnet** (chain `5042002`) — PredictionMarket
+   `0xe9f109…558B`, 2 markets seeded, ~0.35 USDC gas.
+3. Fund deployer `0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1` with **USDC on Arc
    mainnet** (gas). ← needs you.
-3. `forge script` deploy PredictionMarket + IntentMatcher + oracle to Arc
-   mainnet; record addresses in `.env` / `docs/ARC_SUBMISSION.md`.
-4. Point the app's Arc entry at mainnet, redeploy the Vercel preview, capture
-   the live URL + on-chain tx as the submission's "live deployment link".
+4. Run the same script against mainnet:
+   `PRIVATE_KEY=… forge script script/DeployArc.s.sol --rpc-url arc --broadcast --slow`
+   (ENV_PREFIX defaults to `ARC`), then paste the printed `NEXT_PUBLIC_ARC_*`
+   lines into `.env` and `docs/ARC_SUBMISSION.md`.
+5. Redeploy the Vercel preview; capture the live URL + the Arc mainnet
+   PredictionMarket tx as the submission's "live deployment link".
 
 Deadline: **Oct 14 2026** (decisions ~Oct 21). Plenty of runway once the wallet
 is funded.
@@ -95,5 +101,5 @@ is funded.
 | Arbitrum Sepolia | `0x088c60c5C1AC2f519497B36CFA72326e2c4b9904` | Live |
 | Base Sepolia | `0xD6f0f1C8DC2AeD9Fc2886fed19eAfC34f699062E` | Live |
 | Solana devnet | `2aMC2CKjqwxmLrS6dv98c6pVYEKogRXxEuz3NZpzv8CZ` | Live |
-| Arc **mainnet** | ⟨pending — required for the microgrant⟩ | Not deployed |
-| Arc testnet (`5042002`) | ⟨not deployed; testnet doesn't qualify⟩ | — |
+| Arc **mainnet** (`5042`) | ⟨pending — required for the microgrant⟩ | `DeployArc.s.sol` ready; needs USDC-funded deployer on Arc mainnet |
+| Arc testnet (`5042002`) | `0xe9f109b826de37A6481eAfC60985B5b36763558B` | Live (validates the deploy); testnet doesn't qualify |
