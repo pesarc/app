@@ -1,0 +1,29 @@
+# Podman Quadlet unit — self-hosted Postgres for Pesarc.
+# Install to /etc/containers/systemd/pesarc-db.container on the droplet, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-db
+#
+# Server config (POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB) is read from
+# /etc/pesarc/db.env — keep it root-only (chmod 600). The app reaches this by
+# the container name `pesarc-db` over the shared pesarc.network; that name
+# resolves only when the ufw rule in DEPLOY.md ("Firewall") is in place.
+
+[Unit]
+Description=Pesarc Postgres
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=pesarc-db
+Network=pesarc.network
+# Make `pesarc-db` resolvable to other containers via aardvark-dns.
+PodmanArgs=--network-alias pesarc-db
+Volume=pesarc-db-data:/var/lib/postgresql/data
+EnvironmentFile=/etc/pesarc/db.env
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

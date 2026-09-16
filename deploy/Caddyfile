@@ -1,8 +1,19 @@
 # Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
-# Point your domain's A record at the droplet's public IP first, then replace
-# app.example.com below. Install to /etc/caddy/Caddyfile and `systemctl reload caddy`.
+# Install to /etc/caddy/Caddyfile and `systemctl reload caddy`.
+#
+# Canonical host is app.pesarc.xyz; the apex and www redirect to it. Point all
+# three A records at the droplet's public IP first — Caddy issues a cert per
+# host on demand, so a host with no DNS just retries until its record exists.
 
-app.example.com {
+app.pesarc.xyz {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
+}
+
+pesarc.xyz {
+	redir https://app.pesarc.xyz{uri} permanent
+}
+
+www.pesarc.xyz {
+	redir https://app.pesarc.xyz{uri} permanent
 }
