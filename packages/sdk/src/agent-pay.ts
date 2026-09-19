@@ -7,12 +7,13 @@
 // forge tests: pay meters, cap-exceeded reverts, execute can't bypass it).
 //
 // Requires the agent key (AGENT_PK / CELO_AGENT_PK) and, on the owner side, an
-// ERC-20 approval to the AgentSessionKeys contract. Testnet only.
+// ERC-20 approval to the AgentSessionKeys contract.
 
-import { createWalletClient, http, parseUnits, type Hex } from "viem";
+import { createWalletClient, encodeFunctionData, http, parseUnits, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentSessionKeysAbi } from "@pesarc/abi";
 import { activeChain, publicClientFor, explorerTxUrl } from "./chain/registry";
+import { withTag } from "./celo/attribution";
 
 export type AgentPayResult = { txHash: string; explorerUrl: string; remaining: number };
 
@@ -42,11 +43,22 @@ export async function agentSessionPay(
   const account = privateKeyToAccount(key);
   const wallet = createWalletClient({ account, chain: chain.chain, transport: http(chain.rpcUrl) });
 
-  const txHash = await wallet.writeContract({
-    address: chain.agentSessionKeys,
+  // ERC-8021 attribution. The hackathon leaderboards only count transactions
+  // carrying the assigned tag, and the tag lives in the calldata — it cannot be
+  // backfilled after the transaction is sent. viem's writeContract has no
+  // data-suffix option, so encode the call, append the tag, and send it raw
+  // (same shape as celo/solver.ts#sendTagged). Non-Celo chains send untagged:
+  // the suffix is meaningless off Celo, and trailing calldata is ignored by the
+  // ABI decoder anyway.
+  const onCelo = chain.key === "celo" || chain.key === "celo-sepolia";
+  const data = encodeFunctionData({
     abi: agentSessionKeysAbi,
     functionName: "pay",
     args: [to, parseUnits(String(amount), decimals)],
+  });
+  const txHash = await wallet.sendTransaction({
+    to: chain.agentSessionKeys,
+    data: onCelo ? withTag(data) : data,
   });
 
   // Read back the remaining allowance (the on-chain source of truth).
