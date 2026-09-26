@@ -524,7 +524,11 @@ function AmountStep({
               </span>
               <span className="font-semibold text-slate">
                 {(quote.feePct * 100).toFixed(2)}% fee
-                {quote.live && <span className="ml-1 text-sky-deep font-bold">· live rate</span>}
+                {quote.live ? (
+                  <span className="ml-1 text-sky-deep font-bold">· live rate</span>
+                ) : (
+                  <span className="ml-1 text-slate/70 font-medium">· indicative</span>
+                )}
               </span>
             </div>
           )}

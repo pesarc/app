@@ -7,8 +7,10 @@ import {
   markPaid,
   signPayment,
   buildRedirect,
+  publicPayment,
 } from "@pesarc/sdk/payments";
 import { signingSecretFor } from "@pesarc/sdk/apiKeys";
+import { deliverWebhook } from "@pesarc/sdk/webhooks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +71,18 @@ export async function POST(
   const secret = await signingSecretFor(payment.account, payment.apiKeyId);
   const signature = secret ? signPayment(secret, payment) : "";
   const redirectUrl = buildRedirect(payment, signature);
+
+  // Notify the merchant's webhook, if any. Best-effort and time-boxed so it
+  // never delays the customer's redirect; the signed redirect + a GET on the
+  // payment remain the reliable signals.
+  if (secret && payment.webhookUrl && existing.status === "pending") {
+    const origin = new URL(request.url).origin;
+    deliverWebhook(payment.webhookUrl, secret, {
+      type: "payment.succeeded",
+      created: Math.floor(Date.now() / 1000),
+      data: publicPayment(payment, origin),
+    }).catch(() => {});
+  }
 
   return NextResponse.json({
     ok: true,

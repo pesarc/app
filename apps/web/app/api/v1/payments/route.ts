@@ -14,6 +14,7 @@ const createSchema = z.object({
   merchant_name: z.string().trim().max(80).optional(),
   description: z.string().trim().max(300).optional(),
   redirect_url: z.string().trim().url().max(2000),
+  webhook_url: z.string().trim().url().max(2000).optional(),
   payout_address: z
     .string()
     .trim()
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
     merchantName: d.merchant_name,
     description: d.description,
     redirectUrl: d.redirect_url,
+    webhookUrl: d.webhook_url,
     payoutAddress: d.payout_address,
     metadata: d.metadata,
     ttlMinutes: d.ttl_minutes,

@@ -25,6 +25,8 @@ export type PaymentRow = {
   merchantName: string;
   description?: string;
   redirectUrl: string;
+  /** Optional server-to-server webhook URL, notified when the payment succeeds. */
+  webhookUrl?: string;
   /** Optional on-chain payout address for a real settlement in live mode. */
   payoutAddress?: string;
   metadata?: Record<string, unknown>;
@@ -45,6 +47,7 @@ export type CreatePaymentInput = {
   merchantName?: string;
   description?: string;
   redirectUrl: string;
+  webhookUrl?: string;
   payoutAddress?: string;
   metadata?: Record<string, unknown>;
   /** Session lifetime in minutes (default 30). */
@@ -67,6 +70,7 @@ function ensureSchema(sql: Sql): Promise<void> {
       merchant_name  text NOT NULL DEFAULT 'A Pesarc merchant',
       description    text,
       redirect_url   text NOT NULL,
+      webhook_url    text,
       payout_address text,
       metadata       jsonb,
       status         text NOT NULL DEFAULT 'pending',
@@ -76,11 +80,13 @@ function ensureSchema(sql: Sql): Promise<void> {
       paid_at        timestamptz,
       expires_at     timestamptz NOT NULL
     )
-  `.then(() =>
-    sql`CREATE INDEX IF NOT EXISTS payment_sessions_account_idx ON payment_sessions (account, created_at DESC)`.then(
-      () => undefined,
-    ),
-  );
+  `
+    .then(() => sql`ALTER TABLE payment_sessions ADD COLUMN IF NOT EXISTS webhook_url text`)
+    .then(
+      () =>
+        sql`CREATE INDEX IF NOT EXISTS payment_sessions_account_idx ON payment_sessions (account, created_at DESC)`,
+    )
+    .then(() => undefined);
   return schemaReady;
 }
 
@@ -96,6 +102,7 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentR
     merchantName: input.merchantName?.trim() || "A Pesarc merchant",
     description: input.description?.trim() || undefined,
     redirectUrl: input.redirectUrl,
+    webhookUrl: input.webhookUrl,
     payoutAddress: input.payoutAddress,
     metadata: input.metadata,
     status: "pending",
@@ -110,12 +117,12 @@ export async function createPayment(input: CreatePaymentInput): Promise<PaymentR
       await sql`
         INSERT INTO payment_sessions
           (id, account, api_key_id, amount, currency, reference, merchant_name,
-           description, redirect_url, payout_address, metadata, status,
+           description, redirect_url, webhook_url, payout_address, metadata, status,
            created_at, expires_at)
         VALUES
           (${row.id}, ${row.account}, ${row.apiKeyId}, ${row.amount}, ${row.currency},
            ${row.reference}, ${row.merchantName}, ${row.description ?? null},
-           ${row.redirectUrl}, ${row.payoutAddress ?? null},
+           ${row.redirectUrl}, ${row.webhookUrl ?? null}, ${row.payoutAddress ?? null},
            ${row.metadata ? sql.json(row.metadata as any) : null}, ${row.status},
            ${row.createdAt}, ${row.expiresAt})
       `;
@@ -213,6 +220,7 @@ export function publicPayment(p: PaymentRow, origin: string) {
     merchant_name: p.merchantName,
     description: p.description ?? null,
     redirect_url: p.redirectUrl,
+    webhook_url: p.webhookUrl ?? null,
     checkout_url: `${origin}/checkout?session=${p.id}`,
     payout_address: p.payoutAddress ?? null,
     metadata: p.metadata ?? {},
@@ -281,6 +289,7 @@ function mapRow(r: any): PaymentRow {
     merchantName: r.merchant_name,
     description: r.description ?? undefined,
     redirectUrl: r.redirect_url,
+    webhookUrl: r.webhook_url ?? undefined,
     payoutAddress: r.payout_address ?? undefined,
     metadata: r.metadata ?? undefined,
     status: r.status,
