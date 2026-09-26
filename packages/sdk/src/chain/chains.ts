@@ -10,17 +10,46 @@
 import { arbitrumSepolia, sepolia } from "viem/chains";
 import { createPublicClient, http, type Chain } from "viem";
 
-export const SUPPORTED_CHAINS = { arbitrumSepolia, sepolia } as const;
+// Arc mainnet — Circle's stablecoin L1 where USDC is the gas token. Not in
+// viem/chains yet, so defined here. RPC + explorer are env-overridable so the
+// exact endpoints can be corrected without a code change.
+export const ARC_MAINNET_ID = 5042 as const;
+export const arcMainnet: Chain = {
+  id: ARC_MAINNET_ID,
+  name: "Arc",
+  nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_ARC_RPC_URL || "https://rpc.mainnet.arc.io"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arc Explorer",
+      url: process.env.NEXT_PUBLIC_ARC_EXPLORER_URL || "https://explorer.arc.io",
+    },
+  },
+};
 
-export type HubChainId = 421614 | 11155111;
+export const SUPPORTED_CHAINS = { arbitrumSepolia, sepolia, arcMainnet } as const;
 
-// Default hub: Arbitrum Sepolia (override via env while contracts live on Sepolia).
+export type HubChainId = 421614 | 11155111 | 5042;
+
+// Default hub: Arbitrum Sepolia. Set NEXT_PUBLIC_HUB_CHAIN_ID=5042 to run on Arc
+// mainnet (once the hub contracts are deployed there — see docs/ARC_SUBMISSION.md).
 export const HUB_CHAIN_ID: HubChainId = Number(
   process.env.NEXT_PUBLIC_HUB_CHAIN_ID || arbitrumSepolia.id
 ) as HubChainId;
 
+/** True when the hub is running on Arc mainnet. */
+export const IS_ARC = HUB_CHAIN_ID === ARC_MAINNET_ID;
+
 export const HUB_CHAIN: Chain =
-  HUB_CHAIN_ID === sepolia.id ? sepolia : arbitrumSepolia;
+  HUB_CHAIN_ID === sepolia.id
+    ? sepolia
+    : HUB_CHAIN_ID === ARC_MAINNET_ID
+      ? arcMainnet
+      : arbitrumSepolia;
 
 /** RPC URL for the hub chain (falls back to the chain's public RPC). */
 export function hubRpcUrl(): string | undefined {
@@ -49,6 +78,7 @@ export function logsRpcUrl(): string {
   if (process.env.NEXT_PUBLIC_LOGS_RPC_URL) {
     return process.env.NEXT_PUBLIC_LOGS_RPC_URL;
   }
+  if (IS_ARC) return hubRpcUrl() ?? arcMainnet.rpcUrls.default.http[0];
   return HUB_CHAIN_ID === sepolia.id
     ? "https://ethereum-sepolia-rpc.publicnode.com"
     : "https://sepolia-rollup.arbitrum.io/rpc";
@@ -62,22 +92,25 @@ export function getLogsClient() {
   });
 }
 
+function explorerBase(): string {
+  if (IS_ARC) return arcMainnet.blockExplorers!.default.url.replace(/\/$/, "");
+  return HUB_CHAIN_ID === sepolia.id
+    ? "https://sepolia.etherscan.io"
+    : "https://sepolia.arbiscan.io";
+}
+
 export function explorerTxUrl(txHash: string): string {
-  const base =
-    HUB_CHAIN_ID === sepolia.id
-      ? "https://sepolia.etherscan.io/tx/"
-      : "https://sepolia.arbiscan.io/tx/";
-  return base + txHash;
+  return `${explorerBase()}/tx/${txHash}`;
 }
 
 export function explorerAddressUrl(address: string): string {
-  const base =
-    HUB_CHAIN_ID === sepolia.id
-      ? "https://sepolia.etherscan.io/address/"
-      : "https://sepolia.arbiscan.io/address/";
-  return base + address;
+  return `${explorerBase()}/address/${address}`;
 }
 
 export function chainLabel(): string {
-  return HUB_CHAIN_ID === sepolia.id ? "Sepolia" : "Arbitrum Sepolia";
+  return HUB_CHAIN_ID === sepolia.id
+    ? "Sepolia"
+    : IS_ARC
+      ? "Arc"
+      : "Arbitrum Sepolia";
 }
