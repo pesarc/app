@@ -95,17 +95,31 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Floating widgets: corridor + live agent preview */}
+        {/*
+          Floating widgets. On phones/tablets they are a horizontal, snapping
+          card carousel that bleeds to the screen edge (a compact proof strip,
+          not two giant stacked blocks). On desktop they return to a floating
+          vertical stack pinned bottom-right.
+        */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.5 }}
-          className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-4 mt-14 lg:mt-0 pointer-events-auto"
+          className="z-20 mt-14 flex gap-4 -mx-6 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pointer-events-auto
+                     lg:absolute lg:bottom-10 lg:right-12 lg:mt-0 lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-col lg:items-end"
         >
-          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}>
+          <motion.div
+            className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
+            animate={{ y: [0, -7, 0] }}
+            transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
+          >
             <CorridorPreview />
           </motion.div>
-          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut", delay: 1.4 }}>
+          <motion.div
+            className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
+            animate={{ y: [0, -7, 0] }}
+            transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut", delay: 1.4 }}
+          >
             <AgentPreview />
           </motion.div>
         </motion.div>
