@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, AlertCircle } from "lucide-react";
+import { Select } from "@/components/app/ui";
 
 export type BankDestination = {
   bankCode: string;
@@ -94,18 +95,14 @@ export default function BankDetails({
         <label className="block text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">
           Bank
         </label>
-        <select
-          value={bankCode}
-          onChange={(e) => setBankCode(e.target.value)}
-          className="w-full rounded-[14px] border border-fog bg-white px-3.5 py-3 text-[15px] font-semibold text-harbor outline-none focus:border-sky"
-        >
+        <Select value={bankCode} onChange={(e) => setBankCode(e.target.value)}>
           <option value="">Select bank</option>
           {banks.map((b) => (
             <option key={b.code} value={b.code}>
               {b.name}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div>

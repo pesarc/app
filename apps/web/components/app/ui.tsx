@@ -70,6 +70,40 @@ export function Card({
   );
 }
 
+/* ---------------- Select (styled native dropdown) ---------------- */
+
+type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
+
+export function Select({ className, children, ...props }: SelectProps) {
+  // className styles the wrapper (layout: margins/width); the select keeps its
+  // own consistent look.
+  return (
+    <div className={cx("relative", className)}>
+      <select
+        className={cx(
+          "w-full appearance-none rounded-xl border border-fog bg-snow px-3 py-2.5 pr-9",
+          "text-sm font-semibold text-ink cursor-pointer transition-colors",
+          "hover:border-slate/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 focus:border-sky/60",
+          "disabled:opacity-60 disabled:cursor-not-allowed"
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate"
+      >
+        <path d="M6 8l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
 /* ---------------- Segmented toggle (Basic / Advanced etc.) ---------------- */
 
 type SegmentedProps<T extends string> = {

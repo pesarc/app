@@ -18,7 +18,7 @@ import {
   RefreshCw,
   Shuffle,
 } from "lucide-react";
-import { Button, Card } from "@/components/app/ui";
+import { Button, Card, Select } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
@@ -286,11 +286,11 @@ export default function SettleFlow() {
               <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
                 Owed to
               </label>
-              <select
+              <Select
                 value={creditor}
                 onChange={(e) => setCreditor(e.target.value)}
                 aria-label="Creditor"
-                className="w-full bg-snow rounded-field border border-fog px-3.5 py-2.5 text-sm text-ink mb-3 focus:outline-none focus:border-sky/50"
+                className="mb-3"
               >
                 <option value="">Select member…</option>
                 {otherMembers.map((m) => (
@@ -299,7 +299,7 @@ export default function SettleFlow() {
                     {m.isOperator ? " (operator)" : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
               <div className="flex gap-2 mb-3">
                 <input
                   value={amountStr}

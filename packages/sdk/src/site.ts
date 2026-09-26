@@ -33,6 +33,7 @@ export const site = {
   appNav: [
     { label: "Home", href: "/home" },
     { label: "Send", href: "/send" },
+    { label: "Bridge", href: "/bridge" },
     { label: "Pay", href: "/pay" },
     { label: "Markets", href: "/markets" },
     { label: "Local", href: "/corridor" },
