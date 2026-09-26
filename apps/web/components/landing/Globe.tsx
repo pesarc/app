@@ -174,6 +174,7 @@ export default function Globe({ controls }: Props) {
     let rotation = -6 * DEG; // matches the old initial point of view
     let dragging = false;
     let lastX = 0;
+    let lastY = 0;
     let dragVel = 0;
     let visible = true;
     let W = 0;
@@ -184,7 +185,7 @@ export default function Globe({ controls }: Props) {
     let lastCx = 0;
     let lastCy = 0;
 
-    const TILT = -14 * DEG; // view latitude, like the old pointOfView lat:14
+    let tilt = -14 * DEG; // view latitude (pointOfView lat:14); drag adjusts it
 
     const resize = () => {
       const el = canvas.parentElement!;
@@ -235,8 +236,8 @@ export default function Globe({ controls }: Props) {
       const sr = Math.sin(rotation);
       const x1 = v[0] * cr + v[2] * sr;
       const z1 = -v[0] * sr + v[2] * cr;
-      const ct = Math.cos(TILT);
-      const st = Math.sin(TILT);
+      const ct = Math.cos(tilt);
+      const st = Math.sin(tilt);
       const y2 = v[1] * ct - z1 * st;
       const z2 = v[1] * st + z1 * ct;
       return { x: cx - x1 * R, y: cy - y2 * R, z: z2 };
@@ -604,6 +605,7 @@ export default function Globe({ controls }: Props) {
     const down = (e: PointerEvent) => {
       dragging = true;
       lastX = e.clientX;
+      lastY = e.clientY;
       clearHover();
       canvas.setPointerCapture(e.pointerId);
     };
@@ -613,9 +615,13 @@ export default function Globe({ controls }: Props) {
       const py = e.clientY - rect.top;
       if (dragging) {
         const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
         lastX = e.clientX;
-        // Content follows the pointer (screen x decreases as rotation grows).
+        lastY = e.clientY;
+        // Horizontal drag spins (Y axis); vertical drag tilts (X axis), clamped
+        // shy of the poles so the globe never flips.
         rotation -= dx * 0.005;
+        tilt = Math.max(-1.2, Math.min(1.2, tilt + dy * 0.005));
         dragVel = -dx * 0.0015;
         return;
       }
