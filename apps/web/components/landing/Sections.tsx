@@ -71,7 +71,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
 // full-width accent stat strip underneath. Below lg it collapses to a single
 // readable column. Kept in one place so the grid stays easy to reason about.
 const BENTO_POS = [
-  "lg:col-start-1 lg:row-start-1 lg:row-span-2", // flagship (Send)
+  "sm:col-span-2 lg:col-span-1 lg:col-start-1 lg:row-start-1 lg:row-span-2", // flagship (Send)
   "lg:col-start-2 lg:row-start-1",               // agent
   "lg:col-start-3 lg:row-start-1",               // bills
   "lg:col-start-2 lg:row-start-2",               // earn
@@ -153,7 +153,7 @@ export function Features() {
   return (
     <section
       id="features"
-      className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
+      className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28"
       style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.72)" }}
     >
       <div className="max-w-2xl">
@@ -169,7 +169,7 @@ export function Features() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-fr">
+      <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-fr">
         <BentoCard feature={flagship} large className={BENTO_POS[0]} index={0} />
         {rest.slice(0, 4).map((f, i) => (
           <BentoCard key={f.title} feature={f} className={BENTO_POS[i + 1]} index={i + 1} />
@@ -236,7 +236,7 @@ export function NetworksBanks() {
   return (
     <section
       id="networks"
-      className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
+      className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28"
       style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(7,42,77,0.72)" }}
     >
       <div className="max-w-2xl">
@@ -251,7 +251,7 @@ export function NetworksBanks() {
         </p>
       </div>
 
-      <div className="mt-12 grid lg:grid-cols-2 gap-4">
+      <div className="mt-14 grid lg:grid-cols-2 gap-5">
         <div className="rounded-2xl p-6 backdrop-blur-md" style={cardStyle}>
           <p className="text-xs font-medium uppercase tracking-widest text-white/40">Networks</p>
           <div className="mt-5 flex flex-wrap gap-2.5">
