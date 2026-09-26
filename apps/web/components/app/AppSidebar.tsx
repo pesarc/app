@@ -15,6 +15,7 @@ import {
   Plus,
   LineChart,
   Code2,
+  Receipt,
   Settings2,
 } from "lucide-react";
 import { site } from "@pesarc/sdk/site";
@@ -47,6 +48,7 @@ const MAIN: Item[] = [
 const MONEY: Item[] = [
   { label: "Invest", href: "/invest", icon: LineChart },
   { label: "Earn", href: "/earn", icon: Sprout },
+  { label: "Bills", href: "/bills", icon: Receipt },
   { label: "Pay", href: "/pay", icon: QrCode },
   { label: "Receive", href: "/receive", icon: ArrowDownLeft },
   { label: "Add money", href: "/add", icon: Plus },

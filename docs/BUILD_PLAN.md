@@ -28,8 +28,10 @@ present.
   fields), `POST /api/checkout/:id/complete` (mark paid, return signed redirect).
 - [x] **Developers dashboard.** `/developers` page: create / reveal-once / revoke
   keys, live API docs + curl, a test-payment-link builder. Business persona only.
-- [ ] **Merchant webhooks.** POST `payment.succeeded` to a merchant URL with the
-  `whsec_` signature + retries (redirect covers the happy path first).
+- [x] **Merchant webhooks.** POST `payment.succeeded` to a merchant `webhook_url`
+  with the `whsec_` signature (`X-Pesarc-Signature: t,v1`) + retries
+  (`sdk/webhooks.ts`); fires once on pending->paid, never blocks the redirect.
+  Verify snippet in the dashboard.
 - [ ] **SDK snippet + docs page** (`/developers/docs`) with Node/curl quickstart.
 
 ## Phase 2 — Finish the partial
@@ -41,12 +43,14 @@ present.
 
 ## Phase 3 — De-mock the money features
 
-- [ ] **Send FX pricing real by default.** Make the live pool quote the primary
-  path when contracts are ready; keep the mock only as an explicit offline
-  fallback, and label it. (`sdk/quote.ts` + `sdk/chain/liveQuote.ts`.)
-- [ ] **Earn / LP real.** Replace the static pool list in `sdk/earn.ts` with
-  on-chain pool reads (TVL, fee APY) from the hub Singleton; deposits/withdrawals
-  through the real pool. Retail-balance red line stays (no yield on held funds).
+- [x] **Send FX pricing real by default.** Live pool quote stays primary; when it
+  is unavailable the UI labels the number "indicative" (locked at settlement)
+  instead of showing the mock as final, and `QuoteBreakdown` shows a source badge.
+  (`sdk/quote.ts` + `sdk/chain/liveQuote.ts`.)
+- [~] **Earn / LP real.** The live USD<->NGN hub corridor now reads real TVL
+  on-chain (`sdk/chain/livePool.ts`, v4 PoolManager balances + oracle mid); Earn
+  tags corridors Live vs Soon. Still TODO: real on-chain deposits/withdrawals
+  through the pool and live fee-APY (retail-balance red line stays).
 - [!] **On-chain African stocks real.** Wire `sdk/broker.ts` to a real tokenized-
   equity venue (or a licensed broker API via `BROKER_API_URL`). Needs a venue /
   broker account + market-data feed. Until then: mark the catalog clearly as a
@@ -57,10 +61,12 @@ present.
 
 ## Phase 4 — Build the absent
 
-- [ ] **Bills: Airtime / Data / Electricity.** Beautiful in-app flow + agent
-  intent ("buy 1GB", "pay PHCN 5k"). Adapter seam like `ramp.ts`; provider
-  (Reloadly / VTpass / Flutterwave Bills) behind it. `[!]` on the provider key,
-  but build the UI + adapter + agent intent now with a simulated provider.
+- [~] **Bills: Airtime / Data / Electricity.** In-app flow shipped (`/bills`,
+  `BillsFlow.tsx`) + adapter seam (`sdk/bills.ts`, simulated sandbox default, real
+  provider env-gated via `BILLS_PROVIDER_URL`) + `/api/bills` (Nigeria-first
+  operators, data plans, prepaid electricity token). Still TODO: agent intent
+  ("buy 1GB", "pay PHCN 5k") and `[!]` wiring a real provider (Reloadly / VTpass /
+  Flutterwave Bills).
 - [ ] **USSD payment support.** Session state machine + an aggregator webhook
   (`/api/ussd`). `[!]` on a USSD gateway (Africa's Talking / a telco shortcode);
   build the menu engine + `/api/ussd` handler against the AT simulator first.
