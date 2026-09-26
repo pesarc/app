@@ -119,8 +119,13 @@ present.
   unconfigured, graceful shutdown. Quadlet unit `deploy/pesarc-worker.container`
   supersedes `pesarc-solve.service`/`.timer`. Verified: idle + configured ticks +
   error handling + SIGTERM.
-- [ ] **Public API rate limits + usage metering** backed by the store (today's
-  limiter is per-instance memory).
+- [x] **Public API rate limits + usage metering** backed by the store.
+  `sdk/api/rate-limit-store.ts`: a Postgres fixed-window limiter (shared across
+  instances, per API key) that FAILS OPEN behind the in-memory floor, plus a
+  daily usage meter. Wired into `/api/v1/*` (keyed by api key id); `/api/usage`
+  and the Developers dashboard show "requests today". Verified against a real
+  Postgres: the shared bucket increments per call and the fixed window returns
+  429 past the limit.
 
 ## External dependencies to provision (unblock the `[!]` items)
 
