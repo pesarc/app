@@ -88,7 +88,7 @@ export function LiveSmartWalletProvider({
   // whichever chain the user has selected.
   const { chain: activeEvm } = useActiveEvmChain();
 
-  const sponsor = getGasSponsor(activeEvm.key);
+  const sponsor = getGasSponsor(activeEvm.key, activeEvm.chain.id);
 
   // Alchemy path (testnets): the client is built synchronously.
   const alchemyClient = useMemo(() => {
@@ -122,6 +122,7 @@ export function LiveSmartWalletProvider({
       chain: activeEvm.chain,
       bundlerUrl: sponsor.bundlerUrl,
       paymasterUrl: sponsor.paymasterUrl,
+      paymasterContext: sponsor.context,
     })
       .then((c) => active && setErc7677Client(c))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));

@@ -139,11 +139,13 @@ present.
   The erc7677 wallet client is WIRED to Circle's Arc guide
   (`sdk/wallet/erc7677Client.ts`: SimpleAccount via permissionless + canonical
   EntryPoint v0.7 + viem bundler/ERC-7677 paymaster; built async in
-  `smart-wallet.tsx`, activates only with a bundler URL). Bundler = Pimlico
-  (`api.pimlico.io/v2/<chainId>/rpc`). Verified viem's real paymaster client
-  round-trips against `/api/paymaster`, and SimpleAccount + bundler client
-  construction wire up. The VerifyingPaymaster is ERC-7562 compliant (view
-  validation, no nonReentrant). Multi-VM gasless mapped:
+  `smart-wallet.tsx`, activates only with a bundler URL). Bundler + paymaster =
+  Pimlico (one `NEXT_PUBLIC_PIMLICO_API_KEY` builds both). **VERIFIED gasless END
+  TO END on Arc testnet**: a SimpleAccount UserOp was submitted, sponsored by
+  Pimlico (no policy on testnet), deployed the account, and confirmed on-chain
+  (success). Mainnet adds a funded Pimlico policy / Circle Paymaster / the
+  in-house paymaster (verified vs viem's client; VerifyingPaymaster is ERC-7562
+  compliant, view validation, no nonReentrant). Multi-VM gasless mapped:
   EVM=paymaster (seam), Solana=fee-payer relayer (already in-house,
   `/api/svm/sponsor`), Algorand=fee-pooling (in-house, when native flows land).
   Still TODO / `[!]`: an Arc bundler URL + funded paymaster to integration-test the
