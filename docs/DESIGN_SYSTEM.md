@@ -4,14 +4,16 @@ The landing (pesarc.xyz) uses the **coin-compass** look: a deep forest-green
 surface with a lime-chartreuse accent, on a soft sage page. Calm, premium,
 fintech, not "crypto". **Never use the em dash (—) in any copy** (CLAUDE.md rule).
 
-## Palette
+## Palette (Pesarc logo family: navy + blue)
+The coin-compass STRUCTURE (pills, glass cards, section rhythm, radii) with the
+Pesarc LOGO colors: a deep navy surface and the logo blue as the accent. Not
+green/lime anymore.
 | Token | Value | Use |
 |---|---|---|
-| Page bg | `#e3e8dc` | the sage frame behind the rounded app surface |
-| Surface | `linear-gradient(160deg,#0a2a12 0%,#0d3617 45%,#0a2a12 100%)` | main dark-green panel |
-| Surface solid | `#0a2a12` / `#0d3617` | flat green fills |
-| **Accent (lime)** | `#c8f542` | CTAs, highlights, icons, heading accent spans |
-| Accent text-on-lime | `#12300f` | text/icons sitting on a lime button |
+| Surface | `linear-gradient(160deg,#041a33 0%,#072a4d 45%,#041a33 100%)` | main deep-navy panel |
+| Surface solid | `#041a33` / `#072a4d` | flat navy fills; section bgs are `rgba(4,26,51,0.72)` / `rgba(7,42,77,0.72)` |
+| **Accent (blue)** | `#3AA0FF` | CTAs, highlights, icons, heading accent spans, globe pings (= logo blue) |
+| Accent text-on-blue | `#04294d` | text/icons sitting on a blue button |
 | Text | `#ffffff`, then `white/80 /60 /55 /50 /40` | body + muted |
 | Glass card | bg `rgba(255,255,255,0.09)`, border `rgba(255,255,255,0.14)`, shadow `0 20px 40px -12px rgba(0,0,0,0.3)` | floating cards |
 | Lime chip | bg `rgba(200,245,66,0.06)`, border `rgba(200,245,66,0.35)` | eyebrow pills |
@@ -29,6 +31,16 @@ fintech, not "crypto". **Never use the em dash (—) in any copy** (CLAUDE.md ru
 - Glass cards use `backdrop-blur-md`. Hover: `-translate-y-1.5`, `scale-[1.03]`.
 - Diagonal hatch overlay: `repeating-linear-gradient(115deg,rgba(255,255,255,0.025) 0,rgba(255,255,255,0.025) 1px,transparent 1px,transparent 56px)`.
 - Icons: Iconify **solar** linear set, `stroke-width:1.5`.
+
+## Buttons, nav, icons (landing/ui.tsx)
+Reusable primitives in `apps/web/components/landing/ui.tsx`:
+- `AccentButton` — blue pill CTA; `badge` wraps the icon in a translucent circle
+  (the coin-compass primary-CTA look), else the icon sits inline.
+- `NavPill` — pill nav link with a leading icon; active = solid white, inactive =
+  outlined ghost.
+- `GhostPill` — outlined blue-tinted pill (eyebrows / secondary).
+- Icons are thin-line lucide (the solar-linear equivalent); swap to `@iconify`
+  solar icons if exact parity is needed. Everything is `rounded-full`.
 
 ## Section rhythm (repeat)
 1. Eyebrow pill (lime chip: icon + short label).

@@ -47,22 +47,22 @@ export default function Waitlist() {
     >
       <div
         className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[620px] h-[320px] rounded-full"
-        style={{ background: "rgba(200,245,66,0.10)", filter: "blur(120px)" }}
+        style={{ background: "rgba(58,160,255,0.10)", filter: "blur(120px)" }}
       />
 
       <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
         <div
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-6 text-white/90"
-          style={{ border: "1px solid rgba(200,245,66,0.35)", background: "rgba(200,245,66,0.06)" }}
+          style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
         >
-          <Sparkles className="w-4 h-4" style={{ color: "#c8f542" }} />
+          <Sparkles className="w-4 h-4" style={{ color: "#3AA0FF" }} />
           <span className="text-[11px] font-medium uppercase tracking-widest">
             Early beta
           </span>
         </div>
 
         <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tighter font-medium text-white mb-6 text-balance" style={{ lineHeight: 1.12 }}>
-          Ready to send your <span style={{ color: "#c8f542" }}>first transfer?</span>
+          Ready to send your <span style={{ color: "#3AA0FF" }}>first transfer?</span>
         </h2>
 
         <p className="text-base md:text-lg text-white/60 max-w-xl mb-10 text-balance leading-relaxed">
@@ -73,9 +73,9 @@ export default function Waitlist() {
         {done ? (
           <div
             className="inline-flex items-center gap-2.5 rounded-full px-6 py-3.5 text-white"
-            style={{ border: "1px solid rgba(200,245,66,0.3)", background: "rgba(200,245,66,0.08)" }}
+            style={{ border: "1px solid rgba(58,160,255,0.3)", background: "rgba(58,160,255,0.08)" }}
           >
-            <Check className="w-4 h-4" style={{ color: "#c8f542" }} />
+            <Check className="w-4 h-4" style={{ color: "#3AA0FF" }} />
             <span className="text-sm font-medium">
               {state === "duplicate"
                 ? "You're already on the list, we'll be in touch."
@@ -112,8 +112,8 @@ export default function Waitlist() {
               <button
                 type="submit"
                 disabled={state === "loading"}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 text-[#12300f] px-8 py-3.5 rounded-full transition-all duration-300 font-medium text-sm whitespace-nowrap hover:scale-[1.03] disabled:opacity-70"
-                style={{ backgroundColor: "#c8f542", boxShadow: "0 8px 24px -6px rgba(200,245,66,0.4)" }}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 text-[#04294d] px-8 py-3.5 rounded-full transition-all duration-300 font-medium text-sm whitespace-nowrap hover:scale-[1.03] disabled:opacity-70"
+                style={{ backgroundColor: "#3AA0FF", boxShadow: "0 8px 24px -6px rgba(58,160,255,0.4)" }}
               >
                 {state === "loading" ? (
                   <>

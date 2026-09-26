@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "lucide-react";
 import AgentPreview from "./AgentPreview";
 import CorridorPreview from "./CorridorPreview";
+import { NavPill, AccentButton, ACCENT } from "./ui";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const LIME = "#c8f542";
+const NAV_ICON: Record<string, LucideIcon> = {
+  Features: LayoutGrid,
+  Networks: Globe2,
+  Beta: Sparkles,
+};
 
 export default function Hero() {
   return (
@@ -27,37 +32,34 @@ export default function Hero() {
             <span className="text-xl font-medium tracking-tight text-white">{site.name}</span>
           </Link>
 
-          <nav className="flex items-center gap-2 sm:gap-5">
-            {site.nav.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="hidden sm:inline text-[13px] font-medium text-white/70 hover:text-white transition-colors"
-              >
-                {item.label}
-              </a>
-            ))}
-            <a
-              href={`${site.appUrl}/home`}
-              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium text-[#12300f] transition-transform hover:scale-[1.04]"
-              style={{ backgroundColor: LIME }}
-            >
-              Open app <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+          <nav className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
+              {site.nav.map((item) => (
+                <NavPill
+                  key={item.href}
+                  href={item.href}
+                  label={item.label}
+                  icon={NAV_ICON[item.label] ?? LayoutGrid}
+                />
+              ))}
+            </div>
+            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight}>
+              Open app
+            </AccentButton>
           </nav>
         </motion.header>
 
         {/* Headline */}
         <div className="flex-1 flex items-center">
-          <div className="w-full max-w-2xl pointer-events-auto">
+          <div className="w-full max-w-2xl pointer-events-none select-none">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease, delay: 0.1 }}
               className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-7 text-[12px] font-medium text-white/90"
-              style={{ border: "1px solid rgba(200,245,66,0.35)", background: "rgba(200,245,66,0.06)" }}
+              style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
             >
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: LIME }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
               Stablecoin settlement network
             </motion.div>
 
@@ -70,7 +72,7 @@ export default function Hero() {
             >
               Send money
               <br />
-              <span style={{ color: LIME }}>anywhere.</span>
+              <span style={{ color: ACCENT }}>anywhere.</span>
             </motion.h1>
 
             <motion.p
@@ -88,20 +90,15 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.36 }}
-              className="mt-9 flex flex-wrap items-center gap-4"
+              className="mt-9 flex flex-wrap items-center gap-4 pointer-events-auto w-fit"
             >
-              <a
-                href="#beta"
-                className="group inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-medium text-[#12300f] transition-all hover:scale-[1.03] active:scale-[0.98]"
-                style={{ backgroundColor: LIME, boxShadow: "0 8px 24px -6px rgba(200,245,66,0.4)" }}
-              >
+              <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm">
                 Become a beta-tester
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </a>
+              </AccentButton>
               <div className="inline-flex items-center gap-2 text-[13px] font-medium text-white/70">
                 <span className="relative flex w-2 h-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping" style={{ background: LIME }} />
-                  <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: LIME }} />
+                  <span className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping" style={{ background: ACCENT }} />
+                  <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: ACCENT }} />
                 </span>
                 Network live
               </div>
