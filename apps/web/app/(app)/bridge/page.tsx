@@ -29,6 +29,15 @@ import {
 } from "@pesarc/sdk/chain/cctp/bridge";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { burnOnSolana, evmRecipient32 } from "@pesarc/sdk/svm/cctp";
+import {
+  getLifiQuote,
+  getLifiStatus,
+  LIFI_SOLANA_CHAIN,
+  type LifiQuote,
+} from "@pesarc/sdk/chain/aggregator/lifi";
+
+const SOLANA_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const isSolAddr = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
 type Phase = "idle" | "switching" | "approving" | "burning" | "attesting" | "done" | "error";
 const ZERO32 = ("0x" + "0".repeat(64)) as `0x${string}`;
@@ -43,7 +52,8 @@ export default function BridgePage() {
   // Source can be any CCTP chain (incl. Solana); destination is EVM/Arc for now
   // (minting on Solana is a later phase).
   const srcChains = useMemo(() => [...evmChains, CCTP_MAINNET.solana], [evmChains]);
-  const dstChains = evmChains;
+  // Destination can be EVM/Arc (native CCTP) or Solana (routed via LI.FI).
+  const dstChains = useMemo(() => [...evmChains, CCTP_MAINNET.solana], [evmChains]);
   const solanaSigner = useSolanaSigner();
   const [srcKey, setSrcKey] = useState("base");
   const [dstKey, setDstKey] = useState("arc");
@@ -52,18 +62,22 @@ export default function BridgePage() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [note, setNote] = useState("");
   const [burnTx, setBurnTx] = useState<string>("");
-  const [mintTx, setMintTx] = useState<`0x${string}` | "">("");
+  const [mintTx, setMintTx] = useState<string>("");
   const [speed, setSpeed] = useState<"fast" | "standard">("fast");
   const [fastBps, setFastBps] = useState<number | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
+  const [lifiQ, setLifiQ] = useState<LifiQuote | null>(null);
+  const [lifiLoading, setLifiLoading] = useState(false);
 
   const src = CCTP_MAINNET[srcKey];
   const dst = CCTP_MAINNET[dstKey];
   const amountIn = amount ? parseUsdc(amount) : 0n;
+  // EVM→Solana can't use native CCTP here (no on-Solana mint) — route via LI.FI.
+  const viaLifi = src.kind === "evm" && dst.kind === "solana";
 
-  // Circle's Fast fee depends on the corridor — refetch when it changes.
+  // Native CCTP corridors: refetch Circle's Fast fee when the pair changes.
   useEffect(() => {
-    if (srcKey === dstKey) return;
+    if (srcKey === dstKey || viaLifi) return;
     let live = true;
     setFeeLoading(true);
     setFastBps(null);
@@ -76,11 +90,39 @@ export default function BridgePage() {
     return () => {
       live = false;
     };
-  }, [srcKey, dstKey, src.domain, dst.domain]);
+  }, [srcKey, dstKey, src.domain, dst.domain, viaLifi]);
+
+  // LI.FI route estimate for EVM→Solana (debounced on amount/recipient).
+  useEffect(() => {
+    if (!viaLifi || amountIn <= 0n || !isSolAddr(recipient.trim())) {
+      setLifiQ(null);
+      return;
+    }
+    let live = true;
+    setLifiLoading(true);
+    const t = setTimeout(() => {
+      getLifiQuote({
+        fromChain: src.chainId as number,
+        toChain: LIFI_SOLANA_CHAIN,
+        fromToken: src.usdc,
+        toToken: SOLANA_USDC_MINT,
+        fromAmount: amountIn.toString(),
+        fromAddress: "0x000000000000000000000000000000000000dEaD", // estimate only
+        toAddress: recipient.trim(),
+      })
+        .then((qr) => live && setLifiQ(qr))
+        .catch(() => live && setLifiQ(null))
+        .finally(() => live && setLifiLoading(false));
+    }, 500);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [viaLifi, amountIn, recipient, src.chainId, src.usdc]);
 
   const fast = speed === "fast" && fastBps != null;
   const q =
-    amountIn > 0n
+    amountIn > 0n && !viaLifi
       ? fast
         ? quoteFast(amountIn, fastBps)
         : quoteStandard(amountIn)
@@ -93,6 +135,84 @@ export default function BridgePage() {
     try {
       if (srcKey === dstKey) throw new Error("Pick two different chains.");
       if (amountIn <= 0n) throw new Error("Enter an amount.");
+
+      // EVM → Solana via LI.FI (their bridge handles the Solana leg).
+      if (viaLifi) {
+        const provider = eth();
+        if (!provider) throw new Error("Connect an EVM wallet with USDC (e.g. MetaMask).");
+        const to = recipient.trim();
+        if (!isSolAddr(to)) throw new Error("Enter the destination Solana address.");
+        const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
+
+        setPhase("switching");
+        setNote("Finding the best route via LI.FI…");
+        const quote = await getLifiQuote({
+          fromChain: src.chainId as number,
+          toChain: LIFI_SOLANA_CHAIN,
+          fromToken: src.usdc,
+          toToken: SOLANA_USDC_MINT,
+          fromAmount: amountIn.toString(),
+          fromAddress: account,
+          toAddress: to,
+        });
+
+        const chain = viemChainFor(src);
+        const wallet = createWalletClient({ account, chain, transport: custom(provider) });
+        const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+        try {
+          await wallet.switchChain({ id: src.chainId as number });
+        } catch (e: any) {
+          if (e?.code === 4902) await wallet.addChain({ chain });
+          await wallet.switchChain({ id: src.chainId as number });
+        }
+
+        // Approve USDC to the LI.FI router if needed.
+        const spender = quote.transactionRequest.to;
+        const allowance = (await pub.readContract({
+          address: src.usdc as `0x${string}`,
+          abi: erc20ApproveAbi,
+          functionName: "allowance",
+          args: [account, spender],
+        })) as bigint;
+        if (allowance < amountIn) {
+          setPhase("approving");
+          setNote("Approve USDC…");
+          const aTx = await wallet.writeContract({
+            address: src.usdc as `0x${string}`,
+            abi: erc20ApproveAbi,
+            functionName: "approve",
+            args: [spender, amountIn],
+          });
+          await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
+        }
+
+        setPhase("burning");
+        setNote(`Bridging ${amount} USDC to Solana via ${quote.tool}…`);
+        const hash = await wallet.sendTransaction({
+          to: quote.transactionRequest.to,
+          data: quote.transactionRequest.data,
+          value: quote.transactionRequest.value ? BigInt(quote.transactionRequest.value) : 0n,
+        });
+        await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
+        setBurnTx(hash);
+
+        setPhase("attesting");
+        setNote("Bridging via LI.FI — delivering to Solana…");
+        const dl = Date.now() + 25 * 60_000;
+        while (Date.now() < dl) {
+          const s = await getLifiStatus(hash, src.chainId as number, LIFI_SOLANA_CHAIN);
+          if (s.status === "DONE") {
+            if (s.receivingTx) setMintTx(s.receivingTx);
+            setPhase("done");
+            setNote(`Delivered USDC to Solana via ${quote.tool}.`);
+            return;
+          }
+          if (s.status === "FAILED") throw new Error(`Route failed: ${s.substatus || "unknown"}`);
+          await sleep(15_000);
+        }
+        throw new Error("Timed out; the source tx is confirmed — check LI.FI status later.");
+      }
+
       // Fast (finality 1000) lands in seconds and deducts up to maxFee; Standard
       // (2000) is free but settles at hard finality.
       const useFast = speed === "fast" && fastBps != null;
@@ -234,6 +354,7 @@ export default function BridgePage() {
           </label>
         </div>
 
+        {!viaLifi && (
         <div>
           <span className="text-xs font-bold text-black/60">Speed</span>
           <div className="mt-1 grid grid-cols-2 gap-2">
@@ -267,6 +388,7 @@ export default function BridgePage() {
             </button>
           </div>
         </div>
+        )}
 
         <label className="text-xs font-bold text-black/60">
           Amount (USDC)
@@ -281,9 +403,16 @@ export default function BridgePage() {
         </label>
 
         <label className="text-xs font-bold text-black/60">
-          Recipient on {dst.label} <span className="font-normal">(optional — defaults to your address)</span>
+          Recipient on {dst.label}{" "}
+          <span className="font-normal">
+            {dst.kind === "solana"
+              ? "(required — Solana address)"
+              : src.kind === "solana"
+                ? "(required — destination address)"
+                : "(optional — defaults to your address)"}
+          </span>
           <input
-            placeholder="0x…"
+            placeholder={dst.kind === "solana" ? "Solana address…" : "0x…"}
             className="mt-1 w-full rounded-lg border border-black/10 bg-white p-2 text-sm font-mono text-black"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value.trim())}
@@ -300,7 +429,28 @@ export default function BridgePage() {
           </div>
         )}
 
-        <Button onClick={run} disabled={busy || srcKey === dstKey || amountIn <= 0n}>
+        {viaLifi && (
+          <div className="rounded-lg bg-black/[0.03] p-3 text-sm">
+            {lifiLoading && <p className="text-black/50">Finding the best route…</p>}
+            {!lifiLoading && lifiQ && (
+              <>
+                <Row k="You send" v={`${amount || "0"} USDC on ${src.label}`} />
+                <Row k="They receive" v={`${(Number(lifiQ.toAmount) / 1e6).toFixed(2)} USDC on Solana`} />
+                <Row k="Fees (bridge + gas)" v={`~$${(lifiQ.feeUSD + lifiQ.gasUSD).toFixed(2)}`} />
+                <Row k="ETA" v={`~${Math.max(1, Math.round(lifiQ.durationSec / 60))} min`} />
+                <Row k="Route" v={`via ${lifiQ.tool} (LI.FI)`} />
+              </>
+            )}
+            {!lifiLoading && !lifiQ && (
+              <p className="text-black/50">Enter a Solana recipient to see the route.</p>
+            )}
+          </div>
+        )}
+
+        <Button
+          onClick={run}
+          disabled={busy || srcKey === dstKey || amountIn <= 0n || (viaLifi && !isSolAddr(recipient.trim()))}
+        >
           {busy ? "Bridging…" : `Bridge to ${dst.label}`}
         </Button>
 
@@ -320,9 +470,9 @@ export default function BridgePage() {
       </Card>
 
       <p className="mt-3 text-xs text-black/40">
-        Source: any CCTP chain incl. Solana and Arc. Destination: EVM/Arc for now
-        (minting on Solana, and non-CCTP chains like Algorand via an aggregator,
-        come next). Test a small amount on a new corridor first.
+        EVM ↔ EVM/Arc and Solana → EVM use native Circle CCTP; EVM → Solana routes
+        via LI.FI. Algorand (via Wormhole) is next. Test a small amount on any new
+        corridor first.
       </p>
     </div>
   );
