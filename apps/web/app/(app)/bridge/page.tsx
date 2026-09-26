@@ -5,7 +5,7 @@
 // mints it on the destination (gasless for the user — see /api/bridge/relay).
 // USDC-only. Solana + the aggregator layer (non-CCTP chains like Algorand) land
 // in later phases.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createWalletClient, createPublicClient, custom, http } from "viem";
 import { Button, Card } from "@/components/app/ui";
 import {
@@ -18,6 +18,9 @@ import {
   toBytes32,
   parseUsdc,
   quoteStandard,
+  quoteFast,
+  maxFeeFor,
+  fetchFee,
   formatUsdc,
   viemChainFor,
   evmBridgeChains,
@@ -42,11 +45,38 @@ export default function BridgePage() {
   const [note, setNote] = useState("");
   const [burnTx, setBurnTx] = useState<`0x${string}` | "">("");
   const [mintTx, setMintTx] = useState<`0x${string}` | "">("");
+  const [speed, setSpeed] = useState<"fast" | "standard">("fast");
+  const [fastBps, setFastBps] = useState<number | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
 
   const src = CCTP_MAINNET[srcKey];
   const dst = CCTP_MAINNET[dstKey];
   const amountIn = amount ? parseUsdc(amount) : 0n;
-  const q = amountIn > 0n ? quoteStandard(amountIn) : null;
+
+  // Circle's Fast fee depends on the corridor — refetch when it changes.
+  useEffect(() => {
+    if (srcKey === dstKey) return;
+    let live = true;
+    setFeeLoading(true);
+    setFastBps(null);
+    fetchFee(src.domain, dst.domain).then((f) => {
+      if (live) {
+        setFastBps(f.fastBps);
+        setFeeLoading(false);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [srcKey, dstKey, src.domain, dst.domain]);
+
+  const fast = speed === "fast" && fastBps != null;
+  const q =
+    amountIn > 0n
+      ? fast
+        ? quoteFast(amountIn, fastBps)
+        : quoteStandard(amountIn)
+      : null;
   const busy = phase !== "idle" && phase !== "done" && phase !== "error";
 
   async function run() {
@@ -97,21 +127,29 @@ export default function BridgePage() {
         await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
       }
 
-      // Burn on the source (Standard transfer: free, hard finality).
+      // Burn on the source. Fast (finality 1000) lands in seconds and deducts up
+      // to maxFee; Standard (2000) is free but settles at hard finality.
+      const useFast = speed === "fast" && fastBps != null;
+      const maxFee = useFast ? maxFeeFor(amountIn, fastBps as number) : 0n;
+      const finality = useFast ? FINALITY.fast : FINALITY.standard;
       setPhase("burning");
       setNote(`Burning ${amount} USDC on ${src.label}…`);
       const bTx = await wallet.writeContract({
         address: TOKEN_MESSENGER_V2,
         abi: tokenMessengerV2Abi,
         functionName: "depositForBurn",
-        args: [amountIn, dst.domain, toBytes32(to), src.usdc as `0x${string}`, ZERO32, 0n, FINALITY.standard],
+        args: [amountIn, dst.domain, toBytes32(to), src.usdc as `0x${string}`, ZERO32, maxFee, finality],
       });
       await pub.waitForTransactionReceipt({ hash: bTx, timeout: 60_000 });
       setBurnTx(bTx);
 
       // Wait for Circle's attestation, then the relayer mints on the destination.
       setPhase("attesting");
-      setNote("Waiting for Circle attestation, then minting on the destination (can take ~15 min for a free Standard transfer)…");
+      setNote(
+        useFast
+          ? "Waiting for Circle's fast attestation, then minting on the destination (seconds)…"
+          : "Waiting for Circle attestation, then minting on the destination (can take ~15 min for a free Standard transfer)…",
+      );
       const deadline = Date.now() + 25 * 60_000;
       while (Date.now() < deadline) {
         const r = await relayMint({ srcDomain: src.domain, burnTx: bTx, dstKey });
@@ -169,6 +207,40 @@ export default function BridgePage() {
           </label>
         </div>
 
+        <div>
+          <span className="text-xs font-bold text-black/60">Speed</span>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setSpeed("fast")}
+              disabled={busy || fastBps == null}
+              className={`rounded-lg border p-2 text-left text-xs transition ${
+                speed === "fast" && fastBps != null
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-black/10 bg-white"
+              } disabled:opacity-50`}
+            >
+              <div className="font-bold text-black">Fast</div>
+              <div className="text-black/50">
+                {feeLoading ? "checking fee…" : fastBps == null ? "unavailable" : "~seconds · small fee"}
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSpeed("standard")}
+              disabled={busy}
+              className={`rounded-lg border p-2 text-left text-xs transition ${
+                speed === "standard" || fastBps == null
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-black/10 bg-white"
+              }`}
+            >
+              <div className="font-bold text-black">Standard</div>
+              <div className="text-black/50">~13–19 min · free</div>
+            </button>
+          </div>
+        </div>
+
         <label className="text-xs font-bold text-black/60">
           Amount (USDC)
           <input
@@ -196,7 +268,7 @@ export default function BridgePage() {
           <div className="rounded-lg bg-black/[0.03] p-3 text-sm">
             <Row k="You send" v={`${formatUsdc(q.amountIn)} USDC on ${src.label}`} />
             <Row k="They receive" v={`${formatUsdc(q.amountOut)} USDC on ${dst.label}`} />
-            <Row k="Bridge fee" v={q.feeUsdc === 0n ? "Free (Standard)" : `${formatUsdc(q.feeUsdc)} USDC`} />
+            <Row k="Bridge fee" v={feeLabel(q.feeUsdc)} />
             <Row k="ETA" v={q.etaLabel} />
           </div>
         )}
@@ -226,6 +298,13 @@ export default function BridgePage() {
       </p>
     </div>
   );
+}
+
+function feeLabel(v: bigint): string {
+  if (v === 0n) return "Free (Standard)";
+  const usd = Number(v) / 1_000_000;
+  if (usd < 0.01) return `~$${usd.toFixed(4)} (fast)`;
+  return `${usd.toFixed(2)} USDC`;
 }
 
 function Row({ k, v }: { k: string; v: string }) {

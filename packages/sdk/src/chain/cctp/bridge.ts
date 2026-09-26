@@ -35,9 +35,47 @@ export type BridgeQuote = {
   etaLabel: string;
 };
 
-/** Standard transfer: no fee, amountOut == amountIn. Fast would deduct maxFee. */
+/** Standard transfer: no fee, amountOut == amountIn (settles at hard finality). */
 export function quoteStandard(amountIn: bigint): BridgeQuote {
   return { amountIn, amountOut: amountIn, feeUsdc: 0n, etaLabel: "~13–19 min" };
+}
+
+/** Absolute maxFee (USDC units) for a Fast transfer, from Circle's fee in bps.
+ *  Circle's fee is fractional (e.g. 0.325 bps), so work in milli-bps to keep
+ *  precision — a plain ceil(bps) would turn 0.325 into 1 and overcharge 3x.
+ *  maxFee is a CEILING (Circle deducts the actual, smaller fee), so we add a
+ *  small margin (25%) so a fee tick between quote and burn can't strand the
+ *  transfer. */
+export function maxFeeFor(amountIn: bigint, bps: number): bigint {
+  if (!Number.isFinite(bps) || bps <= 0) return 0n;
+  const milliBps = BigInt(Math.ceil(bps * 1000 * 1.25)); // bps→milli-bps, +25%
+  // ceil division by 10_000_000 (= 10_000 bps × 1_000 milli).
+  return (amountIn * milliBps + 9_999_999n) / 10_000_000n;
+}
+
+/** Fast transfer: lands in seconds; Circle deducts up to maxFee from the mint. */
+export function quoteFast(amountIn: bigint, bps: number): BridgeQuote {
+  const fee = maxFeeFor(amountIn, bps);
+  return { amountIn, amountOut: amountIn - fee, feeUsdc: fee, etaLabel: "~seconds" };
+}
+
+/** Fetch Circle's Fast-transfer fee (bps) for a domain pair via our server. */
+export async function fetchFee(
+  src: number,
+  dst: number,
+): Promise<{ fastBps: number | null; standardBps: number }> {
+  try {
+    const res = await fetch("/api/bridge/fee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ src, dst }),
+    });
+    const j = (await res.json()) as { ok: boolean; fastBps?: number | null; standardBps?: number };
+    if (!j.ok) return { fastBps: null, standardBps: 0 };
+    return { fastBps: j.fastBps ?? null, standardBps: j.standardBps ?? 0 };
+  } catch {
+    return { fastBps: null, standardBps: 0 };
+  }
 }
 
 /** A viem Chain for a CCTP EVM entry, so a walletClient can target it. */
