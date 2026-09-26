@@ -136,10 +136,15 @@ present.
   a matching `docs/contracts/VerifyingPaymaster.sol` reference, and
   `docs/GAS_SPONSORSHIP.md`. Verified: signature recovers to the signer,
   paymasterData is 77 bytes, and the endpoint returns stub/signed/errors correctly.
-  Still TODO: the erc7677 wallet-client wiring in `smart-wallet.tsx` (needs Arc
-  bundler + funded paymaster to integration-test) and an `[!]` AUDIT of the
-  paymaster contract before Arc mainnet. Ship Circle first; flip to in-house after
-  audit (one env var).
+  The erc7677 wallet client is WIRED (`sdk/wallet/erc7677Client.ts`, viem AA:
+  bundler + ERC-7677 paymaster + Coinbase smart account; built async in
+  `smart-wallet.tsx`, activates only with a bundler URL). Verified viem's real
+  paymaster client round-trips against `/api/paymaster`. Multi-VM gasless mapped:
+  EVM=paymaster (seam), Solana=fee-payer relayer (already in-house,
+  `/api/svm/sponsor`), Algorand=fee-pooling (in-house, when native flows land).
+  Still TODO / `[!]`: an Arc bundler URL + funded paymaster to integration-test the
+  bundler leg, and an AUDIT of the paymaster contract before Arc mainnet. Ship
+  Circle first; flip to in-house after audit (one env var).
 
 ## External dependencies to provision (unblock the `[!]` items)
 
