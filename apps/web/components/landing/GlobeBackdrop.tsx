@@ -16,12 +16,12 @@ export default function GlobeBackdrop() {
         globe reads as a passive backdrop once you scroll past the hero.
       */}
       <div
-        className="pointer-events-auto cursor-grab active:cursor-grabbing absolute top-[2%] left-1/2 -translate-x-1/2 h-[94vh] w-[92%] lg:left-[56%] lg:w-[64%]"
+        className="pointer-events-auto cursor-grab active:cursor-grabbing absolute top-[2%] left-1/2 -translate-x-1/2 h-[94vh] w-[96%] lg:left-[60%] lg:w-[70%] 2xl:w-[74%]"
         style={{
           maskImage:
-            "radial-gradient(circle at 50% 42%, black 30%, transparent 72%)",
+            "radial-gradient(circle at 50% 44%, black 44%, transparent 82%)",
           WebkitMaskImage:
-            "radial-gradient(circle at 50% 42%, black 30%, transparent 72%)",
+            "radial-gradient(circle at 50% 44%, black 44%, transparent 82%)",
         }}
       >
         <Globe
