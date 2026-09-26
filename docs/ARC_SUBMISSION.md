@@ -49,6 +49,27 @@ predeploy `0x3600…0000`.
 The contracts are chain-agnostic Solidity (Uniswap-style) — deploying to Arc is
 a config + deploy step, and the app already switches chains in-session.
 
+## Deploying to Arc mainnet (what's left)
+
+The app is already wired for Arc mainnet — it is a one-env-var flip:
+
+1. **Fund the deployer** — send USDC (Arc's gas token) to operator
+   `0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1` on Arc mainnet.
+2. **Deploy** the hub in `github.com/pesarc/contracts`:
+   `PRIVATE_KEY=… forge script script/DeployArc.s.sol --rpc-url arc --broadcast --slow`
+   (PredictionMarket + IntentMatcher + the Uniswap-v4 hub).
+3. **Wire the app** — set `NEXT_PUBLIC_HUB_CHAIN_ID=5042` and fill the
+   `NEXT_PUBLIC_ARC_HUB_*` block (addresses from step 2) in the env. The app then
+   labels the chain "Arc", uses `https://rpc.mainnet.arc.io` + the Arc explorer,
+   and selects the Arc contract set (`sdk/chain/chains.ts`, `chain/contracts.ts`).
+   CCTP add-money/bridge to Arc (domain 26) is already wired.
+4. **Record + submit** — paste the deployed addresses + txs into the table above,
+   add the demo video + public hosted URL, and submit.
+
+Note on gasless: on Arc, sponsored gas comes from **Circle Gas Station / Circle
+Wallets**, not the Alchemy Gas Manager used on the testnets — wire that when
+enabling gasless smart-wallet sends on Arc.
+
 ## Architecture
 
 ```mermaid
