@@ -113,10 +113,10 @@ export default function Hero() {
           transition={{ duration: 0.8, ease, delay: 0.5 }}
           className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-3 mt-10 lg:mt-0 pointer-events-auto"
         >
-          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}>
             <CorridorPreview />
           </motion.div>
-          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}>
+          <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut", delay: 1.4 }}>
             <AgentPreview />
           </motion.div>
         </motion.div>

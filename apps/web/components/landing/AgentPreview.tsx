@@ -76,7 +76,7 @@ const SCENES: Scene[] = [
   },
 ];
 
-const STREAM_MS = 22; // per 2 chars
+const STREAM_MS = 34; // per 2 chars
 
 export default function AgentPreview() {
   const [scene, setScene] = useState(0);
@@ -95,13 +95,13 @@ export default function AgentPreview() {
         setVisible(0);
         setStreamed("");
         setTyping(false);
-      }, 1900);
+      }, 2500);
       return () => clearTimeout(t);
     }
 
     const line = lines[visible];
     if (line.from === "user") {
-      const t = setTimeout(() => setVisible((v) => v + 1), 700);
+      const t = setTimeout(() => setVisible((v) => v + 1), 950);
       return () => clearTimeout(t);
     }
 
@@ -138,7 +138,7 @@ export default function AgentPreview() {
   const streamingLine = streamed ? lines[visible] : null;
 
   return (
-    <div className="w-[300px] rounded-card bg-white/10 border border-white/15 shadow-pop overflow-hidden">
+    <div className="w-[300px] rounded-card bg-white/10 border border-white/15 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/10">
         <span className="w-8 h-8 rounded-full bg-[#3AA0FF]/15 flex items-center justify-center text-[#3AA0FF]">
