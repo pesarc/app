@@ -46,6 +46,7 @@ export default function DevelopersView() {
   const [label, setLabel] = useState("");
   const [creating, setCreating] = useState(false);
   const [justCreated, setJustCreated] = useState<CreatedKey | null>(null);
+  const [usageToday, setUsageToday] = useState<number | null>(null);
   const { copied, copy } = useCopy();
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://app.pesarc.xyz";
@@ -62,6 +63,12 @@ export default function DevelopersView() {
 
   useEffect(() => {
     load();
+    authedFetch("/api/usage")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok) setUsageToday(d.today);
+      })
+      .catch(() => {});
   }, [load]);
 
   const createKey = async () => {
@@ -113,9 +120,16 @@ export default function DevelopersView() {
 
       {/* Keys */}
       <section className="mb-10">
-        <h2 className="text-lg font-semibold text-ink mb-3 flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-slate" /> API keys
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-slate" /> API keys
+          </h2>
+          {usageToday !== null && (
+            <span className="text-xs font-medium text-slate">
+              {usageToday.toLocaleString()} request{usageToday === 1 ? "" : "s"} today
+            </span>
+          )}
+        </div>
 
         <Card className="p-4 mb-4">
           <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-2">
