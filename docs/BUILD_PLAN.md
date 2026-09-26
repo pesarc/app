@@ -107,10 +107,18 @@ present.
   (subdomains, ports, per-env env files, Caddy blocks, promotion flow). Still TODO
   on the droplet: create the two new DB instances + env files + Caddy routes, and
   add per-branch image tags to CI (`main→latest, staging→staging, dev→dev`).
-- [ ] **Real migrations.** A `scripts/migrate.mjs` that owns the schema (api_keys,
-  payment_sessions, and the rest), so `ensureSchema` DDL fallbacks can retire.
-- [ ] **Move keepers to `apps/worker`.** The cron/solver/oracle logic currently
-  inline in API routes becomes a real worker process.
+- [x] **Real migrations.** `scripts/migrate.mjs` (`pnpm db:migrate`) applies the
+  idempotent `deploy/schema.sql` (all 8 tables + indexes + a `schema_migrations`
+  ledger) per env against its own `DATABASE_URL`; `--dry-run` prints statements.
+  Verified against a real Postgres (creates the schema, idempotent on re-run). The
+  app keeps `ensureSchema` as a zero-config dev fallback, but the script is now the
+  source of truth.
+- [x] **Move keepers to `apps/worker`.** A single dependency-free Node worker
+  (`apps/worker/src/index.mjs`) owns the keeper schedules (settlement solver + FX
+  oracle push), driving the app's authenticated routes; env-gated, idles when
+  unconfigured, graceful shutdown. Quadlet unit `deploy/pesarc-worker.container`
+  supersedes `pesarc-solve.service`/`.timer`. Verified: idle + configured ticks +
+  error handling + SIGTERM.
 - [ ] **Public API rate limits + usage metering** backed by the store (today's
   limiter is per-instance memory).
 

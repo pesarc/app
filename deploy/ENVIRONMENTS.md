@@ -95,10 +95,33 @@ Chosen topology: **3 separate instances**. Two ways to run each:
 2. **Managed Postgres** (DigitalOcean/Neon): skip the DB unit and point that
    env's `DATABASE_URL` at the managed instance. Recommended for production.
 
-Either way, migrations/schema run against each instance independently. The app
-also self-heals its schema (`ensureSchema` in the SDK) as a fallback, but treat
-`deploy/schema.sql` (+ future `scripts/migrate.mjs`) as the source of truth and
-run it per env.
+Either way, migrations run against each instance independently.
+
+## Migrations
+
+`deploy/schema.sql` is the source of truth (idempotent). Apply it per env with
+its own `DATABASE_URL`:
+
+```bash
+DATABASE_URL=postgres://…/pesarc pnpm db:migrate        # runs scripts/migrate.mjs
+node scripts/migrate.mjs --dry-run                       # print statements, no DB
+```
+
+Run it on every deploy, before starting the web + worker. The app still
+self-heals via lazy `CREATE TABLE IF NOT EXISTS`, but that is a dev fallback, not
+the source of truth. Each run records a row in `schema_migrations`.
+
+## Keeper worker
+
+`apps/worker` is a single dependency-free Node process that runs the scheduled
+keepers (settlement solver + FX oracle push) by calling the app's authenticated
+routes. It supersedes `pesarc-solve.service` / `pesarc-solve.timer`.
+
+Deploy: copy `apps/worker/src/index.mjs` to `/opt/pesarc/worker/index.mjs`,
+install `deploy/pesarc-worker.container`, and set `CRON_SECRET` +
+`OPERATOR_API_SECRET` in that env's `pesarc.env`. It reaches the web app by its
+network alias (`WORKER_TARGET=http://pesarc-web-<env>:3000`). With neither secret
+set it idles. One worker per environment.
 
 ## Safety rules
 

@@ -1,7 +1,8 @@
 -- Pesarc schema for the self-hosted Postgres. Idempotent — safe to re-run.
--- Mirrors apps/web/scripts/migrate.mjs (the app also self-heals via lazy
--- CREATE TABLE IF NOT EXISTS, but run this once at deploy so the schema is
--- owned explicitly rather than on the request hot path).
+-- This is the source of truth, applied by scripts/migrate.mjs (`pnpm db:migrate`).
+-- The app also self-heals via lazy CREATE TABLE IF NOT EXISTS as a zero-config
+-- dev fallback, but production runs this once at deploy so the schema is owned
+-- explicitly rather than on the request hot path.
 
 CREATE TABLE IF NOT EXISTS waitlist (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -48,3 +49,76 @@ ALTER TABLE payouts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'initi
 ALTER TABLE payouts ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'simulated';
 CREATE INDEX IF NOT EXISTS payouts_account_ref_idx ON payouts (account, reference);
 CREATE INDEX IF NOT EXISTS payouts_partner_ref_idx ON payouts (partner_ref);
+
+-- Admin catalog (markets / stocks / agents), edited via /api/admin/catalog.
+CREATE TABLE IF NOT EXISTS catalog_items (
+  id         text PRIMARY KEY,
+  kind       text NOT NULL,
+  data       jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Developer API keys (secret stored hashed; whsec kept for signing).
+CREATE TABLE IF NOT EXISTS api_keys (
+  id             text PRIMARY KEY,
+  account        text NOT NULL,
+  label          text NOT NULL DEFAULT 'API key',
+  publishable    text NOT NULL,
+  secret_prefix  text NOT NULL,
+  secret_hash    text NOT NULL,
+  signing_secret text NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  last_used_at   timestamptz,
+  revoked_at     timestamptz
+);
+CREATE INDEX IF NOT EXISTS api_keys_secret_hash_idx ON api_keys (secret_hash);
+
+-- Payment sessions (OPay-style checkout).
+CREATE TABLE IF NOT EXISTS payment_sessions (
+  id             text PRIMARY KEY,
+  account        text NOT NULL,
+  api_key_id     text NOT NULL,
+  amount         numeric NOT NULL,
+  currency       text NOT NULL,
+  reference      text NOT NULL,
+  merchant_name  text NOT NULL DEFAULT 'A Pesarc merchant',
+  description    text,
+  redirect_url   text NOT NULL,
+  webhook_url    text,
+  payout_address text,
+  metadata       jsonb,
+  status         text NOT NULL DEFAULT 'pending',
+  customer_label text,
+  tx_hash        text,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  paid_at        timestamptz,
+  expires_at     timestamptz NOT NULL
+);
+ALTER TABLE payment_sessions ADD COLUMN IF NOT EXISTS webhook_url text;
+CREATE INDEX IF NOT EXISTS payment_sessions_account_idx
+  ON payment_sessions (account, created_at DESC);
+
+-- Durable earn positions (one per account+pool).
+CREATE TABLE IF NOT EXISTS earn_positions (
+  account    text NOT NULL,
+  pool_id    text NOT NULL,
+  principal  numeric NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account, pool_id)
+);
+
+-- Durable invest holdings (one per account+symbol, volume-weighted avg cost).
+CREATE TABLE IF NOT EXISTS holdings (
+  account    text NOT NULL,
+  symbol     text NOT NULL,
+  shares     numeric NOT NULL,
+  avg_price  numeric NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account, symbol)
+);
+
+-- Migration ledger (each `pnpm db:migrate` records a row).
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version    text NOT NULL,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
