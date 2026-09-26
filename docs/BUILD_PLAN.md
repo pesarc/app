@@ -47,14 +47,22 @@ present.
   is unavailable the UI labels the number "indicative" (locked at settlement)
   instead of showing the mock as final, and `QuoteBreakdown` shows a source badge.
   (`sdk/quote.ts` + `sdk/chain/liveQuote.ts`.)
-- [~] **Earn / LP real.** The live USD<->NGN hub corridor now reads real TVL
-  on-chain (`sdk/chain/livePool.ts`, v4 PoolManager balances + oracle mid); Earn
-  tags corridors Live vs Soon. Still TODO: real on-chain deposits/withdrawals
-  through the pool and live fee-APY (retail-balance red line stays).
-- [!] **On-chain African stocks real.** Wire `sdk/broker.ts` to a real tokenized-
-  equity venue (or a licensed broker API via `BROKER_API_URL`). Needs a venue /
-  broker account + market-data feed. Until then: mark the catalog clearly as a
-  preview, not live prices.
+- [~] **Earn / LP real.** Live USD<->NGN hub TVL is read on-chain
+  (`sdk/chain/livePool.ts`); Earn tags corridors Live vs Soon. Positions are now
+  DURABLE server records per account (`sdk/earn-positions.ts` + `/api/earn`,
+  Postgres + JSONL fallback) instead of React state, and EarnFlow loads/persists
+  deposits + withdrawals. Still TODO (contracts task, deliberately deferred as
+  money-risk): real on-chain LP via a deposit/zap into the v4 pool — safe
+  single-token LP needs an audited vault + liquidity math, not a frontend hack.
+  Retail-balance red line stays.
+- [~] **On-chain African stocks real.** Holdings + orders are now DURABLE server
+  records per account (`sdk/holdings.ts` + `/api/invest`, Postgres + JSONL
+  fallback) with rolled average cost, not localStorage. Orders route server-side
+  through the broker adapter (`sdk/broker.ts`): simulated by default, a real
+  tokenized-equity / licensed broker when `BROKER_API_URL` is set (the live
+  `httpBroker` is implemented). The UI shows a "Preview prices" badge until the
+  feed is live. `[!]` remaining: a venue/broker account + a market-data feed to
+  flip `BROKER_API_URL` on.
 - [!] **cNGN real API.** Replace the testnet "test cNGN" token with the regulated
   cNGN issuer's mint/redeem API + attestation. Needs the cNGN issuer relationship
   and KYB. Keep the on-chain plumbing; swap the token + add issuer calls.
