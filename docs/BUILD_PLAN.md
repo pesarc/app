@@ -68,9 +68,11 @@ present.
   (`sdk/agent/bill-intent.ts` — "buy 1GB of MTN data for 0803…", "pay 5k Ikeja
   electricity meter 041…"; asks for missing fields; wired into `/api/agent/settle`,
   no LLM needed). Still TODO: `[!]` a real provider (Reloadly / VTpass / Flutterwave).
-- [ ] **USSD payment support.** Session state machine + an aggregator webhook
-  (`/api/ussd`). `[!]` on a USSD gateway (Africa's Talking / a telco shortcode);
-  build the menu engine + `/api/ussd` handler against the AT simulator first.
+- [x] **USSD payment support.** DONE: stateless menu engine (`sdk/ussd.ts`) +
+  `/api/ussd` webhook (Africa's Talking CON/END format). Buy airtime/data (network
+  inferred from the caller's number), pay electricity (DisCo → meter → amount →
+  token), send money, all through the shared bills adapter. `[!]` remaining: point
+  a real AT/telco shortcode callback at `/api/ussd`.
 - [~] **WhatsApp agent.** DONE against the sandbox: `/api/whatsapp` webhook (GET
   verify handshake + POST bridge, signature-verified, retry-deduped) forwards
   text to the SHARED agent brain (`sdk/agent/run.ts`, now used by both the in-app
@@ -78,10 +80,12 @@ present.
   "sandbox" (logs replies) until env is set. `[!]` remaining: connect a real
   WhatsApp Business number (Meta/Twilio) + set `WHATSAPP_*`; then WhatsApp voice
   notes (server-side transcription).
-- [~] **Voice input (both agents).** In-app mic DONE via the Web Speech API
-  (`components/app/useSpeechInput.ts` + a mic in `AgentChat`; live-fills the
-  composer, degrades silently where unsupported). Still TODO: WhatsApp voice notes
-  transcribed server-side (rides the WhatsApp item).
+- [x] **Voice input (both agents).** In-app mic via the Web Speech API
+  (`components/app/useSpeechInput.ts` + a mic in `AgentChat`). WhatsApp voice notes
+  DONE too: `/api/whatsapp` downloads the audio and transcribes it
+  (`sdk/transcribe.ts`, OpenAI-compatible seam) before running the shared agent,
+  echoing back what it heard. `[!]` remaining: set `TRANSCRIBE_API_KEY` (a
+  transcription provider) to turn WhatsApp voice on.
 - [!] **Hyperliquid / aqua0 liquidity.** Tap Hyperliquid liquidity on Base +
   aqua0. Needs the integration spec + accounts; scope a `LiquiditySource` seam so
   the hub can route to it, then implement once access exists.

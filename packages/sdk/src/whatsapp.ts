@@ -41,6 +41,7 @@ export type IncomingMessage = {
   id: string;
   type: string; // text | audio | image | ...
   text?: string;
+  audioId?: string; // media id for audio/voice notes
   name?: string; // contact profile name, when present
 };
 
@@ -59,8 +60,39 @@ export function parseIncoming(payload: any): IncomingMessage | null {
       id: String(msg.id),
       type: String(msg.type),
       text: msg.type === "text" ? String(msg.text?.body ?? "") : undefined,
+      audioId:
+        msg.type === "audio" || msg.type === "voice"
+          ? String(msg.audio?.id ?? msg.voice?.id ?? "")
+          : undefined,
       name,
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Download a media object (e.g. a voice note) by its id: resolve the temporary
+ * URL from the Graph API, then fetch the bytes with the token. Null on failure
+ * or when unconfigured.
+ */
+export async function fetchWhatsAppMedia(
+  mediaId: string,
+): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
+  const token = process.env.WHATSAPP_TOKEN;
+  const version = process.env.WHATSAPP_GRAPH_VERSION || "v21.0";
+  if (!token || !mediaId) return null;
+  try {
+    const metaRes = await fetch(`${GRAPH}/${version}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!metaRes.ok) return null;
+    const meta = (await metaRes.json()) as { url?: string; mime_type?: string };
+    if (!meta.url) return null;
+    const binRes = await fetch(meta.url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!binRes.ok) return null;
+    const buf = new Uint8Array(await binRes.arrayBuffer());
+    return { bytes: buf, mimeType: meta.mime_type || "audio/ogg" };
   } catch {
     return null;
   }
