@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@pesarc/sdk/api/guard";
+import { getAccount } from "@pesarc/sdk/api/auth";
 import { parseCreateMarket } from "@pesarc/sdk/agent/market-intent";
+import { parseBillIntent } from "@pesarc/sdk/agent/bill-intent";
+import { getBillsAdapter, findOperator } from "@pesarc/sdk/bills";
+import { recordTransfer } from "@pesarc/sdk/transfers";
 import { createCatalog } from "@pesarc/sdk/catalog";
 import { parseSettlementRequest } from "@pesarc/sdk/celo/agent";
 import { llmConfigured } from "@pesarc/sdk/llm/extract";
@@ -132,6 +136,83 @@ export async function POST(request: Request) {
     }
   }
 
+  // Pay-a-bill intent — works without the LLM. Buy airtime/data or pay
+  // electricity through the bills provider (simulated sandbox by default).
+  const bill = parseBillIntent(parsed.data.message);
+  if (bill) {
+    if (bill.missing.length) {
+      const ask = bill.missing.includes("operator")
+        ? "which provider (MTN, Airtel, Ikeja Electric…)"
+        : bill.missing.includes("customer")
+          ? bill.category === "electricity"
+            ? "the meter number"
+            : "the phone number"
+          : bill.category === "data"
+            ? "which bundle (e.g. 1GB)"
+            : "how much";
+      return NextResponse.json({
+        ok: true,
+        matched: false,
+        needsInput: true,
+        reply: `Sure, I can ${billVerb(bill.category)} — just tell me ${ask}.`,
+      });
+    }
+    try {
+      const opName = findOperator(bill.operatorId!)?.name ?? "provider";
+      const result = await getBillsAdapter().purchase({
+        category: bill.category,
+        operatorId: bill.operatorId!,
+        customer: bill.customer!,
+        amount: bill.category === "data" ? undefined : bill.amount,
+        planId: bill.planId,
+        meterType: bill.meterType,
+      });
+      const label =
+        bill.category === "airtime"
+          ? `${opName} airtime`
+          : bill.category === "data"
+            ? `${opName} data`
+            : `${opName} electricity`;
+      recordTransfer(
+        {
+          direction: "sent",
+          counterparty: label,
+          counterpartyHandle: bill.customer,
+          sendAmount: result.amount,
+          sendCurrency: "NGN",
+          receiveAmount: result.amount,
+          receiveCurrency: "NGN",
+          payout: bill.category,
+          reference: result.reference,
+        },
+        await getAccount(request),
+      ).catch(() => {});
+
+      const naira = `₦${result.amount.toLocaleString()}`;
+      const body =
+        bill.category === "airtime"
+          ? `sent ${naira} ${opName} airtime to ${bill.customer}`
+          : bill.category === "data"
+            ? `bought ${result.units ?? "a"} ${opName} data bundle for ${bill.customer}`
+            : `paid ${naira} to ${opName} for meter ${bill.customer}${
+                result.units ? ` (${result.units})` : ""
+              }`;
+      const tokenLine = result.token ? ` Prepaid token: ${result.token}.` : "";
+      return NextResponse.json({
+        ok: true,
+        matched: false,
+        billPaid: true,
+        billsUrl: "/bills",
+        reply: `Done — I ${body}.${tokenLine} Reference ${result.reference}.`,
+      });
+    } catch {
+      return NextResponse.json({
+        ok: false,
+        reply: "I couldn't complete that bill just now — try again in a moment.",
+      });
+    }
+  }
+
   // Usable without keys: when the agent can't act on-chain (no LLM or agent
   // key), still understand the request and reply (demo mode) instead of 501.
   if (!celoAgentReady() || !process.env.CELO_AGENT_PK || !llmConfigured()) {
@@ -234,4 +315,12 @@ export async function POST(request: Request) {
 
 function fmt(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function billVerb(category: string): string {
+  return category === "airtime"
+    ? "top up airtime"
+    : category === "data"
+      ? "buy a data bundle"
+      : "pay that electricity bill";
 }

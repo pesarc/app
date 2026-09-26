@@ -1,0 +1,30 @@
+# Podman Quadlet unit — Pesarc web app, staging stack.
+# Install to /etc/containers/systemd/pesarc-web-staging.container on the droplet:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-web-staging
+#
+# Reads its runtime env from /etc/pesarc/staging/pesarc.env (root-only, chmod 600).
+# That file MUST set APP_ENV=staging, NEXT_PUBLIC_APP_ENV=staging, and a DATABASE_URL
+# that points at THIS env's own Postgres instance:
+#   postgres://pesarc:<pw>@pesarc-db-staging:5432/pesarc
+# Caddy proxies staging's subdomain to 127.0.0.1:3001 (see deploy/ENVIRONMENTS.md).
+
+[Unit]
+Description=Pesarc web app (staging)
+After=network-online.target pesarc-db-staging.service
+Wants=network-online.target
+
+[Container]
+Image=ghcr.io/pesarc/pesarc-web:staging
+ContainerName=pesarc-web-staging
+Network=pesarc.network
+PodmanArgs=--network-alias pesarc-web-staging
+EnvironmentFile=/etc/pesarc/staging/pesarc.env
+PublishPort=127.0.0.1:3001:3000
+AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

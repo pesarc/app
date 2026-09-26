@@ -1,0 +1,31 @@
+# Podman Quadlet unit — Pesarc Postgres, dev instance (fully separate from the
+# other environments: its own container + its own volume, so dev data never
+# mixes with production).
+# Install to /etc/containers/systemd/pesarc-db-dev.container, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-db-dev
+#
+# Server config (POSTGRES_USER/PASSWORD/DB) is read from /etc/pesarc/dev/db.env
+# (root-only, chmod 600). The web app reaches it by the alias pesarc-db-dev.
+#
+# Alternative: skip this unit and point dev's DATABASE_URL at a separate
+# managed Postgres (DigitalOcean/Neon) instead — still one instance per env.
+
+[Unit]
+Description=Pesarc Postgres (dev)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=pesarc-db-dev
+Network=pesarc.network
+PodmanArgs=--network-alias pesarc-db-dev
+Volume=pesarc-db-dev-data:/var/lib/postgresql/data
+EnvironmentFile=/etc/pesarc/dev/db.env
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

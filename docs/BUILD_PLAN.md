@@ -64,25 +64,33 @@ present.
 - [~] **Bills: Airtime / Data / Electricity.** In-app flow shipped (`/bills`,
   `BillsFlow.tsx`) + adapter seam (`sdk/bills.ts`, simulated sandbox default, real
   provider env-gated via `BILLS_PROVIDER_URL`) + `/api/bills` (Nigeria-first
-  operators, data plans, prepaid electricity token). Still TODO: agent intent
-  ("buy 1GB", "pay PHCN 5k") and `[!]` wiring a real provider (Reloadly / VTpass /
-  Flutterwave Bills).
+  operators, data plans, prepaid electricity token). **Agent bill-pay intent DONE**
+  (`sdk/agent/bill-intent.ts` — "buy 1GB of MTN data for 0803…", "pay 5k Ikeja
+  electricity meter 041…"; asks for missing fields; wired into `/api/agent/settle`,
+  no LLM needed). Still TODO: `[!]` a real provider (Reloadly / VTpass / Flutterwave).
 - [ ] **USSD payment support.** Session state machine + an aggregator webhook
   (`/api/ussd`). `[!]` on a USSD gateway (Africa's Talking / a telco shortcode);
   build the menu engine + `/api/ussd` handler against the AT simulator first.
 - [ ] **WhatsApp agent.** `/api/whatsapp` webhook bridging WhatsApp <-> the
   existing agent (`/api/agent/settle`). `[!]` on a WhatsApp Business API number
   (Meta / Twilio); build the webhook + message mapping against the sandbox.
-- [ ] **Voice input (both agents).** In-app mic via Web Speech / MediaRecorder to
-  a transcription endpoint, feeding the agent; WhatsApp voice notes transcribed
-  server-side. In-app voice is fully buildable now; WhatsApp voice rides Phase 4's
-  WhatsApp item.
+- [~] **Voice input (both agents).** In-app mic DONE via the Web Speech API
+  (`components/app/useSpeechInput.ts` + a mic in `AgentChat`; live-fills the
+  composer, degrades silently where unsupported). Still TODO: WhatsApp voice notes
+  transcribed server-side (rides the WhatsApp item).
 - [!] **Hyperliquid / aqua0 liquidity.** Tap Hyperliquid liquidity on Base +
   aqua0. Needs the integration spec + accounts; scope a `LiquiditySource` seam so
   the hub can route to it, then implement once access exists.
 
 ## Phase 5 — Infra the features lean on
 
+- [~] **Dev / staging / prod separation.** App is env-aware (`sdk/env.ts` +
+  `EnvBadge`, `APP_ENV`/`NEXT_PUBLIC_APP_ENV`). Droplet runs three separate stacks
+  (own container + own Postgres instance each): production = top-level units;
+  staging/dev under `deploy/envs/`; full runbook in `deploy/ENVIRONMENTS.md`
+  (subdomains, ports, per-env env files, Caddy blocks, promotion flow). Still TODO
+  on the droplet: create the two new DB instances + env files + Caddy routes, and
+  add per-branch image tags to CI (`main→latest, staging→staging, dev→dev`).
 - [ ] **Real migrations.** A `scripts/migrate.mjs` that owns the schema (api_keys,
   payment_sessions, and the rest), so `ensureSchema` DDL fallbacks can retire.
 - [ ] **Move keepers to `apps/worker`.** The cron/solver/oracle logic currently

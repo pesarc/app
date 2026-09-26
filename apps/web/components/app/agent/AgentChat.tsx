@@ -19,8 +19,11 @@ import {
   Trash2,
   MessageSquare,
   BarChart3,
+  Mic,
+  Square,
 } from "lucide-react";
 import { Card } from "@/components/app/ui";
+import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 
 /** Pull the first amount out of a message, e.g. "send 50,000 naira" → 50000. */
@@ -39,18 +42,20 @@ type Msg =
       settlements?: { kind: string; url: string }[];
       pending?: boolean;
       marketsUrl?: string;
+      billsUrl?: string;
     };
 
 const EXAMPLES = [
   "Send 50,000 naira to Ghana",
+  "Buy 1GB of MTN data for 08031234567",
+  "Pay 5k Ikeja electricity, meter 04123456789",
   "Create a market: will USD/NGN cross ₦2,000 by June?",
-  "New market: 2027 winner? options: Party A, Party B, Party C",
 ];
 
 const GREETING: Msg = {
   role: "agent",
   text:
-    "Hi — I'm Pesarc's settlement agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency — or say “create a market: …” and I'll spin up a prediction market for you. Try an example below.",
+    "Hi — I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
 };
 
 // ---- Chat history (per-device, localStorage) ----------------------------
@@ -94,6 +99,12 @@ export default function AgentChat() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const activeId = useRef<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Voice input: live-fill the composer with what's spoken; the user reviews
+  // and taps send. Hidden entirely where the browser has no Web Speech API.
+  const speech = useSpeechInput(
+    useCallback((text: string) => setInput(text), []),
+  );
 
   useEffect(() => {
     let alive = true;
@@ -176,7 +187,13 @@ export default function AgentChat() {
             submitUrl: data.submitUrl,
             settlements: data.settlements,
             marketsUrl: data.marketsUrl,
-            pending: data.ok && !data.matched && !data.needsInput && !data.createdMarket,
+            billsUrl: data.billsUrl,
+            pending:
+              data.ok &&
+              !data.matched &&
+              !data.needsInput &&
+              !data.createdMarket &&
+              !data.billPaid,
           },
         ]);
         // Reflect the spend against the on-chain session-key cap.
@@ -332,6 +349,14 @@ export default function AgentChat() {
                       <BarChart3 className="w-3.5 h-3.5" /> Open Markets
                     </Link>
                   )}
+                  {m.billsUrl && (
+                    <Link
+                      href={m.billsUrl}
+                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-sky text-white text-xs font-bold px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
+                    >
+                      <Check className="w-3.5 h-3.5" /> Open Bills
+                    </Link>
+                  )}
                 </Card>
               </div>
             </motion.div>
@@ -371,10 +396,30 @@ export default function AgentChat() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. send 50,000 naira to Ghana"
+          placeholder={
+            speech.listening
+              ? "Listening…"
+              : speech.supported
+                ? "Speak or type — e.g. buy 1GB of MTN data"
+                : "e.g. send 50,000 naira to Ghana"
+          }
           aria-label="Message the agent"
           className="flex-1 bg-snow rounded-field border border-fog px-4 py-3 text-[15px] text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50"
         />
+        {speech.supported && (
+          <button
+            type="button"
+            onClick={speech.toggle}
+            aria-label={speech.listening ? "Stop listening" : "Speak to the agent"}
+            className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border transition ${
+              speech.listening
+                ? "bg-sky text-white border-sky animate-pulse"
+                : "bg-snow text-slate border-fog hover:text-ink hover:border-slate/40"
+            }`}
+          >
+            {speech.listening ? <Square className="w-4 h-4" /> : <Mic className="w-5 h-5" />}
+          </button>
+        )}
         <button
           type="submit"
           disabled={busy || !input.trim()}
