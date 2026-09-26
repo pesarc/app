@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { Button, Card } from "@/components/app/ui";
+import { Button, Card, Select } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
@@ -461,18 +461,17 @@ function CurrencyPicker({
       <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-1.5">
         {label}
       </label>
-      <select
+      <Select
         value={idx}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
-        className="w-full bg-snow rounded-field border border-fog px-3 py-3 text-sm font-medium text-ink focus:outline-none focus:border-sky/50"
       >
         {list.map((c, i) => (
           <option key={c.code} value={i}>
             {c.flag} {c.code}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

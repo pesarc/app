@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X, Check, Loader2 } from "lucide-react";
+import { Select } from "@/components/app/ui";
 
 type Kind = "markets" | "stocks" | "agents";
 type Item = { id: string; kind: Kind; data: Record<string, unknown>; updatedAt: string };
@@ -215,16 +216,16 @@ export default function AdminPage() {
               <label key={f.name} className="text-[12px] font-semibold text-slate">
                 {f.label}
                 {f.options ? (
-                  <select
+                  <Select
                     value={form[f.name] ?? ""}
                     onChange={(e) => setForm((s) => ({ ...s, [f.name]: e.target.value }))}
-                    className="mt-1 w-full rounded-field border border-fog bg-snow px-3 py-2 text-[14px] font-medium text-ink"
+                    className="mt-1"
                   >
                     <option value="">—</option>
                     {f.options.map((o) => (
                       <option key={o} value={o}>{o}</option>
                     ))}
-                  </select>
+                  </Select>
                 ) : (
                   <input
                     value={form[f.name] ?? ""}
