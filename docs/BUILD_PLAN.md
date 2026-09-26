@@ -71,9 +71,13 @@ present.
 - [ ] **USSD payment support.** Session state machine + an aggregator webhook
   (`/api/ussd`). `[!]` on a USSD gateway (Africa's Talking / a telco shortcode);
   build the menu engine + `/api/ussd` handler against the AT simulator first.
-- [ ] **WhatsApp agent.** `/api/whatsapp` webhook bridging WhatsApp <-> the
-  existing agent (`/api/agent/settle`). `[!]` on a WhatsApp Business API number
-  (Meta / Twilio); build the webhook + message mapping against the sandbox.
+- [~] **WhatsApp agent.** DONE against the sandbox: `/api/whatsapp` webhook (GET
+  verify handshake + POST bridge, signature-verified, retry-deduped) forwards
+  text to the SHARED agent brain (`sdk/agent/run.ts`, now used by both the in-app
+  chat and WhatsApp) and replies over the Cloud API (`sdk/whatsapp.ts`). Runs in
+  "sandbox" (logs replies) until env is set. `[!]` remaining: connect a real
+  WhatsApp Business number (Meta/Twilio) + set `WHATSAPP_*`; then WhatsApp voice
+  notes (server-side transcription).
 - [~] **Voice input (both agents).** In-app mic DONE via the Web Speech API
   (`components/app/useSpeechInput.ts` + a mic in `AgentChat`; live-fills the
   composer, degrades silently where unsupported). Still TODO: WhatsApp voice notes
