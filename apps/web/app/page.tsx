@@ -9,7 +9,8 @@ export default function Home() {
     <div
       className="relative min-h-screen overflow-x-hidden text-white [color-scheme:dark]"
       style={{
-        background: "linear-gradient(160deg,#0a2a12 0%,#0d3617 45%,#0a2a12 100%)",
+        // Deep navy from the Pesarc logo blue family.
+        background: "linear-gradient(160deg,#041a33 0%,#072a4d 45%,#041a33 100%)",
         fontFamily: "var(--font-geist), var(--font-sans), sans-serif",
       }}
     >
