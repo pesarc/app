@@ -38,8 +38,10 @@ export async function buildErc7677Client(opts: {
   chain: Chain;
   bundlerUrl: string;
   paymasterUrl: string;
+  /** Paymaster context (e.g. { sponsorshipPolicyId } for Pimlico). */
+  paymasterContext?: Record<string, unknown>;
 }): Promise<Erc7677SmartClient> {
-  const { signer, chain, bundlerUrl, paymasterUrl } = opts;
+  const { signer, chain, bundlerUrl, paymasterUrl, paymasterContext } = opts;
 
   const publicClient = createPublicClient({ chain, transport: http() });
 
@@ -59,6 +61,7 @@ export async function buildErc7677Client(opts: {
     client: publicClient,
     transport: http(bundlerUrl),
     paymaster,
+    ...(paymasterContext ? { paymasterContext } : {}),
   });
 
   return {
