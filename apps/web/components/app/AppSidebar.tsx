@@ -19,6 +19,7 @@ import {
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { usePersona } from "@pesarc/sdk/persona";
 import {
   Sidebar,
   SidebarContent,
@@ -57,6 +58,9 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export function AppSidebar({ pathname }: { pathname: string }) {
+  const { isBusiness } = usePersona();
+  // Retail users never see the business surface.
+  const money = MONEY.filter((it) => it.href !== "/business" || isBusiness);
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border">
       <SidebarHeader>
@@ -83,7 +87,7 @@ export function AppSidebar({ pathname }: { pathname: string }) {
           <SidebarGroupLabel>Money</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {MONEY.map((it) => (
+              {money.map((it) => (
                 <NavItem key={it.href} item={it} active={isActive(pathname, it.href)} />
               ))}
             </SidebarMenu>
