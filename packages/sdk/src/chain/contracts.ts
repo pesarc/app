@@ -103,8 +103,46 @@ const ARBITRUM_SEPOLIA: ContractSet = {
   ),
 };
 
+// Arc mainnet (chain 5042). Populated from the DeployArc.s.sol deployment via
+// NEXT_PUBLIC_ARC_HUB_* env. tokenUsd defaults to Arc's native USDC predeploy
+// (USDC is the gas token there); the rest stay empty until the hub is deployed.
+const ARC_MAINNET: ContractSet = {
+  poolManager: (process.env.NEXT_PUBLIC_ARC_HUB_POOL_MANAGER as `0x${string}`) || "",
+  hook: (process.env.NEXT_PUBLIC_ARC_HUB_HOOK as `0x${string}`) || "",
+  swapRouter: (process.env.NEXT_PUBLIC_ARC_HUB_SWAP_ROUTER as `0x${string}`) || "",
+  liquidityRouter:
+    (process.env.NEXT_PUBLIC_ARC_HUB_LIQUIDITY_ROUTER as `0x${string}`) || "",
+  safetyModule:
+    (process.env.NEXT_PUBLIC_ARC_HUB_SAFETY_MODULE as `0x${string}`) || "",
+  oracleAdapter:
+    (process.env.NEXT_PUBLIC_ARC_HUB_ORACLE_ADAPTER as `0x${string}`) || "",
+  stateView: (process.env.NEXT_PUBLIC_ARC_HUB_STATE_VIEW as `0x${string}`) || "",
+  tokenUsd:
+    (process.env.NEXT_PUBLIC_ARC_HUB_TOKEN_USD as `0x${string}`) ||
+    "0x3600000000000000000000000000000000000000", // native USDC predeploy
+  tokenNgn: (process.env.NEXT_PUBLIC_ARC_HUB_TOKEN_NGN as `0x${string}`) || "",
+  fee: Number(process.env.NEXT_PUBLIC_ARC_HUB_POOL_FEE || 8388608),
+  tickSpacing: Number(process.env.NEXT_PUBLIC_ARC_HUB_TICK_SPACING || 60),
+  quoter: (process.env.NEXT_PUBLIC_ARC_HUB_QUOTER as `0x${string}`) || "",
+  settlementNetting:
+    (process.env.NEXT_PUBLIC_ARC_HUB_SETTLEMENT_NETTING as `0x${string}`) || "",
+  intentMatcher:
+    (process.env.NEXT_PUBLIC_ARC_HUB_INTENT_MATCHER as `0x${string}`) || "",
+  realizedRateOracle:
+    (process.env.NEXT_PUBLIC_ARC_HUB_REALIZED_ORACLE as `0x${string}`) || "",
+  tokenGhs: (process.env.NEXT_PUBLIC_ARC_HUB_TOKEN_GHS as `0x${string}`) || "",
+  tokenKes: (process.env.NEXT_PUBLIC_ARC_HUB_TOKEN_KES as `0x${string}`) || "",
+  deployBlock: BigInt(process.env.NEXT_PUBLIC_ARC_HUB_DEPLOY_BLOCK || 0),
+  matcherDeployBlock: BigInt(process.env.NEXT_PUBLIC_ARC_HUB_MATCHER_BLOCK || 0),
+  bridgeDeployBlock: BigInt(process.env.NEXT_PUBLIC_ARC_HUB_BRIDGE_BLOCK || 0),
+};
+
 export const CONTRACTS: ContractSet =
-  HUB_CHAIN_ID === 11155111 ? SEPOLIA : ARBITRUM_SEPOLIA;
+  HUB_CHAIN_ID === 11155111
+    ? SEPOLIA
+    : HUB_CHAIN_ID === 5042
+      ? ARC_MAINNET
+      : ARBITRUM_SEPOLIA;
 
 /** True once the hub chain has a usable deployment wired up. */
 export const CONTRACTS_READY = Boolean(CONTRACTS.swapRouter && CONTRACTS.tokenUsd);
