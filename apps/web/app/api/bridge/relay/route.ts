@@ -19,7 +19,8 @@ const IRIS = "https://iris-api.circle.com";
 
 const schema = z.object({
   srcDomain: z.number().int().nonnegative(),
-  burnTx: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  // EVM burn tx (0x…64) or a Solana signature (base58, ~88 chars).
+  burnTx: z.string().regex(/^(0x[0-9a-fA-F]{64}|[1-9A-HJ-NP-Za-km-z]{64,90})$/),
   dstKey: z.string().min(1),
 });
 

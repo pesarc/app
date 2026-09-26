@@ -25,7 +25,10 @@ import {
   viemChainFor,
   evmBridgeChains,
   relayMint,
+  solanaRpc,
 } from "@pesarc/sdk/chain/cctp/bridge";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
+import { burnOnSolana, evmRecipient32 } from "@pesarc/sdk/svm/cctp";
 
 type Phase = "idle" | "switching" | "approving" | "burning" | "attesting" | "done" | "error";
 const ZERO32 = ("0x" + "0".repeat(64)) as `0x${string}`;
@@ -36,14 +39,19 @@ function eth(): any {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function BridgePage() {
-  const chains = useMemo(() => evmBridgeChains(), []);
+  const evmChains = useMemo(() => evmBridgeChains(), []);
+  // Source can be any CCTP chain (incl. Solana); destination is EVM/Arc for now
+  // (minting on Solana is a later phase).
+  const srcChains = useMemo(() => [...evmChains, CCTP_MAINNET.solana], [evmChains]);
+  const dstChains = evmChains;
+  const solanaSigner = useSolanaSigner();
   const [srcKey, setSrcKey] = useState("base");
   const [dstKey, setDstKey] = useState("arc");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [note, setNote] = useState("");
-  const [burnTx, setBurnTx] = useState<`0x${string}` | "">("");
+  const [burnTx, setBurnTx] = useState<string>("");
   const [mintTx, setMintTx] = useState<`0x${string}` | "">("");
   const [speed, setSpeed] = useState<"fast" | "standard">("fast");
   const [fastBps, setFastBps] = useState<number | null>(null);
@@ -85,62 +93,81 @@ export default function BridgePage() {
     try {
       if (srcKey === dstKey) throw new Error("Pick two different chains.");
       if (amountIn <= 0n) throw new Error("Enter an amount.");
-      const provider = eth();
-      if (!provider) throw new Error("No wallet found. Connect a wallet with USDC (e.g. MetaMask).");
-
-      const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
-      const to = (recipient.trim() || account) as `0x${string}`;
-      if (!/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error("Recipient is not a valid address.");
-
-      const chain = viemChainFor(src);
-      const wallet = createWalletClient({ account, chain, transport: custom(provider) });
-      const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
-
-      // Make sure the wallet is on the source chain.
-      setPhase("switching");
-      setNote(`Switch your wallet to ${src.label}…`);
-      try {
-        await wallet.switchChain({ id: src.chainId as number });
-      } catch (e: any) {
-        if (e?.code === 4902 || /Unrecognized|not.*added/i.test(e?.message || "")) {
-          await wallet.addChain({ chain });
-          await wallet.switchChain({ id: src.chainId as number });
-        } else throw e;
-      }
-
-      // Approve USDC to the TokenMessenger if needed.
-      const allowance = (await pub.readContract({
-        address: src.usdc as `0x${string}`,
-        abi: erc20ApproveAbi,
-        functionName: "allowance",
-        args: [account, TOKEN_MESSENGER_V2],
-      })) as bigint;
-      if (allowance < amountIn) {
-        setPhase("approving");
-        setNote("Approve USDC…");
-        const aTx = await wallet.writeContract({
-          address: src.usdc as `0x${string}`,
-          abi: erc20ApproveAbi,
-          functionName: "approve",
-          args: [TOKEN_MESSENGER_V2, amountIn],
-        });
-        await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
-      }
-
-      // Burn on the source. Fast (finality 1000) lands in seconds and deducts up
-      // to maxFee; Standard (2000) is free but settles at hard finality.
+      // Fast (finality 1000) lands in seconds and deducts up to maxFee; Standard
+      // (2000) is free but settles at hard finality.
       const useFast = speed === "fast" && fastBps != null;
       const maxFee = useFast ? maxFeeFor(amountIn, fastBps as number) : 0n;
       const finality = useFast ? FINALITY.fast : FINALITY.standard;
-      setPhase("burning");
-      setNote(`Burning ${amount} USDC on ${src.label}…`);
-      const bTx = await wallet.writeContract({
-        address: TOKEN_MESSENGER_V2,
-        abi: tokenMessengerV2Abi,
-        functionName: "depositForBurn",
-        args: [amountIn, dst.domain, toBytes32(to), src.usdc as `0x${string}`, ZERO32, maxFee, finality],
-      });
-      await pub.waitForTransactionReceipt({ hash: bTx, timeout: 60_000 });
+
+      let bTx: string;
+      if (src.kind === "solana") {
+        // Solana source → EVM/Arc destination (mint happens on the EVM side).
+        if (!solanaSigner) throw new Error("Connect your Solana wallet to bridge from Solana.");
+        const to = recipient.trim();
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
+          throw new Error(`Enter the destination address on ${dst.label} (0x…).`);
+        }
+        setPhase("burning");
+        setNote(`Burning ${amount} USDC on Solana…`);
+        bTx = await burnOnSolana(solanaSigner, solanaRpc(), {
+          amount: amountIn,
+          destinationDomain: dst.domain,
+          mintRecipient: evmRecipient32(to),
+          maxFee,
+          minFinalityThreshold: finality,
+        });
+      } else {
+        // EVM source: injected wallet approves + burns.
+        const provider = eth();
+        if (!provider) throw new Error("No wallet found. Connect a wallet with USDC (e.g. MetaMask).");
+        const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
+        const to = (recipient.trim() || account) as `0x${string}`;
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error("Recipient is not a valid address.");
+
+        const chain = viemChainFor(src);
+        const wallet = createWalletClient({ account, chain, transport: custom(provider) });
+        const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+
+        setPhase("switching");
+        setNote(`Switch your wallet to ${src.label}…`);
+        try {
+          await wallet.switchChain({ id: src.chainId as number });
+        } catch (e: any) {
+          if (e?.code === 4902 || /Unrecognized|not.*added/i.test(e?.message || "")) {
+            await wallet.addChain({ chain });
+            await wallet.switchChain({ id: src.chainId as number });
+          } else throw e;
+        }
+
+        const allowance = (await pub.readContract({
+          address: src.usdc as `0x${string}`,
+          abi: erc20ApproveAbi,
+          functionName: "allowance",
+          args: [account, TOKEN_MESSENGER_V2],
+        })) as bigint;
+        if (allowance < amountIn) {
+          setPhase("approving");
+          setNote("Approve USDC…");
+          const aTx = await wallet.writeContract({
+            address: src.usdc as `0x${string}`,
+            abi: erc20ApproveAbi,
+            functionName: "approve",
+            args: [TOKEN_MESSENGER_V2, amountIn],
+          });
+          await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
+        }
+
+        setPhase("burning");
+        setNote(`Burning ${amount} USDC on ${src.label}…`);
+        const evmBurn = await wallet.writeContract({
+          address: TOKEN_MESSENGER_V2,
+          abi: tokenMessengerV2Abi,
+          functionName: "depositForBurn",
+          args: [amountIn, dst.domain, toBytes32(to), src.usdc as `0x${string}`, ZERO32, maxFee, finality],
+        });
+        await pub.waitForTransactionReceipt({ hash: evmBurn, timeout: 60_000 });
+        bTx = evmBurn;
+      }
       setBurnTx(bTx);
 
       // Wait for Circle's attestation, then the relayer mints on the destination.
@@ -187,7 +214,7 @@ export default function BridgePage() {
               onChange={(e) => setSrcKey(e.target.value)}
               disabled={busy}
             >
-              {chains.map((c) => (
+              {srcChains.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
@@ -200,7 +227,7 @@ export default function BridgePage() {
               onChange={(e) => setDstKey(e.target.value)}
               disabled={busy}
             >
-              {chains.map((c) => (
+              {dstChains.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
@@ -293,8 +320,9 @@ export default function BridgePage() {
       </Card>
 
       <p className="mt-3 text-xs text-black/40">
-        Phase 1 covers EVM chains and Arc over CCTP. Solana and non-CCTP chains
-        (e.g. Algorand, via an aggregator) come next.
+        Source: any CCTP chain incl. Solana and Arc. Destination: EVM/Arc for now
+        (minting on Solana, and non-CCTP chains like Algorand via an aggregator,
+        come next). Test a small amount on a new corridor first.
       </p>
     </div>
   );

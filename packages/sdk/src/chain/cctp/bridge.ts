@@ -127,9 +127,15 @@ export type RelayResult =
  * pays destination gas, which is what lets it fund an otherwise-empty wallet,
  * e.g. a fresh Arc address).
  */
+/** Solana mainnet RPC (env override, else a public endpoint). */
+export function solanaRpc(): string {
+  return process.env.NEXT_PUBLIC_SOLANA_MAINNET_RPC_URL || "https://api.mainnet-beta.solana.com";
+}
+
 export async function relayMint(input: {
   srcDomain: number;
-  burnTx: `0x${string}`;
+  /** EVM 0x hash or a Solana base58 signature. */
+  burnTx: string;
   dstKey: string;
 }): Promise<RelayResult> {
   const res = await fetch("/api/bridge/relay", {
