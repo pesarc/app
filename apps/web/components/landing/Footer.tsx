@@ -6,10 +6,9 @@ const COLUMNS = [
   {
     title: "Product",
     links: [
-      { label: "Send", href: "/send" },
-      { label: "Earn", href: "/earn" },
-      { label: "Business", href: "/business" },
-      { label: "Pricing", href: "/#corridor" },
+      { label: "Features", href: "/#features" },
+      { label: "Networks", href: "/#networks" },
+      { label: "Beta access", href: "/#beta" },
     ],
   },
   {
@@ -34,7 +33,10 @@ const COLUMNS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-harbor text-white pt-20 pb-10 px-6 md:px-12">
+    <footer
+      className="relative text-white pt-20 pb-10 px-6 md:px-12"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.18)" }}
+    >
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
         <div className="lg:col-span-2 flex flex-col items-start">
           <div className="flex items-center gap-3 mb-6">
