@@ -104,9 +104,14 @@ so their gasless is **inherently in-house — no Circle or third party**:
   co-signs a user-signed tx as the fee payer (user pays 0 SOL) and only sponsors
   txs where every instruction targets an allow-listed program, so the relayer's
   SOL can't be drained. Enable with `SVM_FEE_PAYER_SECRET`.
-- **Algorand** — **fee pooling**: a sponsor account pays the fee inside an atomic
-  group (user txn fee = 0). Native to Algorand, fully in-house, no AA. Build it
-  when native Algorand tx flows land (today Algorand is bridge-only via Wormhole).
+- **Algorand** — **fee pooling**, in-house and BUILT: `/api/algorand/sponsor` +
+  `sdk/algorand/sponsor.ts`. The client builds an atomic group of its txns (fee 0)
+  plus one sponsor fee-cover self-payment; the relayer co-signs ONLY that self-pay
+  (amount 0, from==to==sponsor, fee ≤ `ALGO_SPONSOR_MAX_FEE`, optional app
+  allow-list) and submits. The sponsor never signs anything that moves its funds,
+  so its exposure is just the pooled fee. Enable with `ALGO_SPONSOR_MNEMONIC`.
+  Verified: valid group validates + co-signs; a sponsor txn that pays out or
+  exceeds the fee cap is rejected.
 
 So the "third-party vs in-house" question is only about EVM/Arc — and even there
 the seam lets us own it after audit. SVM is already ours; Algorand will be too.
