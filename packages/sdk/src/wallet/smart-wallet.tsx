@@ -17,11 +17,8 @@ import { encodeFunctionData, type LocalAccount } from "viem";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { erc20Abi } from "@pesarc/abi";
-import {
-  ALCHEMY_API_KEY,
-  gasPolicyFor,
-  isSmartWalletConfigured,
-} from "./config";
+import { isSmartWalletConfigured } from "./config";
+import { getGasSponsor } from "./gasSponsor";
 
 export type Call = {
   to: `0x${string}`;
@@ -91,20 +88,38 @@ export function LiveSmartWalletProvider({
   const { chain: activeEvm } = useActiveEvmChain();
 
   const client = useMemo(() => {
-    if (!isSmartWalletConfigured || !signer) return null;
-    try {
-      return createSmartWalletClient({
-        signer,
-        transport: alchemyWalletTransport({ apiKey: ALCHEMY_API_KEY }),
-        chain: activeEvm.chain,
-        paymaster: { policyId: gasPolicyFor(activeEvm.key) },
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    if (!signer) return null;
+    // The gas sponsor is resolved per chain by the seam (gasSponsor.ts).
+    const sponsor = getGasSponsor(activeEvm.key);
+    if (sponsor.kind === "alchemy") {
+      try {
+        return createSmartWalletClient({
+          signer,
+          transport: alchemyWalletTransport({ apiKey: sponsor.apiKey }),
+          chain: activeEvm.chain,
+          paymaster: { policyId: sponsor.policyId },
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    }
+    if (sponsor.kind === "erc7677") {
+      // Arc / Circle / in-house path: a standard ERC-4337 client pointed at the
+      // bundler + the ERC-7677 paymaster service. Deliberately not constructed
+      // here until it can be integration-tested on Arc (money path, fail-closed
+      // rule). Circle (fast) or the in-house paymaster (survivable) both drop in
+      // here — see docs/GAS_SPONSORSHIP.md for the exact client wiring.
+      if (typeof console !== "undefined") {
+        console.warn(
+          `[smart-wallet] ERC-7677 sponsor (${sponsor.provider}) resolved for ${activeEvm.key} but the AA client is not wired yet — see docs/GAS_SPONSORSHIP.md`,
+        );
+      }
       return null;
     }
+    return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signer, activeEvm.chain.id]);
+  }, [signer, activeEvm.chain.id, activeEvm.key]);
 
   const sendCalls = useCallback(
     async (calls: Call[]) => {
