@@ -16,6 +16,7 @@
     "@alchemy/wallet-apis": "^5.0.6",
     "@pesarc/abi": "workspace:*",
     "@privy-io/react-auth": "^3.32.0",
+    "algosdk": "^2.9.0",
     "@privy-io/server-auth": "^1.32.5",
     "@solana/web3.js": "^1.99.0",
     "next": "15.2.8",
