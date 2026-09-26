@@ -11,6 +11,16 @@ pragma solidity ^0.8.23;
 // getHash() MUST stay byte-identical to sdk/paymaster/verifying.ts:getSponsorHash
 // so the off-chain signature recovers on-chain.
 //
+// ARC / ERC-7562 compliance (per circlefin/arc-node docs/erc-4337.md):
+//   - _validatePaymasterUserOp is `view` and writes NO global storage during the
+//     validation phase, and it carries NO `nonReentrant` guard — an unstaked
+//     paymaster that writes global state (e.g. a reentrancy lock) in validation
+//     is silently dropped by Pimlico/compliant bundlers. onlyEntryPoint (via
+//     BasePaymaster) is sufficient; the EntryPoint never re-enters validation.
+//   - Default solc >= 0.8.20 deploys fine on Arc (the old evmVersion:"paris" /
+//     PUSH0 / single-immutable constraints were dropped after an Arc upgrade).
+//   Put any reentrancy protection on postOp (execution phase), not validation.
+//
 // AUDIT REQUIRED before Arc mainnet. A bug here drains the paymaster deposit.
 
 import {BasePaymaster} from "@account-abstraction/contracts/core/BasePaymaster.sol";
