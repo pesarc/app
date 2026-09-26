@@ -349,7 +349,7 @@ export default function Globe({ controls }: Props) {
 
       const cx = W / 2;
       const cy = H / 2;
-      const R = Math.min(W, H) * 0.36;
+      const R = Math.min(W, H) * 0.44;
       lastCx = cx;
       lastCy = cy;
       lastR = R;
