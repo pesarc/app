@@ -36,7 +36,7 @@ export default function CorridorPreview() {
 
   return (
     <div
-      className="w-[300px] rounded-2xl p-4 overflow-hidden backdrop-blur-md"
+      className="w-full max-w-[340px] lg:w-[300px] lg:max-w-none rounded-2xl p-4 overflow-hidden backdrop-blur-md"
       style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)" }}
     >
       <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60 mb-3">

@@ -83,10 +83,22 @@ export default function AgentPreview() {
   const [visible, setVisible] = useState(0); // fully-revealed line count
   const [typing, setTyping] = useState(false);
   const [streamed, setStreamed] = useState(""); // partial text of the streaming agent line
+  const [paused, setPaused] = useState(false); // hover-to-pause so it can be read
   const streamRef = useRef<ReturnType<typeof setInterval>>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // While hovered, freeze on a fully-readable frame: reveal the whole current
+  // exchange at once and stop advancing, so the reader can catch up.
   useEffect(() => {
+    if (!paused) return;
+    if (streamRef.current) clearInterval(streamRef.current);
+    setTyping(false);
+    setStreamed("");
+    setVisible(SCENES[scene].lines.length);
+  }, [paused, scene]);
+
+  useEffect(() => {
+    if (paused) return;
     const lines = SCENES[scene].lines;
 
     if (visible >= lines.length) {
@@ -125,7 +137,7 @@ export default function AgentPreview() {
       clearTimeout(t1);
       if (streamRef.current) clearInterval(streamRef.current);
     };
-  }, [scene, visible]);
+  }, [scene, visible, paused]);
 
   // Keep the newest content in view within the fixed-height scroll area.
   useEffect(() => {
@@ -138,7 +150,13 @@ export default function AgentPreview() {
   const streamingLine = streamed ? lines[visible] : null;
 
   return (
-    <div className="w-[300px] rounded-card bg-white/10 border border-white/15 overflow-hidden">
+    <div
+      className="w-full max-w-[340px] lg:w-[300px] lg:max-w-none rounded-card bg-white/10 border border-white/15 overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/10">
         <span className="w-8 h-8 rounded-full bg-[#3AA0FF]/15 flex items-center justify-center text-[#3AA0FF]">
@@ -147,7 +165,10 @@ export default function AgentPreview() {
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-extrabold text-white leading-tight">Pesarc agent</div>
           <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-white/50">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" /> online
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${paused ? "bg-white/40" : "bg-[#22c55e]"}`}
+            />
+            {paused ? "paused" : "online"}
           </div>
         </div>
         <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/50">
