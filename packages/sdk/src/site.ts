@@ -5,7 +5,7 @@ export const site = {
   name: "Pesarc",
   tagline: "Send money home in under a minute.",
   description:
-    "Pesarc is one gasless app to send, hold, earn, and settle money across borders. No seed phrase, no gas tokens, no crypto jargon — money the way you already think about it.",
+    "Pesarc is one gasless app to send, hold, earn, and settle money across borders. No seed phrase, no gas tokens, no crypto jargon, money the way you already think about it.",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://pesarc.money",
   // The dashboard lives on its own host in production (app.pesarc.xyz) while the
   // landing lives on the apex. Set NEXT_PUBLIC_APP_URL to that origin so the
@@ -26,9 +26,9 @@ export const site = {
   ],
   protocolVersion: "Protocol v1.0",
   nav: [
-    { label: "Modes", href: "/#modes" },
-    { label: "Corridors", href: "/#corridor" },
-    { label: "Rails", href: "/#rails" },
+    { label: "Features", href: "/#features" },
+    { label: "Networks", href: "/#networks" },
+    { label: "Beta", href: "/#beta" },
   ],
   appNav: [
     { label: "Home", href: "/home" },

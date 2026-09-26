@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, JetBrains_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { site } from "@pesarc/sdk/site";
 import Analytics from "@/components/Analytics";
@@ -8,6 +8,14 @@ const manrope = Manrope({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+// Display face for the coin-compass landing.
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 
@@ -68,7 +76,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jetbrainsMono.variable} antialiased`}
+      className={`${manrope.variable} ${jetbrainsMono.variable} ${geist.variable} antialiased`}
     >
       <body className="overflow-x-hidden">
         {children}

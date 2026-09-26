@@ -90,14 +90,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
 function fmtPop(n?: number): string {
-  if (!n) return "—";
+  if (!n) return "-";
   if (n >= 1e9) return trimZeros((n / 1e9).toFixed(2)) + "B";
   if (n >= 1e6) return trimZeros((n / 1e6).toFixed(n >= 1e7 ? 0 : 1)) + "M";
   if (n >= 1e3) return Math.round(n / 1e3) + "K";
   return String(n);
 }
 function fmtUSD(n?: number): string {
-  if (!n) return "—";
+  if (!n) return "-";
   if (n >= 1e12) return "$" + trimZeros((n / 1e12).toFixed(2)) + "T";
   if (n >= 1e9) return "$" + Math.round(n / 1e9) + "B";
   if (n >= 1e6) return "$" + Math.round(n / 1e6) + "M";
@@ -364,9 +364,9 @@ export default function Globe({ controls }: Props) {
         cy,
         R * 1.02
       );
-      ocean.addColorStop(0, "#164675");
-      ocean.addColorStop(0.55, "#0c2c4e");
-      ocean.addColorStop(1, "#07182e");
+      ocean.addColorStop(0, "#0e3a1e");
+      ocean.addColorStop(0.55, "#0a2712");
+      ocean.addColorStop(1, "#05130a");
       ctx.fillStyle = ocean;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -379,13 +379,13 @@ export default function Globe({ controls }: Props) {
       // coastlines read crisp, each landmass a slightly different sky-lifted
       // tone. High land/ocean contrast is what keeps the sphere from looking
       // soft.
-      const base = [58, 108, 158];
+      const base = [30, 82, 44];
       for (let si = 0; si < shapes.length; si++) {
         const s = shapes[si];
         const isHover = si === hoveredIdx;
         const k = 0.16 + 0.5 * s.t;
         ctx.fillStyle = isHover
-          ? "rgb(93, 173, 255)"
+          ? "rgb(200, 245, 66)"
           : `rgb(${Math.round(base[0] + (ar - base[0]) * k)}, ${Math.round(
               base[1] + (ag - base[1]) * k
             )}, ${Math.round(base[2] + (ab - base[2]) * k)})`;
@@ -436,7 +436,7 @@ export default function Globe({ controls }: Props) {
             ctx.closePath();
             ctx.fill();
             // Crisp sky-tinted coastline for definition; brighter when hovered.
-            ctx.strokeStyle = isHover ? "rgba(210, 233, 255, 0.95)" : "rgba(150, 200, 255, 0.30)";
+            ctx.strokeStyle = isHover ? "rgba(232, 250, 190, 0.95)" : "rgba(200, 245, 66, 0.28)";
             ctx.lineWidth = isHover ? 1.1 : 0.7;
             ctx.stroke();
           }
