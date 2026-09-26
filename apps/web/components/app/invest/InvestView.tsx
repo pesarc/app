@@ -1,11 +1,12 @@
 "use client";
 
 // Invest — buy stocks & ETFs across Global-South and global markets in each
-// market's local currency. Demo/paper-trade: a "buy" records a local holding
-// (localStorage) and updates the portfolio; a real deployment routes to a
-// tokenized-equity / broker adapter. No real securities order is placed.
+// market's local currency. Holdings are durable server records (/api/invest),
+// and orders route through the broker adapter (broker.ts): a simulated
+// paper-trade by default, a real tokenized-equity / broker when BROKER_API_URL
+// is set. Prices are indicative until a live market-data feed is wired.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, TrendingDown, X, Check, Search, Loader2 } from "lucide-react";
 import {
@@ -19,6 +20,7 @@ import { toInstrument } from "@pesarc/sdk/catalog-map";
 import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { getBroker } from "@pesarc/sdk/broker";
+import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { Pagination, usePaged } from "@/components/app/Pagination";
@@ -27,16 +29,6 @@ import { Stagger, StaggerItem } from "@/components/motion";
 const PER_PAGE = 8;
 
 type Holding = { symbol: string; shares: number; costCcy: string; cost: number };
-const KEY = "pesarc.holdings";
-
-function loadHoldings(): Holding[] {
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Holding[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 const FILTERS: { value: InstrumentFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -55,7 +47,26 @@ export default function InvestView() {
   // catalog if the store is empty/unreachable), so admin edits show up here.
   const [instruments, setInstruments] = useState<Instrument[]>(INSTRUMENTS);
 
-  useEffect(() => setHoldings(loadHoldings()), []);
+  // Holdings are durable server records now (scoped to the account).
+  const loadHoldings = useCallback(async () => {
+    try {
+      const r = await authedFetch("/api/invest").then((res) => res.json());
+      if (!r?.ok) return;
+      setHoldings(
+        (r.holdings as { symbol: string; shares: number; avgPrice: number }[]).map((h) => {
+          const inst = INSTRUMENTS.find((i) => i.symbol === h.symbol);
+          const ccy = inst ? MARKETS[inst.market].currency : "USD";
+          return { symbol: h.symbol, shares: h.shares, costCcy: ccy, cost: h.shares * h.avgPrice };
+        }),
+      );
+    } catch {
+      /* keep current */
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHoldings();
+  }, [loadHoldings]);
   useEffect(() => {
     let alive = true;
     fetch("/api/catalog?kind=stocks")
@@ -74,46 +85,27 @@ export default function InvestView() {
   }, []);
 
   const buy = async (inst: Instrument, shares: number) => {
-    const m = marketOf(inst);
-    // Route through the broker adapter (simulated by default, real when
-    // NEXT_PUBLIC_BROKER_API_URL is set). Records the paper position on fill.
-    const res = await getBroker().placeOrder({ symbol: inst.symbol, shares, side: "buy" });
-    if (!res.ok) {
+    // The server routes through the broker adapter (simulated by default, real
+    // when BROKER_API_URL is set) and persists the resulting holding.
+    try {
+      const res = await authedPostJson("/api/invest", {
+        symbol: inst.symbol,
+        shares,
+        side: "buy",
+      }).then((r) => r.json());
       setTicket(null);
-      return;
+      if (res?.ok) await loadHoldings();
+    } catch {
+      setTicket(null);
     }
-    const cost = shares * (res.filledPrice ?? inst.price);
-    setHoldings((prev) => {
-      const existing = prev.find((h) => h.symbol === inst.symbol);
-      const next = existing
-        ? prev.map((h) =>
-            h.symbol === inst.symbol
-              ? { ...h, shares: h.shares + shares, cost: h.cost + cost }
-              : h
-          )
-        : [...prev, { symbol: inst.symbol, shares, costCcy: m.currency, cost }];
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-    setTicket(null);
   };
 
-  // Cash out a position: sell all shares via the broker and clear the holding.
+  // Cash out a position: sell all shares through the broker, then reload.
   const cashOut = async (h: Holding) => {
-    await getBroker().placeOrder({ symbol: h.symbol, shares: h.shares, side: "sell" }).catch(() => {});
-    setHoldings((prev) => {
-      const next = prev.filter((x) => x.symbol !== h.symbol);
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    await authedPostJson("/api/invest", { symbol: h.symbol, shares: h.shares, side: "sell" }).catch(
+      () => {},
+    );
+    await loadHoldings();
   };
 
   // Portfolio value in the user's default currency (cross-FX via midMarketRate).
@@ -152,6 +144,11 @@ export default function InvestView() {
           Buy stocks &amp; ETFs across African and global markets — priced and settled in local
           currency.
         </p>
+        {!getBroker().live && (
+          <span className="inline-flex items-center gap-1.5 mt-2.5 rounded-full bg-black/[0.05] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-slate">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate" /> Preview prices
+          </span>
+        )}
       </header>
 
       {/* Portfolio + search */}
