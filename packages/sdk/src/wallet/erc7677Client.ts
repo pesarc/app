@@ -1,19 +1,23 @@
 // The ERC-7677 smart-wallet client for Arc: a viem ERC-4337 bundler client with
-// an ERC-7677 paymaster (Circle Gas Station OR our in-house /api/paymaster —
-// same interface). Adapts to the app's { sendCalls, waitForCallsStatus } shape
-// so the rest of the wallet layer is provider-agnostic.
+// an ERC-7677 paymaster (Circle Paymaster OR our in-house /api/paymaster — same
+// interface). Adapts to the app's { sendCalls, waitForCallsStatus } shape so the
+// rest of the wallet layer is provider-agnostic.
 //
-// INTEGRATION NOTE: needs an Arc bundler URL + a funded paymaster to run, and the
-// chosen smart-account factory must be deployed on Arc. Defaults to Coinbase
-// Smart Wallet (in viem); if Circle recommends a different account, swap the
-// implementation here. Verify against Arc before mainnet — money path.
+// Wired to Circle's Arc ERC-4337 guide (circlefin/arc-node, docs/erc-4337.md):
+// SimpleAccount (permissionless.js) + canonical EntryPoint v0.7. The account
+// address is deterministic across chains for the same owner (matches the CCTP
+// address). Keeping viem's createBundlerClient + createPaymasterClient means any
+// bundler (Pimlico) and any ERC-7677 paymaster (Circle / in-house) drop in.
+//
+// INTEGRATION NOTE: needs an Arc bundler URL + a paymaster with a funded gas
+// vault. Verify against Arc before mainnet — money path.
 
 import { createPublicClient, http, type Chain, type Hex, type LocalAccount } from "viem";
-import {
-  createBundlerClient,
-  createPaymasterClient,
-  toCoinbaseSmartAccount,
-} from "viem/account-abstraction";
+import { createBundlerClient, createPaymasterClient } from "viem/account-abstraction";
+import { toSimpleSmartAccount } from "permissionless/accounts";
+
+// Canonical ERC-4337 v0.7 EntryPoint (same CREATE2 address on Arc and every EVM).
+const ENTRY_POINT = "0x0000000071727De22E5E9d8BAf0edAc6f37da032" as const;
 
 type CallInput = { to: `0x${string}`; value?: bigint; data?: `0x${string}` };
 
@@ -39,11 +43,12 @@ export async function buildErc7677Client(opts: {
 
   const publicClient = createPublicClient({ chain, transport: http() });
 
-  // Counterfactual smart account owned by the Privy embedded signer.
-  const account = await toCoinbaseSmartAccount({
+  // Counterfactual SimpleAccount owned by the Privy embedded signer (the account
+  // Circle's Arc guide validates). Deterministic address across chains.
+  const account = await toSimpleSmartAccount({
     client: publicClient,
-    owners: [signer],
-    version: "1.1",
+    owner: signer,
+    entryPoint: { address: ENTRY_POINT, version: "0.7" },
   });
 
   // ERC-7677 paymaster service (getPaymasterStubData / getPaymasterData).

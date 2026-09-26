@@ -73,26 +73,50 @@ adapted to the app's `{ sendCalls, waitForCallsStatus }` shape. `smart-wallet.ts
 builds it asynchronously in an effect, and it activates only when a bundler URL is
 configured. Circle and in-house resolve to the same client — wired once.
 
+Per Circle's Arc guide (`circlefin/arc-node`, `docs/erc-4337.md`) the account is
+**SimpleAccount** via `permissionless.js` `toSimpleSmartAccount` (deterministic
+address across chains — matches the CCTP address), on the canonical EntryPoint
+v0.7 `0x0000000071727De22E5E9d8BAf0edAc6f37da032`. `erc7677Client.ts` is wired to
+exactly that.
+
 Verified: viem's real `createPaymasterClient` round-trips against `/api/paymaster`
 (getPaymasterStubData + getPaymasterData both return the paymaster + a 77-byte
 paymasterData). The bundler leg is the remaining integration step — it needs an
-Arc bundler URL + a funded paymaster, and the smart-account factory (Coinbase
-Smart Wallet by default) must be deployed on Arc. Swap the account implementation
-in `erc7677Client.ts` if Circle recommends a different one.
+Arc bundler URL (Pimlico) + a paymaster with a funded gas vault.
 
-## Circle Gas Station URLs (what to obtain)
+## Arc bundler + paymaster URLs (exact, from Circle's guide)
 
-From Circle's Gas Station / Arc developer console:
+Source: Circle's `circlefin/arc-node` `docs/erc-4337.md`. Arc facts:
 
-- `NEXT_PUBLIC_CIRCLE_PAYMASTER_URL` — Circle's ERC-7677 paymaster service URL for
-  Arc (the endpoint exposing `pm_getPaymasterStubData` / `pm_getPaymasterData`).
-- `NEXT_PUBLIC_ARC_BUNDLER_URL` — an ERC-4337 bundler RPC for Arc (Circle's, or a
-  public Arc bundler). EntryPoint on Arc is the canonical v0.7
-  `0x0000000071727De22E5E9d8BAf0edAc6f37da032`.
-- Set `NEXT_PUBLIC_GAS_SPONSOR_ARC=circle`.
+- EntryPoint v0.7: `0x0000000071727De22E5E9d8BAf0edAc6f37da032` (canonical).
+- USDC (native gas token): `0x3600000000000000000000000000000000000000`
+  (18-decimal for native gas accounting, 6-decimal ERC-20 interface).
+- Arc RPC: `https://rpc.testnet.arc.io` (5042002) / `https://rpc.mainnet.arc.io` (5042).
 
-Confirm which smart-account factory Circle expects; if it is not the Coinbase
-Smart Wallet, point `erc7677Client.ts` at that account implementation.
+**Bundler** (`NEXT_PUBLIC_ARC_BUNDLER_URL`) — Pimlico is recommended:
+`https://api.pimlico.io/v2/<chainId>/rpc?apikey=<PIMLICO_API_KEY>`
+(chainId 5042 mainnet / 5042002 testnet). Get the key at dashboard.pimlico.io.
+
+**Paymaster** (`NEXT_PUBLIC_CIRCLE_PAYMASTER_URL`) — any ERC-7677 service:
+- **Circle Paymaster** (users pay gas in USDC; permissionless) — natural on Arc
+  since USDC is the gas token. See developers.circle.com/paymaster.
+- **Pimlico's paymaster** (sponsorship) — one provider for bundler + paymaster.
+- **In-house** — `NEXT_PUBLIC_GAS_SPONSOR_ARC=inhouse` + `/api/paymaster`.
+
+Then set `NEXT_PUBLIC_GAS_SPONSOR_ARC=circle` (or `inhouse`).
+
+### USDC decimal split (for a USDC-charging paymaster)
+
+A paymaster that converts `maxCost` (18-decimal native) to a USDC (6-decimal)
+charge divides by `1e12`. Relevant only for a USDC-charging paymaster, not our
+sponsored VerifyingPaymaster.
+
+### ERC-7562 rule that bit others (our contract already complies)
+
+`validatePaymasterUserOp` must NOT write global storage or use `nonReentrant`
+for an unstaked paymaster — Pimlico silently drops such UserOps. Our
+`VerifyingPaymaster.sol` validation is a `view` function with no storage writes,
+so it complies; put any reentrancy guard on `postOp`, never on validation.
 
 ## Gasless across VMs — only EVM needs a paymaster
 

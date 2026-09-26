@@ -136,10 +136,14 @@ present.
   a matching `docs/contracts/VerifyingPaymaster.sol` reference, and
   `docs/GAS_SPONSORSHIP.md`. Verified: signature recovers to the signer,
   paymasterData is 77 bytes, and the endpoint returns stub/signed/errors correctly.
-  The erc7677 wallet client is WIRED (`sdk/wallet/erc7677Client.ts`, viem AA:
-  bundler + ERC-7677 paymaster + Coinbase smart account; built async in
-  `smart-wallet.tsx`, activates only with a bundler URL). Verified viem's real
-  paymaster client round-trips against `/api/paymaster`. Multi-VM gasless mapped:
+  The erc7677 wallet client is WIRED to Circle's Arc guide
+  (`sdk/wallet/erc7677Client.ts`: SimpleAccount via permissionless + canonical
+  EntryPoint v0.7 + viem bundler/ERC-7677 paymaster; built async in
+  `smart-wallet.tsx`, activates only with a bundler URL). Bundler = Pimlico
+  (`api.pimlico.io/v2/<chainId>/rpc`). Verified viem's real paymaster client
+  round-trips against `/api/paymaster`, and SimpleAccount + bundler client
+  construction wire up. The VerifyingPaymaster is ERC-7562 compliant (view
+  validation, no nonReentrant). Multi-VM gasless mapped:
   EVM=paymaster (seam), Solana=fee-payer relayer (already in-house,
   `/api/svm/sponsor`), Algorand=fee-pooling (in-house, when native flows land).
   Still TODO / `[!]`: an Arc bundler URL + funded paymaster to integration-test the
