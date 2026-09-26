@@ -7,7 +7,8 @@
 // in later phases.
 import { useEffect, useMemo, useState } from "react";
 import { createWalletClient, createPublicClient, custom, http } from "viem";
-import { Button, Card } from "@/components/app/ui";
+import { Button, Card, Select, Segmented } from "@/components/app/ui";
+import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
 import {
   CCTP_MAINNET,
   TOKEN_MESSENGER_V2,
@@ -68,6 +69,7 @@ export default function BridgePage() {
   const [feeLoading, setFeeLoading] = useState(false);
   const [lifiQ, setLifiQ] = useState<LifiQuote | null>(null);
   const [lifiLoading, setLifiLoading] = useState(false);
+  const [mode, setMode] = useState<"usdc" | "algorand">("usdc");
 
   const src = CCTP_MAINNET[srcKey];
   const dst = CCTP_MAINNET[dstKey];
@@ -318,18 +320,33 @@ export default function BridgePage() {
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-6">
-      <h1 className="text-xl font-extrabold tracking-tight">Bridge USDC</h1>
+      <h1 className="text-xl font-extrabold tracking-tight">Bridge</h1>
       <p className="mt-1 text-sm text-black/60">
-        Native USDC across chains over Circle CCTP. Non-custodial — you burn, the
-        network mints on the other side.
+        Move USDC across chains over Circle CCTP + LI.FI, or bridge Algorand
+        assets via Wormhole. Non-custodial.
       </p>
 
+      <div className="mt-4">
+        <Segmented
+          aria-label="Bridge mode"
+          value={mode}
+          onChange={(v) => setMode(v)}
+          options={[
+            { value: "usdc", label: "USDC (CCTP/LI.FI)" },
+            { value: "algorand", label: "Algorand (Wormhole)" },
+          ]}
+        />
+      </div>
+
+      {mode === "algorand" && <WormholeAlgorand />}
+
+      {mode === "usdc" && (
       <Card className="mt-4 flex flex-col gap-4 p-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-xs font-bold text-black/60">
             From
-            <select
-              className="mt-1 w-full rounded-lg border border-black/10 bg-white p-2 text-sm font-semibold text-black"
+            <Select
+              className="mt-1"
               value={srcKey}
               onChange={(e) => setSrcKey(e.target.value)}
               disabled={busy}
@@ -337,12 +354,12 @@ export default function BridgePage() {
               {srcChains.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="text-xs font-bold text-black/60">
             To
-            <select
-              className="mt-1 w-full rounded-lg border border-black/10 bg-white p-2 text-sm font-semibold text-black"
+            <Select
+              className="mt-1"
               value={dstKey}
               onChange={(e) => setDstKey(e.target.value)}
               disabled={busy}
@@ -350,7 +367,7 @@ export default function BridgePage() {
               {dstChains.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
-            </select>
+            </Select>
           </label>
         </div>
 
@@ -468,12 +485,15 @@ export default function BridgePage() {
           </a>
         )}
       </Card>
+      )}
 
-      <p className="mt-3 text-xs text-black/40">
-        EVM ↔ EVM/Arc and Solana → EVM use native Circle CCTP; EVM → Solana routes
-        via LI.FI. Algorand (via Wormhole) is next. Test a small amount on any new
-        corridor first.
-      </p>
+      {mode === "usdc" && (
+        <p className="mt-3 text-xs text-black/40">
+          EVM ↔ EVM/Arc and Solana → EVM use native Circle CCTP; EVM → Solana
+          routes via LI.FI. Algorand uses Wormhole (switch above). Test a small
+          amount on any new corridor first.
+        </p>
+      )}
     </div>
   );
 }
