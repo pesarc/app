@@ -4,7 +4,9 @@ import {
   verifyWhatsAppSignature,
   parseIncoming,
   sendWhatsAppText,
+  fetchWhatsAppMedia,
 } from "@pesarc/sdk/whatsapp";
+import { transcribeConfigured, transcribeAudio } from "@pesarc/sdk/transcribe";
 import { runAgentTurn } from "@pesarc/sdk/agent/run";
 
 export const runtime = "nodejs";
@@ -59,18 +61,41 @@ export async function POST(request: Request) {
   // Status callbacks / non-messages: acknowledge and stop.
   if (!msg || !firstTime(msg.id)) return NextResponse.json({ ok: true });
 
-  // Only text is bridged for now; voice notes need transcription (next).
-  if (msg.type !== "text" || !msg.text) {
+  // Resolve the user's words: text directly, or a transcribed voice note.
+  let words = msg.text?.trim() ?? "";
+  if (!words && msg.type === "audio" && msg.audioId) {
+    if (!transcribeConfigured()) {
+      await sendWhatsAppText(
+        msg.from,
+        "I can't hear voice notes just yet — type what you'd like to do, like “buy 1GB of MTN data for 08031234567”.",
+      );
+      return NextResponse.json({ ok: true });
+    }
+    const media = await fetchWhatsAppMedia(msg.audioId);
+    const transcript = media ? await transcribeAudio(media.bytes, media.mimeType) : null;
+    if (!transcript) {
+      await sendWhatsAppText(
+        msg.from,
+        "Sorry, I couldn't make out that voice note. Please try again or type your request.",
+      );
+      return NextResponse.json({ ok: true });
+    }
+    words = transcript;
+  }
+
+  if (!words) {
     await sendWhatsAppText(
       msg.from,
-      "I can read text messages for now — type what you'd like to do, like “buy 1GB of MTN data for 08031234567”. Voice notes are coming soon.",
+      "Send me a message like “send 50,000 naira to Ghana” or “pay 5k Ikeja electricity, meter 04123456789”.",
     );
     return NextResponse.json({ ok: true });
   }
 
   try {
-    const result = await runAgentTurn(msg.text, `whatsapp:${msg.from}`);
-    await sendWhatsAppText(msg.from, result.reply);
+    const result = await runAgentTurn(words, `whatsapp:${msg.from}`);
+    // Echo what a voice note was heard as, so the sender can confirm.
+    const prefix = msg.type === "audio" ? `“${words}”\n\n` : "";
+    await sendWhatsAppText(msg.from, prefix + result.reply);
   } catch {
     await sendWhatsAppText(
       msg.from,
