@@ -19,6 +19,7 @@ import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { erc20Abi } from "@pesarc/abi";
 import { isSmartWalletConfigured } from "./config";
 import { getGasSponsor } from "./gasSponsor";
+import { buildErc7677Client, type Erc7677SmartClient } from "./erc7677Client";
 
 export type Call = {
   to: `0x${string}`;
@@ -87,39 +88,50 @@ export function LiveSmartWalletProvider({
   // whichever chain the user has selected.
   const { chain: activeEvm } = useActiveEvmChain();
 
-  const client = useMemo(() => {
-    if (!signer) return null;
-    // The gas sponsor is resolved per chain by the seam (gasSponsor.ts).
-    const sponsor = getGasSponsor(activeEvm.key);
-    if (sponsor.kind === "alchemy") {
-      try {
-        return createSmartWalletClient({
-          signer,
-          transport: alchemyWalletTransport({ apiKey: sponsor.apiKey }),
-          chain: activeEvm.chain,
-          paymaster: { policyId: sponsor.policyId },
-        });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        return null;
-      }
-    }
-    if (sponsor.kind === "erc7677") {
-      // Arc / Circle / in-house path: a standard ERC-4337 client pointed at the
-      // bundler + the ERC-7677 paymaster service. Deliberately not constructed
-      // here until it can be integration-tested on Arc (money path, fail-closed
-      // rule). Circle (fast) or the in-house paymaster (survivable) both drop in
-      // here — see docs/GAS_SPONSORSHIP.md for the exact client wiring.
-      if (typeof console !== "undefined") {
-        console.warn(
-          `[smart-wallet] ERC-7677 sponsor (${sponsor.provider}) resolved for ${activeEvm.key} but the AA client is not wired yet — see docs/GAS_SPONSORSHIP.md`,
-        );
-      }
+  const sponsor = getGasSponsor(activeEvm.key);
+
+  // Alchemy path (testnets): the client is built synchronously.
+  const alchemyClient = useMemo(() => {
+    if (!signer || sponsor.kind !== "alchemy") return null;
+    try {
+      return createSmartWalletClient({
+        signer,
+        transport: alchemyWalletTransport({ apiKey: sponsor.apiKey }),
+        chain: activeEvm.chain,
+        paymaster: { policyId: sponsor.policyId },
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
       return null;
     }
-    return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signer, activeEvm.chain.id, activeEvm.key]);
+
+  // ERC-7677 path (Arc / Circle / in-house): the smart account is derived from
+  // the owner + factory, so the client is built asynchronously in an effect.
+  // Only activates when a bundler URL is configured — never runs untested.
+  const [erc7677Client, setErc7677Client] = useState<Erc7677SmartClient | null>(null);
+  useEffect(() => {
+    setErc7677Client(null);
+    if (!signer || sponsor.kind !== "erc7677" || !sponsor.bundlerUrl || !sponsor.paymasterUrl) {
+      return;
+    }
+    let active = true;
+    buildErc7677Client({
+      signer,
+      chain: activeEvm.chain,
+      bundlerUrl: sponsor.bundlerUrl,
+      paymasterUrl: sponsor.paymasterUrl,
+    })
+      .then((c) => active && setErc7677Client(c))
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signer, activeEvm.chain.id, activeEvm.key]);
+
+  const client = alchemyClient ?? erc7677Client;
 
   const sendCalls = useCallback(
     async (calls: Call[]) => {
