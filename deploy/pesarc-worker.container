@@ -1,0 +1,37 @@
+# Podman Quadlet unit — the Pesarc keeper worker (production).
+# Install to /etc/containers/systemd/pesarc-worker.container on the droplet, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-worker
+#
+# The worker is a single dependency-free Node script (apps/worker/src/index.mjs);
+# copy it to /opt/pesarc/worker/index.mjs on the droplet and it runs on a bare
+# node image, no build. It reads CRON_SECRET / OPERATOR_API_SECRET (+ optional
+# SOLVE_INTERVAL_MS / ORACLE_INTERVAL_MS) from the app's env file, and reaches
+# the web app by its network alias. This SUPERSEDES pesarc-solve.service /
+# pesarc-solve.timer — disable those when you enable the worker.
+#
+# Per environment: for staging/dev, copy this to pesarc-worker-<env>.container,
+# point WORKER_TARGET at pesarc-web-<env>:3000, and read /etc/pesarc/<env>/pesarc.env.
+
+[Unit]
+Description=Pesarc keeper worker
+After=network-online.target pesarc-web.service
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/node:20-alpine
+ContainerName=pesarc-worker
+Network=pesarc.network
+PodmanArgs=--network-alias pesarc-worker
+# Dependency-free script, mounted read-only.
+Volume=/opt/pesarc/worker:/app:ro
+Exec=node /app/index.mjs
+EnvironmentFile=/etc/pesarc/pesarc.env
+# Reach the co-located web app by its network alias.
+Environment=WORKER_TARGET=http://pesarc-web:3000
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target
