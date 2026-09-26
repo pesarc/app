@@ -28,6 +28,22 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
 
   return (
     <div className="rounded-field bg-black/[0.03] border border-black/[0.05] p-4 space-y-3">
+      {/* Source of the numbers: a real on-chain quote, or an indicative estimate
+          that locks at settlement. Never present the estimate as final. */}
+      <div className="flex items-center justify-between">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+            quote.live ? "bg-sky/10 text-sky-deep" : "bg-black/[0.05] text-slate"
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${quote.live ? "bg-sky" : "bg-slate"}`} />
+          {quote.live ? "Live on-chain quote" : "Indicative rate"}
+        </span>
+        {!quote.live && (
+          <span className="text-[11px] text-slate">Locked at settlement</span>
+        )}
+      </div>
+
       <div className="grid gap-2">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between text-sm">

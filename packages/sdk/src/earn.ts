@@ -16,9 +16,27 @@ export type Pool = {
   risk: "Low" | "Medium";
   // For Basic-tier one-tap wrappers:
   tier: "save" | "invest" | "advanced";
+  /** True for a corridor that is live on-chain today (TVL read on-chain).
+   *  Others are illustrative targets for corridors launching soon. */
+  live?: boolean;
 };
 
 export const POOLS: Pool[] = [
+  {
+    // The one corridor live on-chain now: USD (token0) <-> NGN (token1) hub
+    // pool. Its TVL is overlaid from the chain in the Earn UI.
+    id: "usd-ngn-hub",
+    corridor: "USD ↔ NGN",
+    flags: "🇺🇸🇳🇬",
+    venue: "Corridor pool",
+    baseFeeApy: 3.3,
+    fxSpreadApy: 4.5,
+    incentiveApy: 1.5,
+    tvlUsd: 0,
+    risk: "Medium",
+    tier: "invest",
+    live: true,
+  },
   {
     id: "usdc-stable",
     corridor: "USDC stable reserve",

@@ -258,8 +258,10 @@ export default function PayPage() {
                 <span className="text-slate">Fee</span>
                 <span className="font-medium text-ink">
                   {(quote.feePct * 100).toFixed(2)}%
-                  {quote.live && (
+                  {quote.live ? (
                     <span className="text-sky font-medium"> · live</span>
+                  ) : (
+                    <span className="text-slate/70 font-medium"> · indicative</span>
                   )}
                 </span>
               </div>

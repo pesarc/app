@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   PiggyBank,
+  Radio,
   ShieldCheck,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
+import { fetchLiveCorridorTvl, liveTvlAvailable } from "@pesarc/sdk/chain/livePool";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
@@ -24,8 +26,28 @@ const POOLS_PER_PAGE = 4;
 
 type Position = { poolId: string; principal: number };
 
+/** POOLS with the live corridor's TVL overlaid from on-chain when available. */
+function useLivePools(): Pool[] {
+  const [tvl, setTvl] = useState<number | null>(null);
+  useEffect(() => {
+    if (!liveTvlAvailable()) return;
+    let ok = true;
+    fetchLiveCorridorTvl().then((r) => {
+      if (ok && r) setTvl(r.tvlUsd);
+    });
+    return () => {
+      ok = false;
+    };
+  }, []);
+  return useMemo(
+    () => POOLS.map((p) => (p.live && tvl != null ? { ...p, tvlUsd: tvl } : p)),
+    [tvl],
+  );
+}
+
 export default function EarnFlow() {
   const { isAdvanced } = useUIMode();
+  const pools = useLivePools();
   const [positions, setPositions] = useState<Position[]>([]);
   const [depositPool, setDepositPool] = useState<Pool | null>(null);
 
@@ -71,7 +93,7 @@ export default function EarnFlow() {
       {positions.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 mb-7">
           {positions.map((pos) => {
-            const pool = POOLS.find((p) => p.id === pos.poolId)!;
+            const pool = pools.find((p) => p.id === pos.poolId)!;
             return (
               <PositionCard
                 key={pos.poolId}
@@ -86,9 +108,9 @@ export default function EarnFlow() {
       )}
 
       {isAdvanced ? (
-        <AdvancedList onPick={setDepositPool} />
+        <AdvancedList pools={pools} onPick={setDepositPool} />
       ) : (
-        <BasicChoices onPick={setDepositPool} />
+        <BasicChoices pools={pools} onPick={setDepositPool} />
       )}
     </div>
   );
@@ -96,9 +118,9 @@ export default function EarnFlow() {
 
 /* ---------------- Basic: one-tap Save / Invest ---------------- */
 
-function BasicChoices({ onPick }: { onPick: (p: Pool) => void }) {
-  const save = POOLS.find((p) => p.tier === "save")!;
-  const invest = POOLS.find((p) => p.tier === "invest")!;
+function BasicChoices({ pools, onPick }: { pools: Pool[]; onPick: (p: Pool) => void }) {
+  const save = pools.find((p) => p.tier === "save")!;
+  const invest = pools.find((p) => p.tier === "invest")!;
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -178,8 +200,8 @@ function ChoiceCard({
 
 /* ---------------- Advanced: full pool list ---------------- */
 
-function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
-  const paged = usePaged(POOLS, POOLS_PER_PAGE);
+function AdvancedList({ pools, onPick }: { pools: Pool[]; onPick: (p: Pool) => void }) {
+  const paged = usePaged(pools, POOLS_PER_PAGE);
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between px-1">
@@ -196,10 +218,11 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
             <div>
               <div className="font-semibold text-ink flex items-center gap-2">
                 <span>{pool.flags}</span> {pool.corridor}
+                <PoolTag live={pool.live} />
               </div>
               <div className="text-xs text-slate mt-0.5">
-                {pool.venue} · TVL ${(pool.tvlUsd / 1_000_000).toFixed(2)}M ·{" "}
-                {pool.risk} risk
+                {pool.venue} · {pool.live ? "TVL" : "Target"} $
+                {(pool.tvlUsd / 1_000_000).toFixed(2)}M · {pool.risk} risk
               </div>
             </div>
             <div className="text-right">
@@ -230,10 +253,24 @@ function AdvancedList({ onPick }: { onPick: (p: Pool) => void }) {
       <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />
 
       <p className="text-xs text-slate leading-relaxed pt-1 px-1">
+        <span className="font-medium text-ink">Live</span> corridors read their
+        pool size on-chain; others are launching soon and show target figures.
         Variable APY. Corridor pools carry residual peg risk, backstopped by the
         Safety Module up to its coverage. Withdrawals are never frozen.
       </p>
     </div>
+  );
+}
+
+function PoolTag({ live }: { live?: boolean }) {
+  return live ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-sky/10 text-sky-deep text-[10px] font-bold uppercase tracking-wide px-2 py-0.5">
+      <Radio className="w-3 h-3" /> Live
+    </span>
+  ) : (
+    <span className="inline-flex items-center rounded-full bg-black/[0.05] text-slate text-[10px] font-bold uppercase tracking-wide px-2 py-0.5">
+      Soon
+    </span>
   );
 }
 

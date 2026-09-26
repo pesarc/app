@@ -404,6 +404,17 @@ function verify({ paymentId, reference, status, signature }, signingSecret) {
   return expected === signature; // status === "paid" => fulfil the order
 }`;
 
+  const webhook = `// Pass "webhook_url" when creating a payment to also get a server
+// callback. We POST { type: "payment.succeeded", data } with a header
+//   X-Pesarc-Signature: t=<unix>,v1=<hex>
+function verifyWebhook(rawBody, header, signingSecret) {
+  const [t, v1] = header.split(",").map((p) => p.split("=")[1]);
+  const expected = createHmac("sha256", signingSecret)
+    .update(\`\${t}.\${rawBody}\`)
+    .digest("hex");
+  return expected === v1;
+}`;
+
   return (
     <section>
       <h2 className="text-lg font-semibold text-ink mb-3">Quickstart</h2>
@@ -423,6 +434,7 @@ function verify({ paymentId, reference, status, signature }, signingSecret) {
 
       <CodeBlock title="Create a payment" code={curl} id="curl" copy={copy} copied={copied} />
       <CodeBlock title="Verify the redirect (Node)" code={verify} id="verify" copy={copy} copied={copied} />
+      <CodeBlock title="Verify a webhook (Node)" code={webhook} id="webhook" copy={copy} copied={copied} />
     </section>
   );
 }
