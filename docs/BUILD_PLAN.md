@@ -127,6 +127,20 @@ present.
   Postgres: the shared bucket increments per call and the fixed window returns
   429 past the limit.
 
+## Phase 6 — Gas sponsorship on Arc
+
+- [~] **Gas-sponsor seam + Circle + in-house paymaster.** `sdk/wallet/gasSponsor.ts`
+  resolves the sponsor per chain (alchemy | erc7677 | none); Circle Gas Station and
+  our own paymaster both plug in as ERC-7677 (env-selected). In-house paymaster
+  BUILT: `/api/paymaster` (ERC-7677 service) + `sdk/paymaster/verifying.ts` (signer),
+  a matching `docs/contracts/VerifyingPaymaster.sol` reference, and
+  `docs/GAS_SPONSORSHIP.md`. Verified: signature recovers to the signer,
+  paymasterData is 77 bytes, and the endpoint returns stub/signed/errors correctly.
+  Still TODO: the erc7677 wallet-client wiring in `smart-wallet.tsx` (needs Arc
+  bundler + funded paymaster to integration-test) and an `[!]` AUDIT of the
+  paymaster contract before Arc mainnet. Ship Circle first; flip to in-house after
+  audit (one env var).
+
 ## External dependencies to provision (unblock the `[!]` items)
 
 | Item | Needs |
