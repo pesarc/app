@@ -1,0 +1,31 @@
+# Podman Quadlet unit — Pesarc Postgres, staging instance (fully separate from the
+# other environments: its own container + its own volume, so staging data never
+# mixes with production).
+# Install to /etc/containers/systemd/pesarc-db-staging.container, then:
+#   sudo systemctl daemon-reload && sudo systemctl start pesarc-db-staging
+#
+# Server config (POSTGRES_USER/PASSWORD/DB) is read from /etc/pesarc/staging/db.env
+# (root-only, chmod 600). The web app reaches it by the alias pesarc-db-staging.
+#
+# Alternative: skip this unit and point staging's DATABASE_URL at a separate
+# managed Postgres (DigitalOcean/Neon) instead — still one instance per env.
+
+[Unit]
+Description=Pesarc Postgres (staging)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+ContainerName=pesarc-db-staging
+Network=pesarc.network
+PodmanArgs=--network-alias pesarc-db-staging
+Volume=pesarc-db-staging-data:/var/lib/postgresql/data
+EnvironmentFile=/etc/pesarc/staging/db.env
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target default.target

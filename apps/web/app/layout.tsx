@@ -3,6 +3,7 @@ import { Manrope, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { site } from "@pesarc/sdk/site";
 import Analytics from "@/components/Analytics";
+import EnvBadge from "@/components/app/EnvBadge";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -80,6 +81,7 @@ export default function RootLayout({
     >
       <body className="overflow-x-hidden">
         {children}
+        <EnvBadge />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
