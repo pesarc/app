@@ -26,9 +26,9 @@ export const site = {
   ],
   protocolVersion: "Protocol v1.0",
   nav: [
-    { label: "Modes", href: "/#modes" },
-    { label: "Corridors", href: "/#corridor" },
-    { label: "Rails", href: "/#rails" },
+    { label: "Features", href: "/#features" },
+    { label: "Networks", href: "/#networks" },
+    { label: "Beta", href: "/#beta" },
   ],
   appNav: [
     { label: "Home", href: "/home" },

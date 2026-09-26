@@ -1,459 +1,197 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Send,
+  Bot,
+  Zap,
   PiggyBank,
-  Building2,
-  ArrowRight,
-  Globe,
-  Network,
+  LineChart,
+  Code2,
+  Hash,
+  Mic,
+  type LucideIcon,
 } from "lucide-react";
 
+const LIME = "#c8f542";
 const ease = [0.22, 1, 0.36, 1] as const;
 
-/** Fade-and-rise on scroll into view. */
-function Reveal({
-  children,
-  delay = 0,
-  className = "",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-}) {
+function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.6, ease, delay }}
+    <span
+      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-white/90"
+      style={{ border: "1px solid rgba(200,245,66,0.35)", background: "rgba(200,245,66,0.06)" }}
     >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: LIME }} />
       {children}
-    </motion.div>
+    </span>
   );
 }
 
-/* ---------------- One app, three modes ---------------- */
+const cardStyle = {
+  background: "rgba(255,255,255,0.09)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow: "0 20px 40px -12px rgba(0,0,0,0.3)",
+} as const;
 
-const MODES = [
+const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Send,
-    title: "Send / Receive / Hold",
-    body: "Send to a contact, phone number, or alias. See one all-in quote; you send X, they receive Y. Settles gaslessly in seconds to bank, mobile money, or an in-app balance.",
+    title: "Send money home in seconds",
+    body: "Send, receive and settle across borders in your own currency. Gasless, under a minute, with a fee you can actually read.",
+  },
+  {
+    icon: Bot,
+    title: "Pay by chatting with an agent",
+    body: "An AI agent in the app and on WhatsApp handles transfers, bills and questions. Talk or type, in your own words.",
+  },
+  {
+    icon: Zap,
+    title: "Airtime, data and electricity",
+    body: "Top up airtime and data or pay a power bill in a couple of taps, or just ask the agent to do it for you.",
   },
   {
     icon: PiggyBank,
-    title: "Earn",
-    body: "Put an idle balance to work earning fees on a corridor. One unified position across chains, bounded and insured risk, withdraw anytime, never frozen.",
+    title: "Earn, invest and hedge",
+    body: "Grow idle balances in insured vaults, buy on-chain African stocks, and hedge your currency against the market.",
   },
   {
-    icon: Building2,
-    title: "Business",
-    body: "Invoice, run payroll, and net-settle trade across borders. Multi-sig treasury with role-based approvals, structured references, and exportable settlement reports.",
+    icon: LineChart,
+    title: "Markets you can create",
+    body: "Trade and create prediction and FX markets, so a shift in the naira can work for you instead of against you.",
+  },
+  {
+    icon: Code2,
+    title: "Built for businesses and devs",
+    body: "A clean API for SMEs and SaaS, plus an in-app pay flow so partners can send customers to Pesarc and back.",
   },
 ];
 
-export function Modes() {
+export function Features() {
   return (
-    <section id="modes" className="bg-cream py-16 md:py-24 px-6 md:px-12">
-      <div className="max-w-7xl mx-auto">
-        <Reveal className="mb-14">
-          <span className="inline-block rounded-pill bg-sky-tint/60 text-sky-deep text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 mb-4">
-            One account
-          </span>
-          <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor mb-4">
-            One app, three modes
-          </h2>
-          <p className="text-slate text-base md:text-lg max-w-xl font-medium leading-relaxed">
-            Same engine, one account, one balance, revealed progressively so the
-            simplest user only ever sees what they need.
-          </p>
-        </Reveal>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {MODES.map(({ icon: Icon, title, body }, i) => (
-            <Reveal key={title} delay={i * 0.1}>
-              <div className="group h-full p-6 rounded-card bg-snow border border-fog shadow-card-flat hover:shadow-pop hover:-translate-y-1 transition-all duration-300">
-                <div className="w-12 h-12 rounded-2xl bg-sky-tint/60 flex items-center justify-center mb-6 text-sky-deep group-hover:scale-110 transition-transform">
-                  <Icon className="w-5 h-5" strokeWidth={2} />
-                </div>
-                <h3 className="text-xl font-extrabold text-harbor tracking-tight mb-2">
-                  {title}
-                </h3>
-                <p className="text-[15px] text-slate font-medium leading-relaxed">{body}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------------- Corridor (case study) ---------------- */
-
-// Live remittance routes the visual cycles through — primarily Global-South
-// corridors, plus a couple of Western origins. Mirrors the hero card.
-const CORRIDORS = [
-  { fromFlag: "🇬🇭", fromPlace: "Accra", fromAmount: "₵1,000", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦105k" },
-  { fromFlag: "🇰🇪", fromPlace: "Nairobi", fromAmount: "KSh 5,000", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵470" },
-  { fromFlag: "🇳🇬", fromPlace: "Lagos", fromAmount: "₦150k", toFlag: "🇿🇦", toPlace: "Johannesburg", toAmount: "R 1,700" },
-  { fromFlag: "🇬🇧", fromPlace: "London", fromAmount: "£200", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦408k" },
-  { fromFlag: "🇪🇬", fromPlace: "Cairo", fromAmount: "ج.م 2,000", toFlag: "🇰🇪", toPlace: "Nairobi", toAmount: "KSh 5,300" },
-  { fromFlag: "🇺🇸", fromPlace: "New York", fromAmount: "$300", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵4,600" },
-];
-
-export function Corridor() {
-  const [ci, setCi] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setCi((v) => (v + 1) % CORRIDORS.length), 3200);
-    return () => clearInterval(t);
-  }, []);
-  const c = CORRIDORS[ci];
-
-  return (
-    <section id="corridor" className="bg-snow border-y border-fog py-16 md:py-24">
-      <div className="px-6 md:px-12 max-w-7xl mx-auto flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
-        {/* Visual */}
-        <Reveal className="w-full lg:w-1/2">
-          <div className="relative w-full aspect-[5/3] sm:aspect-[16/9] lg:aspect-[4/3] rounded-card-lg overflow-hidden bg-harbor shadow-[rgba(19,66,111,0.28)_0px_10px_0px_0px]">
-            {/* subtle grid + glow */}
-            <div
-              className="absolute inset-0 opacity-40"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-                backgroundSize: "30px 30px",
-              }}
-            />
-            <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-sky/25 blur-[90px]" />
-
-            <div className="absolute inset-0 flex items-center justify-center px-6 sm:px-10 pb-12 sm:pb-14">
-              <div className="relative flex items-center w-full max-w-md">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={ci}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45 }}
-                    className="flex items-center w-full"
-                  >
-                    <CorridorEnd
-                      flag={c.fromFlag}
-                      place={c.fromPlace}
-                      sub="You send"
-                      amount={c.fromAmount}
-                    />
-                    <div className="flex-1 px-3">
-                      <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
-                        <path
-                          d="M0,4 H120"
-                          stroke="#7dc0ff"
-                          strokeWidth="2.5"
-                          fill="none"
-                          strokeDasharray="4 4"
-                          className="animate-flow"
-                          style={{ filter: "drop-shadow(0 0 6px rgba(125,192,255,0.8))" }}
-                        />
-                      </svg>
-                    </div>
-                    <CorridorEnd
-                      flag={c.toFlag}
-                      place={c.toPlace}
-                      sub="They receive"
-                      amount={c.toAmount}
-                      align="right"
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between">
-              <div className="rounded-2xl bg-white/10 backdrop-blur px-3 py-1.5 sm:px-4 sm:py-2">
-                <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                  Settlement
-                </span>
-                <span className="text-base sm:text-lg font-extrabold text-white">&lt;30 sec</span>
-              </div>
-              <div className="rounded-2xl bg-white/10 backdrop-blur px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky" />
-                <span className="text-[11px] font-bold text-white uppercase tracking-widest">
-                  Gasless
-                </span>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-
-        {/* Copy */}
-        <div className="w-full lg:w-1/2 space-y-6 lg:space-y-7">
-          <Reveal>
-            <div className="inline-flex items-center gap-2 rounded-pill bg-sky-tint/60 text-sky-deep px-3 py-1.5">
-              <Globe className="w-4 h-4" />
-              <span className="text-[11px] font-extrabold uppercase tracking-widest">Corridor</span>
-            </div>
-          </Reveal>
-          <Reveal delay={0.05}>
-            <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor leading-tight">
-              How money reaches home in under 30 seconds.
-            </h2>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <p className="text-base md:text-lg text-slate font-medium leading-relaxed">
-              Sending money within Sub-Saharan Africa averages ~8.78% in fees, the
-              highest of any region, and settles in days, not seconds. Pesarc routes
-              the same transfer over stablecoin rails for a fraction of a percent,
-              credits the recipient instantly from local liquidity, and settles behind
-              the scenes.
-            </p>
-          </Reveal>
-          <Reveal delay={0.15}>
-            <div className="grid grid-cols-2 gap-6 pt-6 border-t border-fog">
-              <Stat value="0.5%" label="All-in fee vs 8.78%" />
-              <Stat value="<30 sec" label="Settlement time" />
-            </div>
-          </Reveal>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CorridorEnd({
-  flag,
-  place,
-  sub,
-  amount,
-  align = "left",
-}: {
-  flag: string;
-  place: string;
-  sub: string;
-  amount: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <div className={`min-w-0 ${align === "right" ? "text-right" : "text-left"}`}>
-      <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">{flag}</div>
-      <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{sub}</div>
-      <div className="text-base sm:text-lg font-extrabold text-white numerals truncate">{amount}</div>
-      <div className="text-xs font-medium text-white/70 truncate">{place}</div>
-    </div>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div className="text-4xl tracking-tight font-extrabold text-harbor numerals mb-1">{value}</div>
-      <div className="text-[11px] font-bold text-slate uppercase tracking-widest">{label}</div>
-    </div>
-  );
-}
-
-/* ---------------- Rails (integrations) ---------------- */
-
-type Logo = { logo: string; name: string; scale?: number };
-
-const PROTOCOLS: Logo[] = [
-  { logo: "/logos/uniswap.png", name: "Uniswap v4" },
-  { logo: "/logos/usdc.png", name: "Circle CCTP V2" },
-  { logo: "/logos/hyperbridge.webp", name: "Hyperbridge" },
-  { logo: "/logos/layerzero.png", name: "LayerZero" },
-  { logo: "/logos/reactive.png", name: "Reactive Network" },
-];
-
-// Networks we support (deployed / agent settling) or are actively bringing up.
-const NETWORKS: Logo[] = [
-  { logo: "/logos/arc.png", name: "Arc" },
-  { logo: "/logos/arbitrum.png", name: "Arbitrum" },
-  { logo: "/logos/base.png", name: "Base" },
-  { logo: "/logos/celo.png", name: "Celo" },
-  { logo: "/logos/solana.png", name: "Solana" },
-  { logo: "/logos/ethereum.png", name: "Ethereum", scale: 1.35 },
-  { logo: "/logos/optimism.png", name: "Optimism" },
-  { logo: "/logos/algorand.png", name: "Algorand", scale: 1.35 },
-  // Not live yet — uncomment as each network ships:
-  // { logo: "/logos/polygon.png", name: "Polygon" },
-  // { logo: "/logos/bnb.png", name: "BNB Chain" },
-  // { logo: "/logos/avalanche.png", name: "Avalanche" },
-  // { logo: "/logos/sui.png", name: "Sui" },
-  // { logo: "/logos/aptos.png", name: "Aptos" },
-  // { logo: "/logos/tron.png", name: "Tron" },
-  // { logo: "/logos/stellar.png", name: "Stellar" },
-];
-
-function RailCard({
-  logo,
-  name,
-  compact = false,
-  scale = 1,
-}: {
-  logo: string;
-  name: string;
-  compact?: boolean;
-  scale?: number;
-}) {
-  // Networks (compact) show the bare logo — no circle behind it. Protocols keep
-  // the cream circle. `scale` lets a logo with heavy internal padding read bigger.
-  const iconPx = Math.round((compact ? 34 : 36) * scale);
-  return (
-    <div
-      className={`group rounded-card bg-snow border border-fog shadow-card-flat hover:shadow-pop hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center cursor-default ${
-        compact ? "p-5" : "p-6"
-      }`}
+    <section
+      id="features"
+      className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,42,18,0.72)" }}
     >
-      <div
-        className={`flex items-center justify-center ${
-          compact
-            ? "h-12 mb-3"
-            : "rounded-full bg-cream w-12 h-12 mb-5 overflow-hidden"
-        }`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={logo}
-          alt={`${name} logo`}
-          loading="lazy"
-          className="object-contain"
-          style={{ width: iconPx, height: iconPx }}
-        />
+      <div className="max-w-2xl">
+        <Eyebrow>What you can do</Eyebrow>
+        <h2 className="mt-6 text-white text-3xl sm:text-4xl lg:text-5xl tracking-tighter" style={{ lineHeight: 1.14 }}>
+          One app for money that{" "}
+          <span style={{ color: LIME }}>moves the way you do</span>
+        </h2>
+        <p className="mt-5 max-w-md text-sm text-white/60 leading-relaxed">
+          Built for retailers, import and export traders, businesses and everyday
+          people. Money that is quick to send, easy to grow, and simple enough for
+          the first phone you owned.
+        </p>
       </div>
-      <span
-        className={`font-bold text-harbor text-center whitespace-nowrap ${
-          compact ? "text-sm" : "text-[15px]"
-        }`}
-      >
-        {name}
-      </span>
-    </div>
-  );
-}
 
-export function Rails() {
-  return (
-    <section id="rails" className="bg-cream py-16 md:py-28 px-6 md:px-12">
-      <div className="max-w-7xl mx-auto">
-        <Reveal className="text-center mb-14 max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-5xl tracking-tight font-extrabold text-harbor mb-5">
-            Built on proven rails.
-          </h2>
-          <p className="text-base md:text-lg text-slate font-medium text-balance leading-relaxed">
-            Your money moves on the most battle-tested networks in the industry, the
-            same infrastructure already settling trillions a year. We integrate them;
-            you never have to think about them.
+      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {FEATURES.map((f, i) => (
+          <motion.div
+            key={f.title}
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5, ease, delay: (i % 3) * 0.06 }}
+            className="group rounded-2xl p-6 backdrop-blur-md transition-transform hover:-translate-y-1.5"
+            style={cardStyle}
+          >
+            <span
+              className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+              style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}
+            >
+              <f.icon className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
+            </span>
+            <h3 className="mt-5 text-base font-medium text-white tracking-tight">{f.title}</h3>
+            <p className="mt-2 text-sm text-white/55 leading-relaxed">{f.body}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Reach strip: voice + USSD */}
+      <div className="mt-4 grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
+          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}>
+            <Mic className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
+          </span>
+          <p className="text-sm text-white/70 leading-relaxed">
+            <span className="text-white font-medium">Voice first.</span> Speak to
+            the agent in the app or on WhatsApp and it does the rest.
           </p>
-        </Reveal>
-
-        <div className="max-w-5xl mx-auto space-y-10">
-          <div>
-            <Reveal className="text-[11px] font-bold text-slate uppercase tracking-widest mb-4 text-center">
-              Protocols &amp; rails
-            </Reveal>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {PROTOCOLS.map((p, i) => (
-                <Reveal key={p.name} delay={i * 0.05}>
-                  <RailCard {...p} />
-                </Reveal>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Reveal className="text-[11px] font-bold text-slate uppercase tracking-widest mb-4 text-center">
-              Networks
-            </Reveal>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 gap-3">
-              {NETWORKS.map((n, i) => (
-                <Reveal key={n.name} delay={i * 0.03}>
-                  <RailCard {...n} compact />
-                </Reveal>
-              ))}
-            </div>
-          </div>
+        </div>
+        <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
+          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}>
+            <Hash className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
+          </span>
+          <p className="text-sm text-white/70 leading-relaxed">
+            <span className="text-white font-medium">Works on any phone.</span>{" "}
+            USSD support means no smartphone or data needed to move money.
+          </p>
         </div>
       </div>
     </section>
   );
 }
 
-/* ---------------- Engine CTA ---------------- */
+const NETWORKS = [
+  "Ethereum", "Base", "Optimism", "Arbitrum", "Solana", "Arc",
+  "Algorand", "Polygon", "Avalanche", "Celo",
+];
+const RAILS = [
+  "Paystack", "Flutterwave", "Bank transfer (NIP)", "Mobile money",
+  "M-Pesa", "MTN MoMo", "GTBank", "Access Bank", "Zenith Bank",
+];
 
-export function EngineCTA() {
+export function NetworksBanks() {
   return (
-    <section className="relative w-full overflow-hidden bg-harbor">
-      {/* moving glow accents */}
-      <motion.div
-        className="pointer-events-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full bg-sky/20 blur-[120px]"
-        animate={{ x: [0, 60, 0], y: [0, 30, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="pointer-events-none absolute bottom-0 right-0 w-[380px] h-[380px] rounded-full bg-sky/15 blur-[110px]"
-        animate={{ x: [0, -50, 0], y: [0, -20, 0] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
-          backgroundSize: "34px 34px",
-          maskImage: "radial-gradient(circle at 50% 50%, black 40%, transparent 85%)",
-          WebkitMaskImage: "radial-gradient(circle at 50% 50%, black 40%, transparent 85%)",
-        }}
-      />
+    <section
+      id="networks"
+      className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
+      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(13,54,23,0.78)" }}
+    >
+      <div className="max-w-2xl">
+        <Eyebrow>Networks and banks</Eyebrow>
+        <h2 className="mt-6 text-white text-3xl sm:text-4xl lg:text-5xl tracking-tighter" style={{ lineHeight: 1.14 }}>
+          Reaches the rails{" "}
+          <span style={{ color: LIME }}>your money already lives on</span>
+        </h2>
+        <p className="mt-5 max-w-md text-sm text-white/60 leading-relaxed">
+          Move value across the most battle-tested networks, then cash out to a
+          bank account or mobile money wallet people actually use.
+        </p>
+      </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 py-24 flex flex-col lg:flex-row items-center justify-between gap-16">
-        <Reveal className="w-full lg:w-1/2">
-          <span className="inline-block rounded-pill bg-white/10 text-sky-tint text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 mb-7">
-            Settlement core
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tight font-extrabold text-white mb-6 leading-[1.05] text-balance">
-            One hub, many gateways. Liquidity that stops fragmenting.
-          </h2>
-          <p className="text-base md:text-lg text-white/70 font-medium leading-relaxed mb-9 max-w-md">
-            Liquidity lives in one pool per currency pair on a single hub, not one
-            pool per chain. Every other chain is a thin gateway that routes value to
-            the hub. Deposit from any chain, exit on another.
-          </p>
-          <a
-            href="#waitlist"
-            className="group inline-flex items-center gap-2 bg-sky hover:bg-sky-deep text-white px-7 py-3.5 rounded-pill transition-all duration-300 font-extrabold text-sm shadow-pop hover:-translate-y-0.5"
-          >
-            Get early access
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </a>
-        </Reveal>
-
-        <Reveal delay={0.1} className="w-full lg:w-5/12">
-          <div className="rounded-card-lg bg-white/[0.06] border border-white/10 backdrop-blur p-8">
-            <div className="inline-flex items-center gap-2 rounded-pill bg-white/10 text-sky-tint px-3 py-1.5 mb-6">
-              <Network className="w-4 h-4" />
-              <span className="text-[11px] font-extrabold uppercase tracking-widest">Unified hub</span>
-            </div>
-            <h3 className="text-2xl tracking-tight font-extrabold text-white mb-7 leading-tight">
-              The rail has already won. The opening is the experience layer.
-            </h3>
-            <div className="rounded-card bg-harbor/60 border border-white/10 p-6">
-              <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest block mb-3">
-                Stablecoin settlement volume · 2025
+      <div className="mt-12 grid lg:grid-cols-2 gap-4">
+        <div className="rounded-2xl p-6 backdrop-blur-md" style={cardStyle}>
+          <p className="text-xs font-medium uppercase tracking-widest text-white/40">Networks</p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            {NETWORKS.map((n) => (
+              <span
+                key={n}
+                className="rounded-full px-3.5 py-1.5 text-xs font-medium text-white/80"
+                style={{ border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.05)" }}
+              >
+                {n}
               </span>
-              <div className="text-6xl tracking-tight font-extrabold text-white numerals mb-4">
-                $33T
-              </div>
-              <p className="text-sm text-white/70 font-medium leading-relaxed">
-                More than Visa and Mastercard combined. Pesarc is the money-first app
-                on top of a rail that has already won.
-              </p>
-            </div>
+            ))}
           </div>
-        </Reveal>
+        </div>
+        <div className="rounded-2xl p-6 backdrop-blur-md" style={cardStyle}>
+          <p className="text-xs font-medium uppercase tracking-widest text-white/40">Banks and cash-out</p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            {RAILS.map((r) => (
+              <span
+                key={r}
+                className="rounded-full px-3.5 py-1.5 text-xs font-medium"
+                style={{ border: "1px solid rgba(200,245,66,0.25)", background: "rgba(200,245,66,0.05)", color: "rgba(255,255,255,0.85)" }}
+              >
+                {r}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
