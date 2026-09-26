@@ -67,7 +67,89 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   },
 ];
 
+// Bento placement (lg+): a tall flagship on the left, a 2x2 core grid, and a
+// full-width accent stat strip underneath. Below lg it collapses to a single
+// readable column. Kept in one place so the grid stays easy to reason about.
+const BENTO_POS = [
+  "lg:col-start-1 lg:row-start-1 lg:row-span-2", // flagship (Send)
+  "lg:col-start-2 lg:row-start-1",               // agent
+  "lg:col-start-3 lg:row-start-1",               // bills
+  "lg:col-start-2 lg:row-start-2",               // earn
+  "lg:col-start-3 lg:row-start-2",               // markets
+] as const;
+
+function BentoCard({
+  feature,
+  className = "",
+  large = false,
+  index,
+}: {
+  feature: { icon: LucideIcon; title: string; body: string };
+  className?: string;
+  large?: boolean;
+  index: number;
+}) {
+  const Icon = feature.icon;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease, delay: Math.min(index, 4) * 0.05 }}
+      className={`group relative flex flex-col rounded-card p-6 backdrop-blur-md transition-transform hover:-translate-y-1 ${
+        large ? "lg:p-8" : ""
+      } ${className}`}
+      style={cardStyle}
+    >
+      <span
+        className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
+        style={{
+          width: large ? 52 : 40,
+          height: large ? 52 : 40,
+          background: "rgba(58,160,255,0.15)",
+        }}
+      >
+        <Icon className={large ? "w-6 h-6" : "w-5 h-5"} style={{ color: LIME }} strokeWidth={1.6} />
+      </span>
+      <h3
+        className={`mt-5 font-medium text-white tracking-tight ${
+          large ? "text-xl lg:text-2xl" : "text-base"
+        }`}
+      >
+        {feature.title}
+      </h3>
+      <p
+        className={`mt-2 text-white/55 leading-relaxed ${
+          large ? "text-sm lg:text-base max-w-sm" : "text-sm"
+        }`}
+      >
+        {feature.body}
+      </p>
+
+      {large && (
+        <div className="mt-auto pt-6 flex flex-wrap gap-2">
+          {[
+            { icon: Mic, label: "Voice first" },
+            { icon: Hash, label: "Works on any phone" },
+            { icon: Bot, label: "WhatsApp agent" },
+          ].map((chip) => (
+            <span
+              key={chip.label}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/80"
+              style={{ border: "1px solid rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.05)" }}
+            >
+              <chip.icon className="w-3.5 h-3.5" style={{ color: LIME }} strokeWidth={1.7} />
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 export function Features() {
+  const [flagship, ...rest] = FEATURES;
   return (
     <section
       id="features"
@@ -87,49 +169,55 @@ export function Features() {
         </p>
       </div>
 
-      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={f.title}
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, ease, delay: (i % 3) * 0.06 }}
-            className="group rounded-2xl p-6 backdrop-blur-md transition-transform hover:-translate-y-1.5"
-            style={cardStyle}
-          >
-            <span
-              className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
-              style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}
-            >
-              <f.icon className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
-            </span>
-            <h3 className="mt-5 text-base font-medium text-white tracking-tight">{f.title}</h3>
-            <p className="mt-2 text-sm text-white/55 leading-relaxed">{f.body}</p>
-          </motion.div>
+      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-fr">
+        <BentoCard feature={flagship} large className={BENTO_POS[0]} index={0} />
+        {rest.slice(0, 4).map((f, i) => (
+          <BentoCard key={f.title} feature={f} className={BENTO_POS[i + 1]} index={i + 1} />
         ))}
-      </div>
 
-      {/* Reach strip: voice + USSD */}
-      <div className="mt-4 grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
-          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}>
-            <Mic className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
-          </span>
-          <p className="text-sm text-white/70 leading-relaxed">
-            <span className="text-white font-medium">Voice first.</span> Speak to
-            the agent in the app or on WhatsApp and it does the rest.
-          </p>
-        </div>
-        <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
-          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}>
-            <Hash className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
-          </span>
-          <p className="text-sm text-white/70 leading-relaxed">
-            <span className="text-white font-medium">Works on any phone.</span>{" "}
-            USSD support means no smartphone or data needed to move money.
-          </p>
-        </div>
+        {/* Accent stat strip spanning the full width */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5, ease, delay: 0.25 }}
+          className="rounded-card p-6 lg:p-8 backdrop-blur-md sm:col-span-2 lg:col-span-3 lg:row-start-3"
+          style={{
+            background: "linear-gradient(120deg, rgba(58,160,255,0.16), rgba(58,160,255,0.06))",
+            border: "1px solid rgba(58,160,255,0.4)",
+            boxShadow: "0 20px 40px -12px rgba(0,0,0,0.3)",
+          }}
+        >
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-center">
+            {[
+              { stat: "< 60s", label: "Average settlement, gasless" },
+              { stat: "10+", label: "Chains and local rails, one balance" },
+              { stat: rest[4].title, label: rest[4].body, feature: true },
+            ].map((item, i) =>
+              item.feature ? (
+                <div key={i} className="lg:col-span-2 flex items-start gap-3">
+                  <span
+                    className="flex items-center justify-center rounded-xl shrink-0"
+                    style={{ width: 40, height: 40, background: "rgba(255,255,255,0.12)" }}
+                  >
+                    <Code2 className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-medium text-white tracking-tight">{item.stat}</h3>
+                    <p className="mt-1 text-sm text-white/60 leading-relaxed">{item.label}</p>
+                  </div>
+                </div>
+              ) : (
+                <div key={i}>
+                  <div className="text-3xl lg:text-4xl font-semibold text-white tracking-tighter">
+                    {item.stat}
+                  </div>
+                  <p className="mt-1.5 text-sm text-white/60 leading-relaxed">{item.label}</p>
+                </div>
+              )
+            )}
+          </div>
+        </motion.div>
       </div>
     </section>
   );
