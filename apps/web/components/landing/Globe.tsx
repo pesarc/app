@@ -90,14 +90,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
 function fmtPop(n?: number): string {
-  if (!n) return "—";
+  if (!n) return "-";
   if (n >= 1e9) return trimZeros((n / 1e9).toFixed(2)) + "B";
   if (n >= 1e6) return trimZeros((n / 1e6).toFixed(n >= 1e7 ? 0 : 1)) + "M";
   if (n >= 1e3) return Math.round(n / 1e3) + "K";
   return String(n);
 }
 function fmtUSD(n?: number): string {
-  if (!n) return "—";
+  if (!n) return "-";
   if (n >= 1e12) return "$" + trimZeros((n / 1e12).toFixed(2)) + "T";
   if (n >= 1e9) return "$" + Math.round(n / 1e9) + "B";
   if (n >= 1e6) return "$" + Math.round(n / 1e6) + "M";

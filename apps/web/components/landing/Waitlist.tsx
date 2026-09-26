@@ -59,7 +59,7 @@ export default function Waitlist() {
         </h2>
 
         <p className="text-base md:text-lg text-slate font-medium max-w-xl mb-10 text-balance leading-relaxed">
-          Join the waitlist for the Pesarc beta. Be first to send money home —
+          Become an early beta-tester of Pesarc. Be first to send money home,
           gasless, in under a minute, in your own currency.
         </p>
 
@@ -68,7 +68,7 @@ export default function Waitlist() {
             <Check className="w-4 h-4" />
             <span className="text-sm font-bold">
               {state === "duplicate"
-                ? "You're already on the list — we'll be in touch."
+                ? "You're already on the list, we'll be in touch."
                 : "You're on the list. We'll be in touch."}
             </span>
           </div>
@@ -110,7 +110,7 @@ export default function Waitlist() {
                   </>
                 ) : (
                   <>
-                    Join waitlist
+                    Become a beta-tester
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

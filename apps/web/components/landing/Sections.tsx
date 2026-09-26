@@ -68,7 +68,7 @@ export function Modes() {
             One app, three modes
           </h2>
           <p className="text-slate text-base md:text-lg max-w-xl font-medium leading-relaxed">
-            Same engine, one account, one balance — revealed progressively so the
+            Same engine, one account, one balance, revealed progressively so the
             simplest user only ever sees what they need.
           </p>
         </Reveal>
@@ -205,8 +205,8 @@ export function Corridor() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="text-base md:text-lg text-slate font-medium leading-relaxed">
-              Sending money within Sub-Saharan Africa averages ~8.78% in fees — the
-              highest of any region — and settles in days, not seconds. Pesarc routes
+              Sending money within Sub-Saharan Africa averages ~8.78% in fees, the
+              highest of any region, and settles in days, not seconds. Pesarc routes
               the same transfer over stablecoin rails for a fraction of a percent,
               credits the recipient instantly from local liquidity, and settles behind
               the scenes.
@@ -344,7 +344,7 @@ export function Rails() {
             Built on proven rails.
           </h2>
           <p className="text-base md:text-lg text-slate font-medium text-balance leading-relaxed">
-            Your money moves on the most battle-tested networks in the industry — the
+            Your money moves on the most battle-tested networks in the industry, the
             same infrastructure already settling trillions a year. We integrate them;
             you never have to think about them.
           </p>
@@ -418,7 +418,7 @@ export function EngineCTA() {
             One hub, many gateways. Liquidity that stops fragmenting.
           </h2>
           <p className="text-base md:text-lg text-white/70 font-medium leading-relaxed mb-9 max-w-md">
-            Liquidity lives in one pool per currency pair on a single hub — not one
+            Liquidity lives in one pool per currency pair on a single hub, not one
             pool per chain. Every other chain is a thin gateway that routes value to
             the hub. Deposit from any chain, exit on another.
           </p>

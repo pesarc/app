@@ -21,6 +21,10 @@ The open-source Goldgard hook lives separately at `jorshimayor/Goldgard`.
    green. CI runs all three on `main` and `dev`.
 5. **Branch `dev` → PR → `main`.** `main` is what Vercel deploys. Never push straight
    to `main` for feature work.
+6. **Never use the em dash character (—) anywhere on the website or in product
+   copy.** No em dashes in landing pages, app UI, marketing text, or user-facing
+   strings. Rewrite the sentence, or use a comma, colon, parentheses, or a period
+   instead. (This rule is about the `—` glyph in shipped copy, not code comments.)
 
 ## Repository map
 
