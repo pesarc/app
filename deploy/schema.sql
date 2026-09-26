@@ -117,6 +117,23 @@ CREATE TABLE IF NOT EXISTS holdings (
   PRIMARY KEY (account, symbol)
 );
 
+-- Shared fixed-window rate limits for the public API (cross-instance).
+CREATE TABLE IF NOT EXISTS rate_limits (
+  bucket   text PRIMARY KEY,
+  count    integer NOT NULL DEFAULT 0,
+  reset_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rate_limits_reset_idx ON rate_limits (reset_at);
+
+-- Daily developer-API usage meter.
+CREATE TABLE IF NOT EXISTS api_usage (
+  account text NOT NULL,
+  key_id  text NOT NULL,
+  day     date NOT NULL,
+  count   integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (account, key_id, day)
+);
+
 -- Migration ledger (each `pnpm db:migrate` records a row).
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version    text NOT NULL,
