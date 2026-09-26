@@ -29,12 +29,12 @@ const SCENES: Scene[] = [
     label: "Send",
     lines: [
       { from: "user", text: "Send ₦50,000 to Ama" },
-      { from: "agent", text: "Sure — where should Ama get it?", chips: ["cNGN · Base", "GTBank ••4821"] },
+      { from: "agent", text: "Sure, where should Ama get it?", chips: ["cNGN · Base", "GTBank ••4821"] },
       { from: "user", text: "GTBank ••4821" },
       {
         from: "agent",
         visual: "settle",
-        text: "Sent ₦50,000 to Ama — GTBank ••4821, settled in local currency.",
+        text: "Sent ₦50,000 to Ama, GTBank ••4821, settled in local currency.",
       },
     ],
   },
@@ -46,7 +46,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "market",
-        text: "Backed “USD/NGN ≥ ₦1,700 by Dec” — you’re covered if the naira slides.",
+        text: "Backed “USD/NGN ≥ ₦1,700 by Dec”, you’re covered if the naira slides.",
       },
     ],
   },
@@ -58,7 +58,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "earn",
-        text: "Deposited to the NGN↔GHS corridor — 9.2% APY, insured, withdraw anytime.",
+        text: "Deposited to the NGN↔GHS corridor, 9.2% APY, insured, withdraw anytime.",
       },
     ],
   },
@@ -70,7 +70,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "invest",
-        text: "Bought 183 DANGCEM — priced & settled in cNGN. Or lend it at 6.4%.",
+        text: "Bought 183 DANGCEM, priced & settled in cNGN. Or lend it at 6.4%.",
       },
     ],
   },

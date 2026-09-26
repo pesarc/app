@@ -28,7 +28,7 @@ export default function Hero() {
         }}
       />
 
-      {/* Globe — navy sphere, centred, on the back layer. Positioning lives on a
+      {/* Globe, navy sphere, centred, on the back layer. Positioning lives on a
           static wrapper so framer-motion's scale transform can't override the
           centering translate. */}
       <div className="absolute inset-y-0 left-1/2 lg:left-[64%] -translate-x-1/2 w-full lg:w-[74%] z-0">
@@ -110,7 +110,7 @@ export default function Hero() {
               className="mt-6 max-w-md text-base md:text-lg text-white/70 font-medium leading-relaxed"
             >
               One gasless app to send, hold, earn, and settle money across borders.
-              No seed phrase, no gas, no jargon — just money, the way you already
+              No seed phrase, no gas, no jargon, just money, the way you already
               think about it.
             </motion.p>
 
