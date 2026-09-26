@@ -35,9 +35,12 @@ export default function CorridorPreview() {
   const c = CORRIDORS[i];
 
   return (
-    <div className="w-[300px] rounded-card bg-snow border border-fog shadow-pop p-4 overflow-hidden">
-      <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-widest text-slate mb-3">
-        <Zap className="w-3.5 h-3.5 text-sky" /> Corridor · live
+    <div
+      className="w-[300px] rounded-2xl p-4 overflow-hidden backdrop-blur-md"
+      style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.3)" }}
+    >
+      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60 mb-3">
+        <Zap className="w-3.5 h-3.5" style={{ color: "#c8f542" }} /> Corridor · live
       </div>
 
       <div className="relative h-[62px]">
@@ -55,7 +58,7 @@ export default function CorridorPreview() {
               <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
                 <path
                   d="M0,4 H120"
-                  stroke="#2e96ff"
+                  stroke="#c8f542"
                   strokeWidth="2"
                   fill="none"
                   strokeDasharray="4 4"
@@ -68,12 +71,12 @@ export default function CorridorPreview() {
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-cream text-[11px] font-bold">
-        <span className="text-slate">
-          Settles <span className="text-harbor">&lt;30s</span>
+      <div className="flex items-center justify-between mt-3 pt-3 text-[11px] font-medium" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <span className="text-white/60">
+          Settles <span className="text-white">&lt;30s</span>
         </span>
-        <span className="inline-flex items-center gap-1.5 text-sky-deep">
-          <span className="w-1.5 h-1.5 rounded-full bg-sky" /> Gasless · 0.5%
+        <span className="inline-flex items-center gap-1.5" style={{ color: "#c8f542" }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#c8f542" }} /> Gasless · 0.5%
         </span>
       </div>
     </div>
@@ -96,9 +99,9 @@ function Endpoint({
   return (
     <div className={`min-w-0 ${align === "right" ? "text-right" : "text-left"}`}>
       <div className="text-xl leading-none mb-1">{flag}</div>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-slate">{sub}</div>
-      <div className="text-[15px] font-extrabold text-harbor numerals truncate">{amount}</div>
-      <div className="text-[11px] font-medium text-slate truncate">{place}</div>
+      <div className="text-[10px] font-medium uppercase tracking-widest text-white/50">{sub}</div>
+      <div className="text-[15px] font-semibold text-white numerals truncate">{amount}</div>
+      <div className="text-[11px] font-medium text-white/50 truncate">{place}</div>
     </div>
   );
 }
