@@ -14,6 +14,7 @@ import {
   MapPin,
   Plus,
   LineChart,
+  Code2,
   Settings2,
 } from "lucide-react";
 import { site } from "@pesarc/sdk/site";
@@ -50,8 +51,12 @@ const MONEY: Item[] = [
   { label: "Receive", href: "/receive", icon: ArrowDownLeft },
   { label: "Add money", href: "/add", icon: Plus },
   { label: "Business", href: "/business", icon: Building2 },
+  { label: "Developers", href: "/developers", icon: Code2 },
   { label: "Local", href: "/corridor", icon: MapPin },
 ];
+
+/** Surfaces only shown to business accounts, never retail. */
+const BUSINESS_ONLY = new Set(["/business", "/developers"]);
 
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
@@ -59,8 +64,8 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppSidebar({ pathname }: { pathname: string }) {
   const { isBusiness } = usePersona();
-  // Retail users never see the business surface.
-  const money = MONEY.filter((it) => it.href !== "/business" || isBusiness);
+  // Retail users never see the business surfaces.
+  const money = MONEY.filter((it) => !BUSINESS_ONLY.has(it.href) || isBusiness);
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border">
       <SidebarHeader>
