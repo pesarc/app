@@ -25,6 +25,44 @@ The open-source Goldgard hook lives separately at `jorshimayor/Goldgard`.
    copy.** No em dashes in landing pages, app UI, marketing text, or user-facing
    strings. Rewrite the sentence, or use a comma, colon, parentheses, or a period
    instead. (This rule is about the `—` glyph in shipped copy, not code comments.)
+7. **Every screen is responsive, mobile-first.** Nothing ships until it looks and
+   works well at **360px (small phone), 390px (phone), 768px (tablet), 1024px
+   (small laptop), 1440px (desktop), and 1920px+ (large monitor)**. Non-negotiable
+   for both the landing page and the app:
+   - **No horizontal scroll / overflow** at any width. Constrain widths, wrap flex
+     rows (`flex-wrap`), and never let a fixed-`px` element exceed the viewport.
+     Prefer `min()/max()/clamp()`, `%`, `vw`, `max-w-*` and `w-full` over fixed
+     widths; use fixed `px` only for genuinely fixed UI (icons, avatars).
+   - **Fluid type and spacing.** Scale headings/sections with Tailwind breakpoint
+     variants (`text-3xl sm:text-4xl lg:text-6xl`) or `clamp()`; never a single
+     desktop size that overflows small phones.
+   - **Grids collapse.** Multi-column layouts (bento, feature grids, dashboards)
+     stack to one column on phones and reflow on tablet: default to 1 column, add
+     `sm:` / `md:` / `lg:` columns going up. Design mobile-first (base = phone).
+   - **Touch targets ≥ 44px**, readable body text ≥ 14px on mobile, side gutters of
+     at least 16px (`px-4`) on phones.
+   - **Decorative/animated elements never break layout or block taps** on small
+     screens; hide or shrink them (`hidden lg:block`) rather than letting them
+     overflow or cover content.
+   - **Verify at multiple widths before merging** using the preview browser
+     (`resize_window` to phone/tablet/desktop), not just the desktop pane.
+8. **Give every screen room to breathe. Never packed or stuffy.** Whitespace is
+   part of the design, not wasted space, and small screens need MORE breathing
+   room per element, not less:
+   - **Scale spacing down gently from desktop, never to zero.** Sections keep
+     generous vertical rhythm on phones (`py-20`+), and gutters stay at least
+     `px-6` (24px) on phones so content never hugs the edge.
+   - **Gaps between stacked cards/items are generous on mobile** (`gap-5`+),
+     because a tight `gap-4` that looks right in a desktop grid reads as cramped
+     once everything is one column.
+   - **Cap hero/display type on phones.** A giant desktop headline shrunk by `vw`
+     units crowds the edges. Use a fixed, comfortable mobile size that leaves a
+     clear margin (e.g. `text-[3rem] sm:text-7xl`), not `text-[15vw]`.
+   - **Let big grids reflow, do not just shrink them.** A 3-up bento becomes a
+     balanced full-width-hero + 2-up on tablet and a clean 1-column stack on
+     phones. Avoid a lone orphan card in a row; span it or rebalance.
+   - **When in doubt, add space.** Denser is not more premium. If a mobile screen
+     feels busy, increase padding, gaps and line-height before removing content.
 
 ## Repository map
 
