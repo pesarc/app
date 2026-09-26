@@ -8,8 +8,14 @@ import Globe from "./Globe";
 export default function GlobeBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
+      {/*
+        The globe is interactive only in the hero: the hero content is
+        pointer-transparent so drags reach the globe (rotate up/down/left/right),
+        while every section below has an opaque background that blocks it, so the
+        globe reads as a passive backdrop once you scroll past the hero.
+      */}
       <div
-        className="absolute top-0 right-[-22%] h-screen w-[85%] lg:right-[-8%] lg:w-[62%]"
+        className="pointer-events-auto cursor-grab active:cursor-grabbing absolute top-0 right-[-22%] h-screen w-[85%] lg:right-[-8%] lg:w-[62%]"
         style={{
           maskImage:
             "radial-gradient(circle at 58% 34%, black 28%, transparent 72%)",
