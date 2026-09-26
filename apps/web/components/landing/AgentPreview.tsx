@@ -141,7 +141,7 @@ export default function AgentPreview() {
     <div className="w-[300px] rounded-card bg-white/10 border border-white/15 shadow-pop overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/10">
-        <span className="w-8 h-8 rounded-full bg-[#c8f542]/15 flex items-center justify-center text-[#c8f542]">
+        <span className="w-8 h-8 rounded-full bg-[#3AA0FF]/15 flex items-center justify-center text-[#3AA0FF]">
           <Bot className="w-4 h-4" />
         </span>
         <div className="flex-1 min-w-0">
@@ -167,7 +167,7 @@ export default function AgentPreview() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="self-end max-w-[82%] bg-[#c8f542] text-[#12300f] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
+                  className="self-end max-w-[82%] bg-[#3AA0FF] text-[#04294d] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
                 >
                   {line.text}
                 </motion.div>
@@ -181,7 +181,7 @@ export default function AgentPreview() {
                   className="self-start max-w-[90%] bg-white/[0.08] text-white rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
                 >
                   <span className="flex items-start gap-1.5">
-                    {line.visual && <Check className="w-3.5 h-3.5 text-[#c8f542] shrink-0 mt-0.5" />}
+                    {line.visual && <Check className="w-3.5 h-3.5 text-[#3AA0FF] shrink-0 mt-0.5" />}
                     <span>{line.text}</span>
                   </span>
                   {line.chips && (
@@ -226,7 +226,7 @@ export default function AgentPreview() {
                 className="self-start max-w-[90%] bg-white/[0.08] text-white rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
               >
                 {streamed}
-                <span className="inline-block w-[2px] h-[13px] align-middle ml-0.5 bg-[#c8f542] animate-pulse" />
+                <span className="inline-block w-[2px] h-[13px] align-middle ml-0.5 bg-[#3AA0FF] animate-pulse" />
               </div>
             )}
           </AnimatePresence>
@@ -238,7 +238,7 @@ export default function AgentPreview() {
         <div className="flex-1 rounded-pill bg-white/[0.08] border border-white/15 px-3.5 py-2 text-[12.5px] text-white/40">
           Ask the agent anything…
         </div>
-        <span className="w-8 h-8 rounded-full bg-[#c8f542] text-[#12300f] flex items-center justify-center shrink-0">
+        <span className="w-8 h-8 rounded-full bg-[#3AA0FF] text-[#04294d] flex items-center justify-center shrink-0">
           <ArrowUp className="w-4 h-4" />
         </span>
       </div>
@@ -252,11 +252,11 @@ function SceneVisual({ kind }: { kind: Kind }) {
     return (
       <div className="mt-2">
         <div className="flex h-1.5 rounded-full overflow-hidden">
-          <div className="bg-[#c8f542]" style={{ width: "62%" }} />
+          <div className="bg-[#3AA0FF]" style={{ width: "62%" }} />
           <div className="bg-white/15" style={{ width: "38%" }} />
         </div>
         <div className="flex justify-between mt-1 text-[10.5px] font-bold">
-          <span className="text-[#c8f542]">Yes 62%</span>
+          <span className="text-[#3AA0FF]">Yes 62%</span>
           <span className="text-white/50">No 38%</span>
         </div>
       </div>
@@ -265,7 +265,7 @@ function SceneVisual({ kind }: { kind: Kind }) {
   if (kind === "earn" || kind === "invest") {
     return (
       <div className="mt-2 flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#c8f542]/12 text-[#c8f542] text-[10.5px] font-extrabold px-2 py-0.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#3AA0FF]/12 text-[#3AA0FF] text-[10.5px] font-extrabold px-2 py-0.5">
           {kind === "earn" ? "9.2% APY" : "DANGCEM · 183 sh"}
         </span>
         <span className="text-[10.5px] font-bold text-white/50">settled in cNGN</span>
@@ -275,7 +275,7 @@ function SceneVisual({ kind }: { kind: Kind }) {
   return (
     <div className="mt-2 h-1.5 rounded-full bg-white/15 overflow-hidden">
       <motion.div
-        className="h-full rounded-full bg-[#c8f542]"
+        className="h-full rounded-full bg-[#3AA0FF]"
         initial={{ width: "12%" }}
         animate={{ width: "100%" }}
         transition={{ duration: 1.2, ease: "easeInOut" }}
