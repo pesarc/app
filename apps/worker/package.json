@@ -3,5 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "echo 'not migrated yet'", "lint": "echo ok", "typecheck": "echo ok", "build": "echo ok", "test": "echo ok" }
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "dev": "node --watch src/index.mjs",
+    "lint": "echo ok",
+    "typecheck": "echo ok",
+    "build": "echo ok",
+    "test": "echo ok"
+  }
 }
