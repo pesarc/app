@@ -29,7 +29,7 @@ const CORRIDORS: Corridor[] = [
 export default function CorridorPreview() {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % CORRIDORS.length), 3200);
+    const t = setInterval(() => setI((v) => (v + 1) % CORRIDORS.length), 4200);
     return () => clearInterval(t);
   }, []);
   const c = CORRIDORS[i];
@@ -37,7 +37,7 @@ export default function CorridorPreview() {
   return (
     <div
       className="w-[300px] rounded-2xl p-4 overflow-hidden backdrop-blur-md"
-      style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.3)" }}
+      style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)" }}
     >
       <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60 mb-3">
         <Zap className="w-3.5 h-3.5" style={{ color: "#3AA0FF" }} /> Corridor · live

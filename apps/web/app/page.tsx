@@ -26,12 +26,20 @@ export default function Home() {
       {/* Globe backdrop, visible faintly through every section */}
       <GlobeBackdrop />
 
-      <div className="relative z-10">
+      {/*
+        pointer-events-none on the wrapper so hero clicks fall through to the
+        fixed globe behind it (drag/hover). Each section below opts back in so it
+        stays interactive and opaque over the globe. The Hero stays pass-through;
+        only its nav/CTA/cards opt in.
+      */}
+      <div className="relative z-10 pointer-events-none">
         <Hero />
-        <Features />
-        <NetworksBanks />
-        <Waitlist />
-        <Footer />
+        <div className="pointer-events-auto">
+          <Features />
+          <NetworksBanks />
+          <Waitlist />
+          <Footer />
+        </div>
       </div>
     </div>
   );
