@@ -19,7 +19,7 @@ const NAV_ICON: Record<string, LucideIcon> = {
 export default function Hero() {
   return (
     <section className="relative w-full min-h-screen overflow-hidden">
-      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-6 md:py-8 pointer-events-none">
+      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-8 md:py-8 pointer-events-none">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -12 }}
@@ -52,23 +52,12 @@ export default function Hero() {
         {/* Headline */}
         <div className="flex-1 flex items-center">
           <div className="w-full max-w-2xl pointer-events-none select-none">
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease, delay: 0.1 }}
-              className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-7 text-[12px] font-medium text-white/90"
-              style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
-              Stablecoin settlement network
-            </motion.div>
-
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.18 }}
-              className="text-[15vw] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance"
-              style={{ lineHeight: 1.04 }}
+              className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance"
+              style={{ lineHeight: 1.06 }}
             >
               Send money
               <br />
@@ -111,7 +100,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.5 }}
-          className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-3 mt-10 lg:mt-0 pointer-events-auto"
+          className="lg:absolute lg:bottom-10 lg:right-12 z-20 flex flex-col items-stretch lg:items-end gap-4 mt-14 lg:mt-0 pointer-events-auto"
         >
           <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}>
             <CorridorPreview />
@@ -121,12 +110,39 @@ export default function Hero() {
           </motion.div>
         </motion.div>
 
-        {/* Meta */}
-        <div className="hidden lg:flex absolute bottom-8 left-12 flex-col gap-0.5 text-[11px] font-medium uppercase tracking-widest text-white/40">
-          <span>{site.protocolVersion}</span>
-          <span>Gasless · Non-custodial</span>
+        {/* Badge, moved to the foot of the hero so the headline leads on small
+            screens. In-flow at the bottom on phones/tablets, tucked into the
+            corner meta on desktop. */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease, delay: 0.6 }}
+          className="lg:hidden mt-14 pointer-events-auto"
+        >
+          <Badge />
+        </motion.div>
+
+        {/* Meta (desktop only) */}
+        <div className="hidden lg:flex absolute bottom-8 left-12 flex-col items-start gap-3 pointer-events-auto">
+          <Badge />
+          <div className="flex flex-col gap-0.5 text-[11px] font-medium uppercase tracking-widest text-white/40">
+            <span>{site.protocolVersion}</span>
+            <span>Gasless · Non-custodial</span>
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function Badge() {
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-medium text-white/90"
+      style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
+      Stablecoin settlement network
+    </span>
   );
 }
