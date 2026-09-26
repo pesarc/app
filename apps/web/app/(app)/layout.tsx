@@ -1,4 +1,5 @@
 import AppShell from "@/components/app/AppShell";
+import AuthGate from "@/components/app/AuthGate";
 import { UIModeProvider } from "@pesarc/sdk/ui-mode";
 import { PrefsProvider } from "@pesarc/sdk/prefs";
 import { WalletProvider } from "@pesarc/sdk/wallet/WalletProvider";
@@ -14,7 +15,9 @@ export default function AppLayout({
       <WalletProvider>
         <UIModeProvider>
           <PrefsProvider>
-            <AppShell>{children}</AppShell>
+            <AuthGate>
+              <AppShell>{children}</AppShell>
+            </AuthGate>
           </PrefsProvider>
         </UIModeProvider>
       </WalletProvider>
