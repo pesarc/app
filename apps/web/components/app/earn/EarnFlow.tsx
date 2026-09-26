@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
 import { fetchLiveCorridorTvl, liveTvlAvailable } from "@pesarc/sdk/chain/livePool";
+import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
@@ -51,7 +52,24 @@ export default function EarnFlow() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [depositPool, setDepositPool] = useState<Pool | null>(null);
 
+  // Positions are durable server-side records now — load the account's own.
+  useEffect(() => {
+    let ok = true;
+    authedFetch("/api/earn")
+      .then((r) => r.json())
+      .then((d) => {
+        if (ok && d.ok) {
+          setPositions(d.positions.map((p: any) => ({ poolId: p.poolId, principal: p.principal })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ok = false;
+    };
+  }, []);
+
   const deposit = (poolId: string, principal: number) => {
+    setDepositPool(null);
     setPositions((prev) => {
       const existing = prev.find((p) => p.poolId === poolId);
       if (existing) {
@@ -61,11 +79,16 @@ export default function EarnFlow() {
       }
       return [...prev, { poolId, principal }];
     });
-    setDepositPool(null);
+    // Persist (best-effort); the optimistic update already reflects it.
+    authedPostJson("/api/earn", { poolId, amount: principal }).catch(() => {});
   };
 
-  const withdraw = (poolId: string) =>
+  const withdraw = (poolId: string) => {
     setPositions((prev) => prev.filter((p) => p.poolId !== poolId));
+    authedFetch(`/api/earn?poolId=${encodeURIComponent(poolId)}`, { method: "DELETE" }).catch(
+      () => {},
+    );
+  };
 
   if (depositPool) {
     return (
