@@ -79,10 +79,17 @@ address across chains — matches the CCTP address), on the canonical EntryPoint
 v0.7 `0x0000000071727De22E5E9d8BAf0edAc6f37da032`. `erc7677Client.ts` is wired to
 exactly that.
 
-Verified: viem's real `createPaymasterClient` round-trips against `/api/paymaster`
-(getPaymasterStubData + getPaymasterData both return the paymaster + a 77-byte
-paymasterData). The bundler leg is the remaining integration step — it needs an
-Arc bundler URL (Pimlico) + a paymaster with a funded gas vault.
+Verified END TO END on Arc testnet (5042002): a SimpleAccount UserOp was
+submitted through the Pimlico bundler, **sponsored by Pimlico's paymaster (no
+policy needed on testnet)**, deployed the account, and confirmed on-chain
+(`success: true`). So gasless on Arc works with just a Pimlico key.
+
+Setup is one key: `NEXT_PUBLIC_PIMLICO_API_KEY` builds both the bundler URL and
+the paymaster (same v2 endpoint), and `NEXT_PUBLIC_GAS_SPONSOR_ARC=pimlico`. On
+mainnet, add a funded `NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID` (passed as
+paymaster context) or use Circle Paymaster / the in-house paymaster. The
+`/api/paymaster` in-house path is also verified against viem's real paymaster
+client (77-byte paymasterData) for the survivable, audit-then-flip option.
 
 ## Arc bundler + paymaster URLs (exact, from Circle's guide)
 

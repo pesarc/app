@@ -33,19 +33,39 @@ export type GasSponsor =
       context?: Record<string, unknown>;
     };
 
-function arcSponsor(): GasSponsor {
-  const bundlerUrl = process.env.NEXT_PUBLIC_ARC_BUNDLER_URL || undefined;
+function pimlicoUrl(chainId: number): string {
+  const key = process.env.NEXT_PUBLIC_PIMLICO_API_KEY || "";
+  return key ? `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${key}` : "";
+}
+
+function arcSponsor(chainId: number): GasSponsor {
+  // Bundler: an explicit URL, else Pimlico (built from the key) — the Arc-
+  // recommended bundler.
+  const bundlerUrl = process.env.NEXT_PUBLIC_ARC_BUNDLER_URL || pimlicoUrl(chainId) || undefined;
+
   const circleUrl = process.env.NEXT_PUBLIC_CIRCLE_PAYMASTER_URL || "";
-  // The in-house paymaster is this app's own ERC-7677 route once its contract
-  // is deployed (address configured); default the URL to that same-origin route.
   const inhouseUrl =
     process.env.NEXT_PUBLIC_INHOUSE_PAYMASTER_URL ||
     (process.env.NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS ? "/api/paymaster" : "");
+  // Pimlico paymaster: the same v2 URL sponsors with just the key (verified
+  // gasless on Arc testnet). A sponsorship policy id is optional (needed to
+  // scope/fund sponsorship, e.g. on mainnet); passed as context when present.
+  const pimPmUrl = pimlicoUrl(chainId);
+  const pimPolicy = process.env.NEXT_PUBLIC_PIMLICO_SPONSORSHIP_POLICY_ID || "";
 
   const pick = (process.env.NEXT_PUBLIC_GAS_SPONSOR_ARC || "").toLowerCase();
 
   if ((pick === "circle" || (!pick && circleUrl)) && circleUrl) {
     return { kind: "erc7677", provider: "circle", paymasterUrl: circleUrl, bundlerUrl };
+  }
+  if ((pick === "pimlico" || (!pick && pimPmUrl)) && pimPmUrl) {
+    return {
+      kind: "erc7677",
+      provider: "custom",
+      paymasterUrl: pimPmUrl,
+      bundlerUrl,
+      ...(pimPolicy ? { context: { sponsorshipPolicyId: pimPolicy } } : {}),
+    };
   }
   if ((pick === "inhouse" || (!pick && inhouseUrl)) && inhouseUrl) {
     return { kind: "erc7677", provider: "inhouse", paymasterUrl: inhouseUrl, bundlerUrl };
@@ -53,9 +73,9 @@ function arcSponsor(): GasSponsor {
   return { kind: "none" };
 }
 
-/** Resolve the gas sponsor for a chain (by its registry key, e.g. "arc"). */
-export function getGasSponsor(chainKey: string): GasSponsor {
-  if (chainKey === "arc") return arcSponsor();
+/** Resolve the gas sponsor for a chain (registry key + numeric chain id). */
+export function getGasSponsor(chainKey: string, chainId = 5042): GasSponsor {
+  if (chainKey === "arc") return arcSponsor(chainId);
 
   const policyId = gasPolicyFor(chainKey);
   if (ALCHEMY_API_KEY && policyId) {
@@ -65,6 +85,6 @@ export function getGasSponsor(chainKey: string): GasSponsor {
 }
 
 /** Whether gasless sends are possible for a chain (any real sponsor resolves). */
-export function gasSponsorConfigured(chainKey: string): boolean {
-  return getGasSponsor(chainKey).kind !== "none";
+export function gasSponsorConfigured(chainKey: string, chainId?: number): boolean {
+  return getGasSponsor(chainKey, chainId).kind !== "none";
 }
