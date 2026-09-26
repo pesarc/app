@@ -40,7 +40,7 @@ export default function CorridorPreview() {
       style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.3)" }}
     >
       <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60 mb-3">
-        <Zap className="w-3.5 h-3.5" style={{ color: "#c8f542" }} /> Corridor · live
+        <Zap className="w-3.5 h-3.5" style={{ color: "#3AA0FF" }} /> Corridor · live
       </div>
 
       <div className="relative h-[62px]">
@@ -58,7 +58,7 @@ export default function CorridorPreview() {
               <svg viewBox="0 0 120 8" className="w-full h-2 overflow-visible">
                 <path
                   d="M0,4 H120"
-                  stroke="#c8f542"
+                  stroke="#3AA0FF"
                   strokeWidth="2"
                   fill="none"
                   strokeDasharray="4 4"
@@ -75,8 +75,8 @@ export default function CorridorPreview() {
         <span className="text-white/60">
           Settles <span className="text-white">&lt;30s</span>
         </span>
-        <span className="inline-flex items-center gap-1.5" style={{ color: "#c8f542" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#c8f542" }} /> Gasless · 0.5%
+        <span className="inline-flex items-center gap-1.5" style={{ color: "#3AA0FF" }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#3AA0FF" }} /> Gasless · 0.5%
         </span>
       </div>
     </div>

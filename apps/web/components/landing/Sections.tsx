@@ -13,14 +13,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const LIME = "#c8f542";
+const LIME = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <span
       className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-white/90"
-      style={{ border: "1px solid rgba(200,245,66,0.35)", background: "rgba(200,245,66,0.06)" }}
+      style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: LIME }} />
       {children}
@@ -72,7 +72,7 @@ export function Features() {
     <section
       id="features"
       className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
-      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,42,18,0.72)" }}
+      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.72)" }}
     >
       <div className="max-w-2xl">
         <Eyebrow>What you can do</Eyebrow>
@@ -100,7 +100,7 @@ export function Features() {
           >
             <span
               className="flex items-center justify-center rounded-xl transition-transform group-hover:scale-110"
-              style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}
+              style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}
             >
               <f.icon className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
             </span>
@@ -113,7 +113,7 @@ export function Features() {
       {/* Reach strip: voice + USSD */}
       <div className="mt-4 grid sm:grid-cols-2 gap-4">
         <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
-          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}>
+          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}>
             <Mic className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
           </span>
           <p className="text-sm text-white/70 leading-relaxed">
@@ -122,7 +122,7 @@ export function Features() {
           </p>
         </div>
         <div className="rounded-2xl p-6 backdrop-blur-md flex items-center gap-4" style={cardStyle}>
-          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(200,245,66,0.15)" }}>
+          <span className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 40, height: 40, background: "rgba(58,160,255,0.15)" }}>
             <Hash className="w-5 h-5" style={{ color: LIME }} strokeWidth={1.6} />
           </span>
           <p className="text-sm text-white/70 leading-relaxed">
@@ -149,7 +149,7 @@ export function NetworksBanks() {
     <section
       id="networks"
       className="relative px-5 sm:px-8 lg:px-12 py-20 lg:py-28"
-      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(13,54,23,0.78)" }}
+      style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(7,42,77,0.72)" }}
     >
       <div className="max-w-2xl">
         <Eyebrow>Networks and banks</Eyebrow>
@@ -185,7 +185,7 @@ export function NetworksBanks() {
               <span
                 key={r}
                 className="rounded-full px-3.5 py-1.5 text-xs font-medium"
-                style={{ border: "1px solid rgba(200,245,66,0.25)", background: "rgba(200,245,66,0.05)", color: "rgba(255,255,255,0.85)" }}
+                style={{ border: "1px solid rgba(58,160,255,0.25)", background: "rgba(58,160,255,0.05)", color: "rgba(255,255,255,0.85)" }}
               >
                 {r}
               </span>
