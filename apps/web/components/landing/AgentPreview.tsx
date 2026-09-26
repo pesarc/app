@@ -29,12 +29,12 @@ const SCENES: Scene[] = [
     label: "Send",
     lines: [
       { from: "user", text: "Send ₦50,000 to Ama" },
-      { from: "agent", text: "Sure — where should Ama get it?", chips: ["cNGN · Base", "GTBank ••4821"] },
+      { from: "agent", text: "Sure, where should Ama get it?", chips: ["cNGN · Base", "GTBank ••4821"] },
       { from: "user", text: "GTBank ••4821" },
       {
         from: "agent",
         visual: "settle",
-        text: "Sent ₦50,000 to Ama — GTBank ••4821, settled in local currency.",
+        text: "Sent ₦50,000 to Ama, GTBank ••4821, settled in local currency.",
       },
     ],
   },
@@ -46,7 +46,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "market",
-        text: "Backed “USD/NGN ≥ ₦1,700 by Dec” — you’re covered if the naira slides.",
+        text: "Backed “USD/NGN ≥ ₦1,700 by Dec”, you’re covered if the naira slides.",
       },
     ],
   },
@@ -58,7 +58,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "earn",
-        text: "Deposited to the NGN↔GHS corridor — 9.2% APY, insured, withdraw anytime.",
+        text: "Deposited to the NGN↔GHS corridor, 9.2% APY, insured, withdraw anytime.",
       },
     ],
   },
@@ -70,7 +70,7 @@ const SCENES: Scene[] = [
       {
         from: "agent",
         visual: "invest",
-        text: "Bought 183 DANGCEM — priced & settled in cNGN. Or lend it at 6.4%.",
+        text: "Bought 183 DANGCEM, priced & settled in cNGN. Or lend it at 6.4%.",
       },
     ],
   },
@@ -138,19 +138,19 @@ export default function AgentPreview() {
   const streamingLine = streamed ? lines[visible] : null;
 
   return (
-    <div className="w-[300px] rounded-card bg-snow border border-fog shadow-pop overflow-hidden">
+    <div className="w-[300px] rounded-card bg-white/10 border border-white/15 shadow-pop overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-cream">
-        <span className="w-8 h-8 rounded-full bg-sky/15 flex items-center justify-center text-sky">
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/10">
+        <span className="w-8 h-8 rounded-full bg-[#c8f542]/15 flex items-center justify-center text-[#c8f542]">
           <Bot className="w-4 h-4" />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-extrabold text-harbor leading-tight">Pesarc agent</div>
-          <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-slate">
+          <div className="text-[13px] font-extrabold text-white leading-tight">Pesarc agent</div>
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-white/50">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" /> online
           </div>
         </div>
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate">
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/50">
           {SCENES[scene].label}
         </span>
       </div>
@@ -167,7 +167,7 @@ export default function AgentPreview() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="self-end max-w-[82%] bg-sky text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
+                  className="self-end max-w-[82%] bg-[#c8f542] text-[#12300f] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] font-medium"
                 >
                   {line.text}
                 </motion.div>
@@ -178,10 +178,10 @@ export default function AgentPreview() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
+                  className="self-start max-w-[90%] bg-white/[0.08] text-white rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
                 >
                   <span className="flex items-start gap-1.5">
-                    {line.visual && <Check className="w-3.5 h-3.5 text-sky shrink-0 mt-0.5" />}
+                    {line.visual && <Check className="w-3.5 h-3.5 text-[#c8f542] shrink-0 mt-0.5" />}
                     <span>{line.text}</span>
                   </span>
                   {line.chips && (
@@ -189,7 +189,7 @@ export default function AgentPreview() {
                       {line.chips.map((c) => (
                         <span
                           key={c}
-                          className="rounded-full bg-snow border border-fog text-harbor text-[11px] font-bold px-2.5 py-1"
+                          className="rounded-full bg-white/10 border border-white/15 text-white text-[11px] font-bold px-2.5 py-1"
                         >
                           {c}
                         </span>
@@ -207,12 +207,12 @@ export default function AgentPreview() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="self-start bg-cream rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
+                className="self-start bg-white/[0.08] rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1"
               >
                 {[0, 1, 2].map((i) => (
                   <motion.span
                     key={i}
-                    className="w-1.5 h-1.5 rounded-full bg-slate"
+                    className="w-1.5 h-1.5 rounded-full bg-white/40"
                     animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }}
                   />
@@ -223,10 +223,10 @@ export default function AgentPreview() {
             {streamingLine && (
               <div
                 key={`${scene}-stream`}
-                className="self-start max-w-[90%] bg-cream text-ink rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
+                className="self-start max-w-[90%] bg-white/[0.08] text-white rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px]"
               >
                 {streamed}
-                <span className="inline-block w-[2px] h-[13px] align-middle ml-0.5 bg-sky animate-pulse" />
+                <span className="inline-block w-[2px] h-[13px] align-middle ml-0.5 bg-[#c8f542] animate-pulse" />
               </div>
             )}
           </AnimatePresence>
@@ -235,10 +235,10 @@ export default function AgentPreview() {
 
       {/* Composer (decorative) */}
       <div className="flex items-center gap-2 px-3.5 pb-3.5">
-        <div className="flex-1 rounded-pill bg-cream border border-fog px-3.5 py-2 text-[12.5px] text-slate/70">
+        <div className="flex-1 rounded-pill bg-white/[0.08] border border-white/15 px-3.5 py-2 text-[12.5px] text-white/40">
           Ask the agent anything…
         </div>
-        <span className="w-8 h-8 rounded-full bg-sky text-white flex items-center justify-center shrink-0">
+        <span className="w-8 h-8 rounded-full bg-[#c8f542] text-[#12300f] flex items-center justify-center shrink-0">
           <ArrowUp className="w-4 h-4" />
         </span>
       </div>
@@ -252,12 +252,12 @@ function SceneVisual({ kind }: { kind: Kind }) {
     return (
       <div className="mt-2">
         <div className="flex h-1.5 rounded-full overflow-hidden">
-          <div className="bg-sky" style={{ width: "62%" }} />
-          <div className="bg-fog" style={{ width: "38%" }} />
+          <div className="bg-[#c8f542]" style={{ width: "62%" }} />
+          <div className="bg-white/15" style={{ width: "38%" }} />
         </div>
         <div className="flex justify-between mt-1 text-[10.5px] font-bold">
-          <span className="text-sky-deep">Yes 62%</span>
-          <span className="text-slate">No 38%</span>
+          <span className="text-[#c8f542]">Yes 62%</span>
+          <span className="text-white/50">No 38%</span>
         </div>
       </div>
     );
@@ -265,17 +265,17 @@ function SceneVisual({ kind }: { kind: Kind }) {
   if (kind === "earn" || kind === "invest") {
     return (
       <div className="mt-2 flex items-center gap-1.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-sky-tint/50 text-sky-deep text-[10.5px] font-extrabold px-2 py-0.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#c8f542]/12 text-[#c8f542] text-[10.5px] font-extrabold px-2 py-0.5">
           {kind === "earn" ? "9.2% APY" : "DANGCEM · 183 sh"}
         </span>
-        <span className="text-[10.5px] font-bold text-slate">settled in cNGN</span>
+        <span className="text-[10.5px] font-bold text-white/50">settled in cNGN</span>
       </div>
     );
   }
   return (
-    <div className="mt-2 h-1.5 rounded-full bg-fog overflow-hidden">
+    <div className="mt-2 h-1.5 rounded-full bg-white/15 overflow-hidden">
       <motion.div
-        className="h-full rounded-full bg-sky"
+        className="h-full rounded-full bg-[#c8f542]"
         initial={{ width: "12%" }}
         animate={{ width: "100%" }}
         transition={{ duration: 1.2, ease: "easeInOut" }}
