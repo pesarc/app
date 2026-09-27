@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Wallet, Sprout, TrendingUp, Bot, ArrowRight, Check, Loader2 } from "lucide-react";
+import { Send, Wallet, Sprout, TrendingUp, Bot, ArrowRight, Check, Loader2 } from "@/components/icons";
 import { site } from "@pesarc/sdk/site";
 
 const ACCENT = "#3AA0FF";

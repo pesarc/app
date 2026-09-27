@@ -1,19 +1,21 @@
 "use client";
 
-// Guards business-only surfaces: a retail persona that reaches one by direct URL
-// is sent back to /home. Complements hiding it from the retail nav.
+// Guards business-only surfaces: any NON-business persona (retail, provider,
+// advanced) that reaches one by direct URL is sent to its own home. Complements
+// hiding it from the retail nav.
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { usePersona } from "@pesarc/sdk/persona";
+import { usePersona, homeFor } from "@pesarc/sdk/persona";
 
 export default function RequireBusiness({ children }: { children: React.ReactNode }) {
-  const { persona, ready } = usePersona();
+  const { persona, ready, isBusiness } = usePersona();
   const router = useRouter();
+  const blocked = ready && persona !== null && !isBusiness;
 
   useEffect(() => {
-    if (ready && persona === "retail") router.replace("/home");
-  }, [ready, persona, router]);
+    if (blocked) router.replace(homeFor(persona));
+  }, [blocked, persona, router]);
 
-  if (ready && persona === "retail") return null;
+  if (blocked) return null;
   return <>{children}</>;
 }

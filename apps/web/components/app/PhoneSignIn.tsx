@@ -4,7 +4,7 @@
 // we send via Termii. On success the server sets a signed session cookie and we
 // reload; Privy custom auth then picks up the session and provisions the wallet.
 import { useState } from "react";
-import { ArrowRight, Loader2, Phone, ShieldCheck } from "lucide-react";
+import { ArrowRight, Loader2, Phone, ShieldCheck } from "@/components/icons";
 import { Button } from "@/components/app/ui";
 import { LogoMark } from "@/components/app/Logo";
 import { site } from "@pesarc/sdk/site";

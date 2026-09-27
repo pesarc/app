@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Zap,
-} from "lucide-react";
+} from "@/components/icons";
 import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@pesarc/sdk/account";
 import { CURRENCIES, formatMoney, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
 import {
@@ -59,6 +59,34 @@ export default function SendFlow() {
   const [txHash, setTxHash] = useState<string>();
   const [payoutTxHash, setPayoutTxHash] = useState<string>();
   const [actualReceive, setActualReceive] = useState<number>();
+
+  // Deep-link prefill. The agent's bulk-file preview (and any share link) hands a
+  // recipient here as ?to=&amount=&ccy=&method=&name=&bank=. We seed the fields
+  // and land on the AMOUNT step so the user still reviews the quote and confirms
+  // — a prefilled link never auto-sends (read + draft only carries through).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const to = sp.get("to");
+    if (!to) return;
+    const method = sp.get("method");
+    const ccy = (sp.get("ccy") || "").toUpperCase();
+    const name = sp.get("name") || undefined;
+    const amt = sp.get("amount");
+    if (method === "bank") {
+      const dest: BankDestination = { bankCode: sp.get("bank") || "", accountNumber: to, accountName: name };
+      setBankDest(dest);
+      setPayout("bank");
+      setRecipient(recipientFromBank(dest));
+    } else {
+      const guess = detectPhone(to) ?? { pretty: to, country: "", flag: "🌍", ccy: (ccy || "NGN") as CurrencyCode };
+      if (ccy) guess.ccy = ccy as CurrencyCode;
+      setRecipient(recipientFromPhone(guess));
+    }
+    if (amt && Number(amt) > 0) setAmountStr(String(Number(amt)));
+    setStep("amount");
+    // Read the link once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const amount = parseFloat(amountStr) || 0;
 

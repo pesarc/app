@@ -7,6 +7,7 @@ allowBuilds:
   bigint-buffer: false
   bufferutil: true
   keccak: true
+  secp256k1: false
   sharp: true
   unrs-resolver: true
   utf-8-validate: true

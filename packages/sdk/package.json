@@ -16,15 +16,17 @@
     "@alchemy/wallet-apis": "^5.0.6",
     "@pesarc/abi": "workspace:*",
     "@privy-io/react-auth": "^3.32.0",
-    "algosdk": "^2.9.0",
     "@privy-io/server-auth": "^1.32.5",
     "@solana/web3.js": "^1.99.0",
+    "algosdk": "^2.9.0",
+    "cngn-typescript-library": "^3.0.2",
+    "fflate": "^0.8.3",
+    "jose": "^5.9.6",
     "next": "15.2.8",
     "permissionless": "^0.2.10",
     "postgres": "^3.4.5",
     "react": "18.3.1",
-    "viem": "^2.30.1",
-    "jose": "^5.9.6"
+    "viem": "^2.30.1"
   },
   "devDependencies": {
     "@types/node": "^20",

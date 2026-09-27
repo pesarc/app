@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/icons";
 import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
 import { fetchLiveCorridorTvl, liveTvlAvailable } from "@pesarc/sdk/chain/livePool";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";

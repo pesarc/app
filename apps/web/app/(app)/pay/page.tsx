@@ -12,7 +12,7 @@ import {
   ExternalLink,
   ScanLine,
   Zap,
-} from "lucide-react";
+} from "@/components/icons";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { formatMoney, formatNumber } from "@pesarc/sdk/money";
 import { applyLivePool, getQuote, type Quote } from "@pesarc/sdk/quote";

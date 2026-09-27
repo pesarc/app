@@ -1,4 +1,4 @@
-import { Shield, Sun, Users, Link2 } from "lucide-react";
+import { Shield, Sun, Users, Link2 } from "@/components/icons";
 import { isMulti, outcomePrices, type Market } from "@pesarc/sdk/markets";
 import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Selection } from "./display";
