@@ -5,7 +5,7 @@
 // at. Backed by the app-wide active-chain context, so switching re-points reads
 // and the smart wallet.
 import { useState } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "@/components/icons";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 
 // Brand-ish dot per chain so the list reads at a glance.

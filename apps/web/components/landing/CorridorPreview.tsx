@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap } from "lucide-react";
+import { Zap } from "@/components/icons";
 
 type Corridor = {
   fromFlag: string;

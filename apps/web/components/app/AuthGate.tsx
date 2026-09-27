@@ -9,7 +9,7 @@ import { AUTH_MODE } from "@pesarc/sdk/wallet/config";
 import { Button } from "@/components/app/ui";
 import { LogoMark } from "@/components/app/Logo";
 import { site } from "@pesarc/sdk/site";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight } from "@/components/icons";
 import PhoneSignIn from "@/components/app/PhoneSignIn";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {

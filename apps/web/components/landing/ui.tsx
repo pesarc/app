@@ -2,7 +2,7 @@
 // pill nav items with a leading icon, and accent (Pesarc-blue) pill buttons with
 // an optional circular icon badge. Rounded-full everywhere; icons are thin-line
 // (lucide, the solar-linear equivalent). Accent = the logo blue.
-import { type LucideIcon, ArrowUpRight } from "lucide-react";
+import { type LucideIcon, ArrowUpRight } from "@/components/icons";
 
 export const ACCENT = "#3AA0FF"; // Pesarc logo blue
 export const ON_ACCENT = "#04294d"; // text/icons on an accent fill

@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, TrendingDown, X, Check, Search, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, X, Check, Search, Loader2 } from "@/components/icons";
 import {
   INSTRUMENTS,
   MARKETS,

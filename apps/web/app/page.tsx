@@ -9,7 +9,7 @@ import GlobeBackdrop from "@/components/landing/GlobeBackdrop";
 export default function Home() {
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden text-white [color-scheme:dark]"
+      className="relative min-h-screen overflow-x-clip text-white [color-scheme:dark]"
       style={{
         // Deep navy from the Pesarc logo blue family.
         background: "linear-gradient(160deg,#041a33 0%,#072a4d 45%,#041a33 100%)",

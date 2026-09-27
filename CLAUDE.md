@@ -141,6 +141,16 @@ docs/           Specs, licensing/partner strategy, security audit, corridor runb
   interactive element needs an `aria-label`; external links carry `rel="noreferrer"`.
 - **Styling**: Tailwind utilities + the design tokens already in `globals.css` /
   `tailwind.config.ts` (emerald/gold/deepink). Don't introduce a component library.
+- **Icons: Hugeicons only, never `lucide-react`.** Lucide is banned — it does not
+  pass our design bar (thin, generic, fails the visual QA). Use **Hugeicons**
+  (`stroke-rounded` set, designer-standard) via the shared module
+  `@/components/icons` — never import from `lucide-react`, and never import
+  `@hugeicons/*` directly in a component. `components/icons.tsx` re-exports every
+  icon we use as a named component with the lucide-compatible call shape
+  (`<Send className="w-5 h-5" strokeWidth={1.7} />`), so call sites stay clean and
+  the icon set is swappable in one place. Need an icon that isn't exported yet? Add
+  it to `components/icons.tsx` (map it to its Hugeicons `stroke-rounded` glyph),
+  then import it from there. A `lucide-react` import anywhere is a review-blocker.
 
 ## Backend (Next.js API routes / Neon Postgres)
 

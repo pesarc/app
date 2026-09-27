@@ -5,7 +5,7 @@
 // Invest, Markets and Earn so long, admin-growable lists stay scannable.
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/icons";
 
 /**
  * Slice `items` into pages of `pageSize`. Pass a `resetKey` (e.g. the active
