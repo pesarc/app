@@ -37,8 +37,9 @@ const LOGO: Record<string, string> = {
 const LOGO_SCALE: Record<string, number> = {
   Ethereum: 0.76,
   Base: 0.9,
-  Arbitrum: 1.16,
-  Algorand: 1.18,
+  Optimism: 1.12,
+  Arbitrum: 1.42,
+  Algorand: 1.44,
 };
 
 type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
@@ -102,7 +103,7 @@ function HubNode({ name, x, y, side }: { name: string; x: number; y: number; sid
       <foreignObject x={x - 34} y={y - 34} width="68" height="68">
         <div
           className="w-full h-full rounded-2xl grid place-items-center overflow-hidden"
-          style={{ background: hasLogo ? "#e9eef5" : `${b.color}1f`, border: `1px solid ${b.color}66`, padding: hasLogo ? 8 : 0 }}
+          style={{ background: `${b.color}1f`, border: `1px solid ${b.color}66`, padding: hasLogo ? 8 : 0 }}
         >
           <Mark name={name} size={hasLogo ? 40 : 30} />
         </div>
@@ -227,16 +228,14 @@ function Marquee() {
       `}</style>
       <div className="railtrack flex w-max gap-3">
         {row.map((name, i) => {
-          const b = BRANDS[name] ?? { color: ACCENT };
           const hasLogo = Boolean(LOGO[name]);
           return (
             <div
               key={`${name}-${i}`}
-              className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5 shrink-0"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
+              className="flex items-center gap-2.5 px-3 py-1.5 shrink-0"
             >
-              <span className="grid place-items-center w-9 h-9 rounded-full shrink-0 overflow-hidden" style={{ background: hasLogo ? "transparent" : `${b.color}22` }}>
-                <Mark name={name} size={hasLogo ? 26 : 16} />
+              <span className="grid place-items-center w-12 h-12 shrink-0">
+                <Mark name={name} size={hasLogo ? 30 : 20} />
               </span>
               <span className="text-[13px] font-semibold text-white/80 whitespace-nowrap">{name}</span>
             </div>

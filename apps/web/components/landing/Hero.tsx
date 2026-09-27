@@ -139,10 +139,6 @@ export default function Hero() {
         {/* Meta (desktop only) */}
         <div className="hidden lg:flex absolute bottom-8 left-12 flex-col items-start gap-3 pointer-events-auto">
           <Badge />
-          <div className="flex flex-col gap-0.5 text-[11px] font-medium uppercase tracking-widest text-white/40">
-            <span>{site.protocolVersion}</span>
-            <span>Gasless · Non-custodial</span>
-          </div>
         </div>
       </div>
     </section>
