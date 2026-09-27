@@ -21,10 +21,10 @@ export type LiveBalance = {
   address?: `0x${string}`;
 };
 
-export function useLiveBalance(): LiveBalance {
+export function useLiveBalance(code: string = "USD"): LiveBalance {
   const smart = useSmartWallet();
   const { chain } = useActiveEvmChain();
-  const token = chain.tokens.USD;
+  const token = chain.tokens[code.toUpperCase() as keyof typeof chain.tokens];
   const owner = smart.address;
   const { loading, data, error } = useErc20Balance(token, owner);
 
@@ -35,7 +35,7 @@ export function useLiveBalance(): LiveBalance {
     available,
     loading: available && loading,
     amount,
-    symbol: data?.symbol ?? "USDC",
+    symbol: data?.symbol ?? code.toUpperCase(),
     error,
     chainKey: chain.key,
     chainLabel: chain.label,

@@ -52,6 +52,42 @@ Unless you're only testing a name, go **Ltd**.
 5. Receive the **Certificate of Incorporation**, the status report, and a **TIN**
    (tax ID, now issued automatically with the JTB integration).
 
+## The 9 form steps in detail (CAC company registration portal)
+
+1. **Company Details.**
+   - *Company Name:* `PESARC DIGITAL TECHNOLOGIES LTD` (must end in LTD/Limited).
+   - *Principal Business Activity:* `Digital Services - Financial Services`.
+   - *Specific Business Activity:* `Digital Payment Processing`.
+   - *Description of the Business Activity:* the short paragraph from
+     [BUSINESS_ACTIVITY.md](BUSINESS_ACTIVITY.md) (tech platform, cross-border,
+     non-custodial, through licensed partners).
+   - *Contact + Registered Office:* email, phone, State/LGA/City (e.g. FCT / Amac
+     / Abuja), street address.
+2. **Articles of Association.** Accept the **standard/model articles** (Table A
+   style). Only customise if you have specific investor/share-class terms; the
+   default is fine to start.
+3. **Objects of Memorandum.** Paste the 5 numbered objects from
+   [BUSINESS_ACTIVITY.md](BUSINESS_ACTIVITY.md) (payments platform; payment
+   tools + API; cash-in/out via licensed partners; software/mobile/USSD/agent
+   interfaces; software/IT services).
+4. **Directors / Secretary.** Add yourself as a **Director** (name, DOB, address,
+   ID). Add a co-founder as a second director if you have one. A **Secretary** is
+   **optional** for a small private company — skip it or name yourself.
+5. **Share Issue Capital.** Authorised capital **₦1,000,000**; issue **1,000,000
+   ordinary shares at ₦1.00 each**. Allot to shareholders (you 100%, or split
+   with a co-founder, e.g. 800,000 / 200,000). Don't inflate capital — stamp duty
+   scales with it (~0.75%).
+6. **PSC (Persons with Significant Control).** Anyone holding **more than 25%** of
+   shares or voting rights. List each (that's you, and any co-founder above 25%)
+   with their shareholding/voting percentage.
+7. **Statement of Compliance.** Declare that the registration complies with CAC
+   requirements. You attest as a director (or a lawyer/accountant does).
+8. **Uploads.** For each director/shareholder: a valid **government ID** (NIN
+   slip, international passport, or driver's licence), a **passport photograph**,
+   and a **signature** image. Clear scans/photos, correct file types.
+9. **Preview.** Review every section, then **pay and submit**. You'll receive the
+   **Certificate of Incorporation + TIN**.
+
 ## Right after registration (mostly free)
 - **Open a corporate bank account** (bring CoI, status report, TIN, directors'
   IDs). Free.
