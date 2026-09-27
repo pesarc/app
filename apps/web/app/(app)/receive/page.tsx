@@ -30,7 +30,7 @@ export default function ReceivePage() {
   // the running app and routes into /pay, rather than a dead external URL.
   const link = useMemo(() => {
     const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://pesarc.money";
+      typeof window !== "undefined" ? window.location.origin : "https://app.pesarc.xyz";
     const params = new URLSearchParams();
     params.set("name", ALIAS);
     if (live && address) params.set("to", address);
