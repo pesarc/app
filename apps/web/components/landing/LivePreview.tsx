@@ -67,63 +67,68 @@ export default function LivePreview() {
     const t = setInterval(() => setI((v) => (v + 1) % SCENES.length), 4200);
     return () => clearInterval(t);
   }, []);
-  const s = SCENES[i];
-  const Icon = s.icon;
-
   return (
     <div
       className="w-full max-w-[340px] lg:w-[300px] lg:max-w-none rounded-2xl p-4 overflow-hidden backdrop-blur-md"
       style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)" }}
     >
-      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60 mb-3">
-        <Icon className="w-3.5 h-3.5" style={{ color: ACCENT }} /> {s.label} · live
-      </div>
-
-      <div className="relative h-[112px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={i}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="absolute inset-0 flex flex-col"
-          >
-            <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-white/50">
-              <span className="text-base leading-none">{s.flag}</span>
-              {s.category}
-            </div>
-            <div className="mt-1.5 text-[14px] font-semibold text-white leading-snug text-balance">
-              {s.title}
-            </div>
-
-            <div className="mt-auto">
-              {typeof s.yes === "number" ? (
-                <div className="flex items-center gap-2">
-                  <Split label="Yes" pct={s.yes} accent />
-                  <Split label="No" pct={100 - s.yes} />
+      {/* Whole card crossfades as one so the header, body and footer never
+          show two different scenes mid-transition. */}
+      <div className="relative h-[184px]">
+        <AnimatePresence>
+          {SCENES.map((s, idx) =>
+            idx === i ? (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0 flex flex-col"
+              >
+                <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-widest text-white/60">
+                  <s.icon className="w-3.5 h-3.5" style={{ color: ACCENT }} /> {s.label} · live
                 </div>
-              ) : (
-                <div
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold text-white"
-                  style={{ background: "rgba(58,160,255,0.14)", border: "1px solid rgba(58,160,255,0.32)" }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
-                  {s.result}
+
+                <div className="mt-4 flex-1 flex flex-col">
+                  <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-white/50">
+                    <span className="text-base leading-none">{s.flag}</span>
+                    {s.category}
+                  </div>
+                  <div className="mt-1.5 text-[14px] font-semibold text-white leading-snug text-balance">
+                    {s.title}
+                  </div>
+
+                  <div className="mt-auto">
+                    {typeof s.yes === "number" ? (
+                      <div className="flex items-center gap-2">
+                        <Split label="Yes" pct={s.yes} accent />
+                        <Split label="No" pct={100 - s.yes} />
+                      </div>
+                    ) : (
+                      <div
+                        className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold text-white"
+                        style={{ background: "rgba(58,160,255,0.14)", border: "1px solid rgba(58,160,255,0.32)" }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
+                        {s.result}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </motion.div>
+
+                <div className="flex items-center justify-between mt-3 pt-3 text-[11px] font-medium" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                  <span className="text-white/60">
+                    In <span className="text-white">{s.ccy}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5" style={{ color: ACCENT }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} /> No fee to worry about
+                  </span>
+                </div>
+              </motion.div>
+            ) : null,
+          )}
         </AnimatePresence>
-      </div>
-
-      <div className="flex items-center justify-between mt-3 pt-3 text-[11px] font-medium" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-        <span className="text-white/60">
-          In <span className="text-white">{s.ccy}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5" style={{ color: ACCENT }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} /> No fee to worry about
-        </span>
       </div>
     </div>
   );
