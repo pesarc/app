@@ -30,7 +30,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: `${site.name} — The prediction market for Africa`,
+    default: `${site.name} — Send money home in seconds`,
     template: `%s · ${site.name}`,
   },
   description: site.description,
@@ -43,13 +43,13 @@ export const metadata: Metadata = {
     type: "website",
     url: site.url,
     siteName: site.name,
-    title: `${site.name} — Predict Africa, settle in your own money`,
+    title: `${site.name} — Send, hold, earn and settle money across borders`,
     description: site.description,
     images: [{ url: site.ogImage, width: 1200, height: 630, alt: site.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.name} — Predict Africa, settle in your own money`,
+    title: `${site.name} — Send, hold, earn and settle money across borders`,
     description: site.description,
     images: [site.ogImage],
   },

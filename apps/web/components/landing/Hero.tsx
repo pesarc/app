@@ -4,14 +4,14 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "lucide-react";
 import AgentPreview from "./AgentPreview";
-import MarketPreview from "./MarketPreview";
+import LivePreview from "./LivePreview";
 import { NavPill, AccentButton, ACCENT } from "./ui";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const NAV_ICON: Record<string, LucideIcon> = {
-  Markets: LayoutGrid,
+  Product: LayoutGrid,
   Networks: Globe2,
   Beta: Sparkles,
 };
@@ -59,9 +59,9 @@ export default function Hero() {
               className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance"
               style={{ lineHeight: 1.06 }}
             >
-              Predict
+              Send money
               <br />
-              <span style={{ color: ACCENT }}>Africa.</span>
+              <span style={{ color: ACCENT }}>in seconds.</span>
             </motion.h1>
 
             <motion.p
@@ -70,9 +70,9 @@ export default function Hero() {
               transition={{ duration: 0.8, ease, delay: 0.28 }}
               className="mt-6 max-w-md text-base md:text-lg text-white/60 leading-relaxed"
             >
-              Take a view on the elections, football, prices and events you
-              already argue about, in your own currency, gasless. We provide the
-              on-chain liquidity, so there is always a price to trade against.
+              One simple app to send, hold, earn and settle money across borders,
+              in your own currency. No big fees, no waiting, no jargon, just money
+              the way you already think about it.
             </motion.p>
 
             <motion.div
@@ -113,7 +113,7 @@ export default function Hero() {
             animate={{ y: [0, -7, 0] }}
             transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <MarketPreview />
+            <LivePreview />
           </motion.div>
           <motion.div
             className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
@@ -156,7 +156,7 @@ function Badge() {
       style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
-      Prediction markets for Africa
+      Cross-border money, made simple
     </span>
   );
 }

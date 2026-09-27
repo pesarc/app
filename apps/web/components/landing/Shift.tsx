@@ -9,14 +9,14 @@
 
 import { motion } from "framer-motion";
 import {
-  Banknote,
+  Clock,
   Lock,
-  Ticket,
+  Banknote,
   TrendingDown,
-  LineChart,
+  Send,
   Coins,
-  Zap,
-  Waves,
+  Receipt,
+  ShieldCheck,
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
@@ -27,17 +27,17 @@ const ease = [0.22, 1, 0.36, 1] as const;
 type Row = { icon: LucideIcon; label: string };
 
 const TODAY: Row[] = [
-  { icon: Banknote, label: "Cash and cards" },
-  { icon: Lock, label: "Walled-off dollars" },
-  { icon: Ticket, label: "Street bookies" },
-  { icon: TrendingDown, label: "Melting savings" },
+  { icon: Clock, label: "Days of waiting" },
+  { icon: Banknote, label: "Big hidden fees" },
+  { icon: Lock, label: "Dollar accounts" },
+  { icon: TrendingDown, label: "Savings that melt" },
 ];
 
 const PESARC: Row[] = [
-  { icon: LineChart, label: "On-chain markets" },
+  { icon: Send, label: "Money in seconds" },
+  { icon: Receipt, label: "One clear fee" },
   { icon: Coins, label: "Your own currency" },
-  { icon: Zap, label: "Gasless settlement" },
-  { icon: Waves, label: "Always a price" },
+  { icon: ShieldCheck, label: "A balance that holds" },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -107,8 +107,8 @@ function TheShift() {
               ))}
             </div>
             <p className="max-w-sm text-[15px] font-light leading-relaxed text-white/50">
-              Fragmented apps. Dollar walls. Bets you cannot verify. Money that
-              loses value while it just sits there.
+              Long queues and forms. Fees you only find at the end. A dollar
+              account you cannot get. Savings that quietly lose value.
             </p>
           </motion.div>
 
@@ -129,8 +129,8 @@ function TheShift() {
               ))}
             </div>
             <p className="max-w-sm text-[15px] font-light leading-relaxed text-white/80">
-              One app. Predict, settle and cash out in your own money, gasless,
-              backed by our own liquidity so there is always a price to trade.
+              One app. Send, hold, earn and cash out in your own money, in
+              seconds, for a fee you can actually read. No jargon, no waiting.
             </p>
           </motion.div>
         </div>
@@ -174,9 +174,9 @@ function Connector({ label }: { label: string }) {
 }
 
 const DIFFERENTIATORS = [
-  { n: "01", tag: "Non-custodial", body: "You hold your own keys and your own money. Pesarc never takes custody, and there is nothing to rip out and replace." },
-  { n: "02", tag: "Agentic", body: "An AI agent reads the odds, places your position and settles it, in the app or on WhatsApp, in your own words." },
-  { n: "03", tag: "One balance", body: "Predict, send, earn and cash out from a single local-currency balance across every chain and rail." },
+  { n: "01", tag: "Your money, yours", body: "Only you can touch your money. Pesarc never holds it for you, and there is nothing new to sign up for or hand over." },
+  { n: "02", tag: "Just ask", body: "Say what you need, in the app or on WhatsApp, and it happens. Send money, pay a bill, top up airtime, in your own words." },
+  { n: "03", tag: "One balance", body: "Send, hold, earn and cash out from a single balance in your own currency, wherever the money needs to go." },
 ];
 
 function OneLayer() {
@@ -202,10 +202,10 @@ function OneLayer() {
           </motion.h2>
           <div className="flex items-center">
             <p className="max-w-lg text-base sm:text-lg font-light leading-relaxed text-white/60">
-              Pesarc does not ask Africa to leave its money behind. It sits above
-              the web3 rails and the banks and mobile money you already use, as a
-              settlement and liquidity layer, so a Yes or No in Lagos clears in
-              naira without anyone touching a gas token.
+              Pesarc does not ask you to leave your money behind. It works with the
+              banks and mobile money you already use, and quietly does the hard
+              part in the middle, so money sent from Lagos lands in Accra in
+              seconds, in the currency each person actually holds.
             </p>
           </div>
         </div>
@@ -218,11 +218,11 @@ function OneLayer() {
           transition={{ duration: 0.8, ease }}
           className="w-full rounded-2xl border border-white/12 bg-white/[0.03] p-6 sm:p-8 mb-16 flex flex-col md:flex-row items-center justify-between gap-6"
         >
-          <FlowNode eyebrow="Rails you use" title="Chains & banks" />
-          <Connector label="settle" />
-          <FlowNode eyebrow="Intelligence" title="Pesarc + Goldgard" primary />
-          <Connector label="deliver" />
-          <FlowNode eyebrow="Experience" title="Predict & send" />
+          <FlowNode eyebrow="What you use" title="Bank & mobile money" />
+          <Connector label="in" />
+          <FlowNode eyebrow="In the middle" title="Pesarc" primary />
+          <Connector label="out" />
+          <FlowNode eyebrow="What you get" title="Send, hold, earn" />
         </motion.div>
 
         {/* differentiators */}
