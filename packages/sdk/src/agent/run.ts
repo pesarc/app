@@ -10,16 +10,16 @@ import { recordTransfer } from "../transfers";
 import { createCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
-import { agentAddress, runCeloSolver, submitIntent } from "../celo/solver";
+import { activeChain } from "../chain/registry";
 import {
-  celoAgentReady,
-  celoCurrencyByCode,
-  celoExplorerTx,
-  celoPublicClient,
-  CELO,
-} from "../celo/config";
-import { realizedRateOracleAbi } from "@pesarc/abi";
-import { formatUnits } from "viem";
+  evmAgentReady,
+  evmAgentAddress,
+  submitIntentOn,
+  runEvmSolver,
+  realizedRateOn,
+  tokenByCode,
+  explorerTxUrl,
+} from "../chain/evm-settle";
 
 export type AgentTurnResult = {
   ok: boolean;
@@ -217,8 +217,11 @@ export async function runAgentTurn(
     }
   }
 
-  // Without the LLM/agent key we still understand and reply (demo mode).
-  if (!celoAgentReady() || !process.env.CELO_AGENT_PK || !llmConfigured()) {
+  // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is
+  // active (Arc by default), signed by that chain's agent key. Without an agent
+  // key or the LLM we still understand and reply (demo mode).
+  const chain = activeChain();
+  if (!evmAgentReady(chain) || !llmConfigured()) {
     return ruleReply(message);
   }
 
@@ -238,45 +241,26 @@ export async function runAgentTurn(
   }
   const intent = understanding.intent;
 
-  const from = celoCurrencyByCode(intent.fromCode);
-  const to = celoCurrencyByCode(intent.toCode);
+  const from = tokenByCode(chain, intent.fromCode);
+  const to = tokenByCode(chain, intent.toCode);
   if (!from || !to) {
+    const codes = Object.keys(chain.tokens).join(", ");
     return {
       ok: false,
       needsInput: true,
-      reply: `I can move between ${["NGN", "GHS", "KES"].join(", ")} on Celo, but not ${intent.fromCode}→${intent.toCode} yet.`,
+      reply: `I can move between ${codes} on ${chain.label}, but not ${intent.fromCode}→${intent.toCode} yet.`,
     };
   }
 
   // 2. Price it from our own realized flow (no external feed).
-  let minOut = 1e-9;
-  try {
-    const client = celoPublicClient();
-    const has = (await client.readContract({
-      address: CELO.realizedOracle as `0x${string}`,
-      abi: realizedRateOracleAbi,
-      functionName: "hasData",
-      args: [from.address, to.address],
-    })) as boolean;
-    if (has) {
-      const rate1e18 = (await client.readContract({
-        address: CELO.realizedOracle as `0x${string}`,
-        abi: realizedRateOracleAbi,
-        functionName: "latestRate1e18",
-        args: [from.address, to.address],
-      })) as bigint;
-      const rate = Number(formatUnits(rate1e18, 18));
-      if (rate > 0) minOut = intent.amount * rate * (1 - TOLERANCE);
-    }
-  } catch {
-    /* keep floor */
-  }
+  const rate = await realizedRateOn(chain, from.address, to.address);
+  const minOut = rate > 0 ? intent.amount * rate * (1 - TOLERANCE) : 1e-9;
 
-  const recipient = (intent.recipient ?? agentAddress()) as `0x${string}`;
+  const recipient = (intent.recipient ?? evmAgentAddress(chain)) as `0x${string}`;
 
   try {
     // 3. Create the intent on-chain.
-    const submitTx = await submitIntent({
+    const submitTx = await submitIntentOn(chain, {
       tokenIn: from.address,
       tokenOut: to.address,
       amountIn: intent.amount,
@@ -286,12 +270,12 @@ export async function runAgentTurn(
     });
 
     // 4. Try to settle it against opposing flow, now.
-    const outcome = await runCeloSolver();
+    const outcome = await runEvmSolver(chain);
     const didSettle = outcome.settled.length > 0;
 
     const reply = didSettle
-      ? `Done. I matched your ${fmt(intent.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on Celo in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
-      : `I've placed your ${fmt(intent.amount)} ${from.code}→${to.code} intent on Celo. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically.`;
+      ? `Done. I matched your ${fmt(intent.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on ${chain.label} in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
+      : `I've placed your ${fmt(intent.amount)} ${from.code}→${to.code} intent on ${chain.label}. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically.`;
 
     return {
       ok: true,
@@ -299,8 +283,8 @@ export async function runAgentTurn(
       matched: didSettle,
       intent: { from: from.code, to: to.code, amount: intent.amount, recipient },
       submitTx,
-      submitUrl: celoExplorerTx(submitTx),
-      settlements: outcome.settled.map((s: any) => ({ kind: s.kind, url: celoExplorerTx(s.tx) })),
+      submitUrl: explorerTxUrl(chain, submitTx),
+      settlements: outcome.settled.map((s) => ({ kind: s.kind, url: explorerTxUrl(chain, s.tx) })),
       reply,
     };
   } catch (e) {
