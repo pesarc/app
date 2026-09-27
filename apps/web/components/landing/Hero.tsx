@@ -50,7 +50,7 @@ export default function Hero() {
         </motion.header>
 
         {/* Headline */}
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center pt-10 sm:pt-8 lg:pt-0">
           <div className="w-full max-w-2xl pointer-events-none select-none">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
@@ -105,8 +105,8 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.5 }}
-          className="z-20 mt-14 flex gap-4 -mx-6 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pointer-events-auto
-                     lg:absolute lg:bottom-10 lg:right-12 lg:mt-0 lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-col lg:items-end"
+          className="z-20 mt-12 sm:mt-14 flex gap-4 -mx-6 px-6 py-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pointer-events-auto
+                     lg:absolute lg:bottom-10 lg:right-12 lg:mt-0 lg:mx-0 lg:px-0 lg:py-0 lg:overflow-visible lg:flex-col lg:items-end"
         >
           <motion.div
             className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
