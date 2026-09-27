@@ -1,9 +1,7 @@
 import Hero from "@/components/landing/Hero";
 import Shift from "@/components/landing/Shift";
-import { Features } from "@/components/landing/Sections";
 import NetworkHub from "@/components/landing/NetworkHub";
 import { Platform, FinalCta } from "@/components/landing/Platform";
-import Waitlist from "@/components/landing/Waitlist";
 import Footer from "@/components/landing/Footer";
 import GlobeBackdrop from "@/components/landing/GlobeBackdrop";
 
@@ -39,10 +37,8 @@ export default function Home() {
         <Hero />
         <div className="pointer-events-auto">
           <Shift />
-          <Features />
           <NetworkHub />
           <Platform />
-          <Waitlist />
           <FinalCta />
           <Footer />
         </div>
