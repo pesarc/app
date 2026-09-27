@@ -90,7 +90,7 @@ export default function RootLayout({
       lang="en"
       className={`${manrope.variable} ${jetbrainsMono.variable} ${geist.variable} ${newsreader.variable} antialiased`}
     >
-      <body className="overflow-x-hidden">
+      <body className="overflow-x-clip">
         {children}
         <EnvBadge />
         <script
