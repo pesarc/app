@@ -2,7 +2,11 @@ import Link from "next/link";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
-const COLUMNS = [
+const DOCS = "https://docs.pesarc.xyz";
+
+type FLink = { label: string; href: string; external?: boolean };
+
+const COLUMNS: { title: string; links: FLink[] }[] = [
   {
     title: "Product",
     links: [
@@ -12,24 +16,38 @@ const COLUMNS = [
     ],
   },
   {
-    title: "Resources",
+    title: "Developers",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "Security", href: "#" },
-      { label: "Status", href: "#" },
-      { label: "Blog", href: "#" },
+      { label: "Documentation", href: DOCS, external: true },
+      { label: "API reference", href: `${DOCS}/api-reference/introduction`, external: true },
+      { label: "Integrations", href: `${DOCS}/integrations/overview`, external: true },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Contact", href: "#" },
-      { label: "Privacy Policy", href: "#" },
+      { label: "Why Pesarc", href: "/#why" },
+      { label: "Contact", href: "mailto:hello@pesarc.xyz", external: true },
     ],
   },
 ];
+
+function FooterLink({ link }: { link: FLink }) {
+  const cls = "text-sm font-medium text-white/70 hover:text-white transition-colors";
+  if (link.external) {
+    const isMail = link.href.startsWith("mailto:");
+    return (
+      <a href={link.href} className={cls} {...(isMail ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
+        {link.label}
+      </a>
+    );
+  }
+  return (
+    <Link href={link.href} className={cls}>
+      {link.label}
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
@@ -63,12 +81,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm font-medium text-white/70 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    <FooterLink link={link} />
                   </li>
                 ))}
               </ul>

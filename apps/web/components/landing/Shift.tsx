@@ -181,7 +181,7 @@ const DIFFERENTIATORS = [
 
 function OneLayer() {
   return (
-    <section className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.55)" }}>
+    <section id="why" className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.55)" }}>
       <div className="mx-auto max-w-6xl">
         <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45 mb-8" style={{ fontFamily: "var(--font-mono, ui-monospace), monospace" }}>
           Why Pesarc

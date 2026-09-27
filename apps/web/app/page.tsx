@@ -1,6 +1,7 @@
 import Hero from "@/components/landing/Hero";
 import Shift from "@/components/landing/Shift";
 import NetworkHub from "@/components/landing/NetworkHub";
+import Different from "@/components/landing/Different";
 import { Platform, FinalCta } from "@/components/landing/Platform";
 import Footer from "@/components/landing/Footer";
 import GlobeBackdrop from "@/components/landing/GlobeBackdrop";
@@ -39,6 +40,7 @@ export default function Home() {
           <Shift />
           <NetworkHub />
           <Platform />
+          <Different />
           <FinalCta />
           <Footer />
         </div>
