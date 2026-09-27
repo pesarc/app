@@ -64,6 +64,25 @@ addresses the frontend reads (`chain/contracts.ts` / registry), e.g. on the hub:
 `CORRIDORS_ROADMAP.md`). Until these point at a real, funded pool, quotes are
 "indicative" and sends use the demo path.
 
+## 4b. Agent (natural-language actions)
+
+The agent's brain is already built and provider-agnostic (`sdk/llm/extract.ts`,
+tool-based extraction). In demo mode it understands and replies but doesn't
+execute; to make it act, set two things on the droplet (server-only):
+
+1. **An LLM key** — either
+   - Anthropic (native): `ANTHROPIC_API_KEY` (or `LLM_PROVIDER=anthropic` +
+     `LLM_API_KEY`), plus `LLM_MODEL=claude-opus-5`. For a high-volume intent
+     extractor, `claude-haiku-4-5` is much cheaper and fast — your call.
+   - Or any OpenAI-compatible endpoint: `LLM_PROVIDER=openai`, `LLM_BASE_URL`,
+     `LLM_API_KEY`, `LLM_MODEL`.
+2. **An agent signing key** — `SETTLE_OPERATOR_PK` (or `ARC_AGENT_PK` for a
+   specific chain): the server-side key that submits and settles the agent's
+   on-chain intents. Fund it with a little USDC for gas on Arc.
+
+With both set (and `evmAgentReady`), "send ₦50,000 to Ama in Accra" or "pay my
+Ikeja electricity bill" is understood and executed, in the app and on WhatsApp.
+
 ## 5. Set the env and deploy
 
 - **Client (build-time):** add the `NEXT_PUBLIC_*` values above to the repo's

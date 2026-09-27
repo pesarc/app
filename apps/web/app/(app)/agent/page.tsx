@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import AgentChat from "@/components/app/agent/AgentChat";
 
 export const metadata: Metadata = {
-  title: "Settlement agent",
+  title: "Pesarc agent",
   description:
-    "Tell the Pesarc agent what to send in plain language; it settles it peer-to-peer in local currency on Celo, with no US dollar in the path.",
+    "Just ask. Tell the Pesarc agent what you need in plain language — send money, pay a bill, top up airtime — and it settles in your own currency in seconds.",
 };
 
 export default function AgentPage() {
