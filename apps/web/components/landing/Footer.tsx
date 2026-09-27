@@ -46,8 +46,8 @@ export default function Footer() {
             </span>
           </div>
           <p className="text-sm text-white/60 font-medium leading-relaxed">
-            One gasless app to send, hold, earn, and settle money across
-            borders. Money the way you already think about it.
+            The prediction market for Africa. Trade the events you already argue
+            about, in your own currency, gasless, backed by our own liquidity.
           </p>
         </div>
 

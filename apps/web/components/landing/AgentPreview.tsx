@@ -1,8 +1,8 @@
 "use client";
 
 // Auto-playing preview of the Pesarc agent, cycling through what it can do:
-// settle to a contact (asking which chain or bank), hedge on a prediction
-// market, earn on a corridor, and invest (stocks / DeFi lending).
+// place a position on a prediction market (leading), settle to a contact
+// (asking which chain or bank), earn on a corridor, and invest.
 //
 // The chat area is a FIXED height with its own scroll, so the streaming replies
 // never change the card's height. Agent replies stream in character by
@@ -25,6 +25,20 @@ type Scene = { kind: Kind; label: string; lines: Line[] };
 
 const SCENES: Scene[] = [
   {
+    kind: "market",
+    label: "Predict",
+    lines: [
+      { from: "user", text: "Will the Super Eagles reach the 2026 World Cup?" },
+      { from: "agent", text: "Market's live. Which side, and how much?", chips: ["Yes · 64%", "No · 36%"] },
+      { from: "user", text: "₦20,000 on Yes" },
+      {
+        from: "agent",
+        visual: "market",
+        text: "Staked ₦20,000 on Yes at 64%. Cash out any time, settled in cNGN.",
+      },
+    ],
+  },
+  {
     kind: "settle",
     label: "Send",
     lines: [
@@ -35,18 +49,6 @@ const SCENES: Scene[] = [
         from: "agent",
         visual: "settle",
         text: "Sent ₦50,000 to Ama, GTBank ••4821, settled in local currency.",
-      },
-    ],
-  },
-  {
-    kind: "market",
-    label: "Hedge",
-    lines: [
-      { from: "user", text: "Hedge 50,000 naira against the dollar" },
-      {
-        from: "agent",
-        visual: "market",
-        text: "Backed “USD/NGN ≥ ₦1,700 by Dec”, you’re covered if the naira slides.",
       },
     ],
   },
@@ -273,12 +275,12 @@ function SceneVisual({ kind }: { kind: Kind }) {
     return (
       <div className="mt-2">
         <div className="flex h-1.5 rounded-full overflow-hidden">
-          <div className="bg-[#3AA0FF]" style={{ width: "62%" }} />
-          <div className="bg-white/15" style={{ width: "38%" }} />
+          <div className="bg-[#3AA0FF]" style={{ width: "64%" }} />
+          <div className="bg-white/15" style={{ width: "36%" }} />
         </div>
         <div className="flex justify-between mt-1 text-[10.5px] font-bold">
-          <span className="text-[#3AA0FF]">Yes 62%</span>
-          <span className="text-white/50">No 38%</span>
+          <span className="text-[#3AA0FF]">Yes 64%</span>
+          <span className="text-white/50">No 36%</span>
         </div>
       </div>
     );

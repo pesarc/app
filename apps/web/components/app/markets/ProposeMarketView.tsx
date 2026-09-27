@@ -17,10 +17,10 @@ type Kind = "fx" | "macro" | "sports" | "politics";
 type Collateral = "cNGN" | "cKES" | "cGHS";
 
 const KINDS: { value: Kind; label: string }[] = [
-  { value: "fx", label: "FX" },
-  { value: "macro", label: "Macro" },
-  { value: "sports", label: "Sports" },
   { value: "politics", label: "Politics" },
+  { value: "sports", label: "Sports" },
+  { value: "macro", label: "Prices" },
+  { value: "fx", label: "Currency" },
 ];
 
 const COLLATERALS: { value: Collateral; flag: string }[] = [
@@ -36,7 +36,7 @@ export default function ProposeMarketView() {
   const [type, setType] = useState<"binary" | "multi">("binary");
   const [question, setQuestion] = useState("");
   const [outcomes, setOutcomes] = useState<string[]>(["", ""]);
-  const [kind, setKind] = useState<Kind>("fx");
+  const [kind, setKind] = useState<Kind>("politics");
   const [collateral, setCollateral] = useState<Collateral>("cNGN");
   const [flag, setFlag] = useState("");
   const [closes, setCloses] = useState("");

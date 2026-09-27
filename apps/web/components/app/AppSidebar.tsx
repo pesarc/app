@@ -40,9 +40,9 @@ type Item = { label: string; href: string; icon: React.ComponentType<{ className
 
 const MAIN: Item[] = [
   { label: "Home", href: "/home", icon: Home },
-  { label: "Send", href: "/send", icon: ArrowUpRight },
   { label: "Markets", href: "/markets", icon: BarChart3 },
   { label: "Agent", href: "/agent", icon: Bot },
+  { label: "Send", href: "/send", icon: ArrowUpRight },
 ];
 
 const MONEY: Item[] = [

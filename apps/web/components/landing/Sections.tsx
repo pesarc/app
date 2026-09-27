@@ -9,7 +9,6 @@ import {
   LineChart,
   Code2,
   Hash,
-  Mic,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,34 +35,34 @@ const cardStyle = {
 
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
-    icon: Send,
-    title: "Send money home in seconds",
-    body: "Send, receive and settle across borders in your own currency. Gasless, under a minute, with a fee you can actually read.",
-  },
-  {
-    icon: Bot,
-    title: "Pay by chatting with an agent",
-    body: "An AI agent in the app and on WhatsApp handles transfers, bills and questions. Talk or type, in your own words.",
+    icon: LineChart,
+    title: "Markets on everything Africa",
+    body: "Elections, football, the naira, fuel prices, the world. Take a Yes or No, back it with your own money, and cash out when you are right.",
   },
   {
     icon: Zap,
-    title: "Airtime, data and electricity",
-    body: "Top up airtime and data or pay a power bill in a couple of taps, or just ask the agent to do it for you.",
+    title: "Always a price to trade",
+    body: "We seed every market with our own on-chain liquidity, so you can get in or out any time without waiting for someone to take the other side.",
+  },
+  {
+    icon: Bot,
+    title: "Trade by chatting with an agent",
+    body: "Ask the agent, in the app or on WhatsApp, what the odds are and place your position. Talk or type, in your own words.",
   },
   {
     icon: PiggyBank,
-    title: "Earn, invest and hedge",
-    body: "Grow idle balances in insured vaults, buy on-chain African stocks, and hedge your currency against the market.",
+    title: "Play in your own currency",
+    body: "Stake and settle in naira, cedi or shilling, gasless. No dollar account, no card, no gas token to buy first.",
   },
   {
-    icon: LineChart,
-    title: "Markets you can create",
-    body: "Trade and create prediction and FX markets, so a shift in the naira can work for you instead of against you.",
+    icon: Send,
+    title: "Cash in and out in seconds",
+    body: "Top up from mobile money or a bank and withdraw the same way. Move your winnings home across borders whenever you like.",
   },
   {
     icon: Code2,
-    title: "Built for businesses and devs",
-    body: "A clean API for SMEs and SaaS, plus an in-app pay flow so partners can send customers to Pesarc and back.",
+    title: "Create your own markets",
+    body: "Propose a market on any event, seed it with a bond, and let the community trade it. A clean API for partners, too.",
   },
 ];
 
@@ -129,7 +128,7 @@ function BentoCard({
       {large && (
         <div className="mt-auto pt-6 flex flex-wrap gap-2">
           {[
-            { icon: Mic, label: "Voice first" },
+            { icon: Zap, label: "Elections & football" },
             { icon: Hash, label: "Works on any phone" },
             { icon: Bot, label: "WhatsApp agent" },
           ].map((chip) => (
@@ -159,13 +158,13 @@ export function Features() {
       <div className="max-w-2xl">
         <Eyebrow>What you can do</Eyebrow>
         <h2 className="mt-6 text-white text-3xl sm:text-4xl lg:text-5xl tracking-tighter" style={{ lineHeight: 1.14 }}>
-          One app for money that{" "}
-          <span style={{ color: LIME }}>moves the way you do</span>
+          Trade the events{" "}
+          <span style={{ color: LIME }}>you already care about</span>
         </h2>
         <p className="mt-5 max-w-md text-sm text-white/60 leading-relaxed">
-          Built for retailers, import and export traders, businesses and everyday
-          people. Money that is quick to send, easy to grow, and simple enough for
-          the first phone you owned.
+          The debates you have every day, priced. Back your call with your own
+          currency, gasless, on markets deep enough to enter and exit any time,
+          and simple enough for the first phone you owned.
         </p>
       </div>
 
@@ -190,8 +189,8 @@ export function Features() {
         >
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-center">
             {[
-              { stat: "< 60s", label: "Average settlement, gasless" },
-              { stat: "10+", label: "Chains and local rails, one balance" },
+              { stat: "Gasless", label: "Stake and cash out, no gas token to buy" },
+              { stat: "Always on", label: "Our own liquidity backs every market" },
               { stat: rest[4].title, label: rest[4].body, feature: true },
             ].map((item, i) =>
               item.feature ? (

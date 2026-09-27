@@ -55,11 +55,11 @@ export default function MarketCard({
             {market.hedge ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-bold px-2.5 py-0.5">
                 <Shield className="w-[11px] h-[11px]" />
-                {market.kind === "fx" ? "FX hedge" : "Cover"}
+                Liquidity backed
               </span>
             ) : (
               <span className="text-[11px] font-bold text-slate">
-                {cap(market.kind)} · settled in {market.collateral}
+                {kindLabel(market.kind)} · settled in {market.collateral}
               </span>
             )}
             {community && (
@@ -175,4 +175,20 @@ export default function MarketCard({
 
 function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Friendly category label (avoids surfacing raw "fx"). */
+function kindLabel(kind: Market["kind"]): string {
+  switch (kind) {
+    case "fx":
+      return "Currency";
+    case "macro":
+      return "Prices";
+    case "sports":
+      return "Sports";
+    case "politics":
+      return "Politics";
+    default:
+      return cap(kind);
+  }
 }

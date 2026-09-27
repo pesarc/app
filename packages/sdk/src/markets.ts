@@ -144,8 +144,8 @@ export function totalPool(m: Market): number {
 
 export const MARKET_CATEGORIES: { value: MarketKind | "all"; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "fx", label: "FX" },
-  { value: "macro", label: "Macro" },
-  { value: "sports", label: "Sports" },
   { value: "politics", label: "Politics" },
+  { value: "sports", label: "Sports" },
+  { value: "macro", label: "Prices" },
+  { value: "fx", label: "Currency" },
 ];

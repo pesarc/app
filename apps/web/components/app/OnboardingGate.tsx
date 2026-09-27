@@ -40,7 +40,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
           <Option
             icon={User}
             title="For myself"
-            body="Send money home, pay bills, earn and hold. The simple, everyday experience."
+            body="Trade the markets, send money home and pay bills. The simple, everyday experience."
             cta="Continue as personal"
             onClick={() => choose("retail")}
           />
