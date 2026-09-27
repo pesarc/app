@@ -6,7 +6,7 @@
 // Send flow can gate the Review button on a real bank destination.
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, AlertCircle } from "lucide-react";
+import { Check, Loader2, AlertCircle } from "@/components/icons";
 import { Select } from "@/components/app/ui";
 
 export type BankDestination = {

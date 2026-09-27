@@ -4,7 +4,7 @@
 // wallet so they can try the app. Shown on the Add-money screen.
 
 import { useState } from "react";
-import { Check, Droplets, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Droplets, ExternalLink, Loader2 } from "@/components/icons";
 import { Card } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";

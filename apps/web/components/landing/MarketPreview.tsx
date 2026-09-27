@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LineChart } from "lucide-react";
+import { LineChart } from "@/components/icons";
 
 type PreviewMarket = {
   flag: string;

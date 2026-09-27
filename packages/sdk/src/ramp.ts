@@ -12,6 +12,8 @@
 //     and reads status from their API; the partner also pushes status to
 //     /api/payouts/webhook (see webhook route) which is the source of truth.
 
+import { cngnConfigured, cngnRampAdapter } from "./cngn";
+
 export type PayoutStatus = "initiated" | "processing" | "paid" | "failed";
 
 export type PayoutMethod = "bank" | "mobile_money";
@@ -305,11 +307,15 @@ export function flutterwaveRampAdapter(secretKey: string): RampAdapter {
  * status/webhook resolution routes back to the same one.
  */
 
-const RAMP_PROVIDERS = ["paystack", "flutterwave", "http", "simulated"] as const;
+const RAMP_PROVIDERS = ["cngn", "paystack", "flutterwave", "http", "simulated"] as const;
 export type RampProviderName = (typeof RAMP_PROVIDERS)[number];
 
 function makeAdapter(name: string): RampAdapter | null {
   switch (name) {
+    case "cngn":
+      // Native cNGN redemption (NGN bank). Lazy import keeps the ramp<->cngn
+      // module cycle to function-call time only.
+      return cngnConfigured() ? cngnRampAdapter() : null;
     case "paystack":
       return process.env.PAYSTACK_SECRET_KEY
         ? paystackRampAdapter(process.env.PAYSTACK_SECRET_KEY)
@@ -331,7 +337,7 @@ function makeAdapter(name: string): RampAdapter | null {
 
 /** Configured adapters in priority order; the simulator is always the last resort. */
 export function availableAdapters(): RampAdapter[] {
-  const order = (process.env.RAMP_PROVIDER_ORDER || "paystack,flutterwave,http")
+  const order = (process.env.RAMP_PROVIDER_ORDER || "cngn,paystack,flutterwave,http")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);

@@ -8,6 +8,8 @@ import { getPublicClient, chainLabel } from "./chains";
 import { CONTRACTS, CONTRACTS_READY } from "./contracts";
 import { oracleAdapterAbi } from "@pesarc/abi";
 import { quoterAbi } from "@pesarc/abi";
+import { activeChain } from "./registry";
+import { realizedRateOn, tokenByCode } from "./evm-settle";
 
 export type LivePoolQuote = {
   /** Oracle mid-market rate (NGN per USD). */
@@ -95,4 +97,52 @@ export async function fetchLivePoolQuote(
   } catch {
     return null;
   }
+}
+
+// ---- corridor-agnostic quoting (any currency, via the realized-rate oracle) ----
+// The Uniswap-pool quote above only covers the USD/NGN hub pool. Every other
+// corridor (cGHS, cKES, …) prices off the realized-rate oracle instead — the
+// same rate DeployCorridor seeds — so a corridor goes live for quoting the
+// moment its rate exists, with no pool required. Netting has no pool impact, so
+// a flat settlement fee stands in for the pool's dynamic fee.
+const CORRIDOR_FEE = 0.004; // 0.4%
+
+/** Live quote for USD -> receiveCurrency from this chain's realized-rate oracle. */
+export async function fetchOracleCorridorQuote(
+  sendAmountUsd: number,
+  receiveCurrency: string,
+): Promise<LivePoolQuote | null> {
+  if (sendAmountUsd <= 0) return null;
+  const chain = activeChain();
+  const usd = tokenByCode(chain, "USD");
+  const target = tokenByCode(chain, receiveCurrency);
+  if (!usd || !target) return null;
+
+  const rate = await realizedRateOn(chain, usd.address, target.address);
+  if (rate <= 0) return null;
+
+  const effectiveRate = rate * (1 - CORRIDOR_FEE);
+  return {
+    midRate: rate,
+    receiveAmount: sendAmountUsd * effectiveRate,
+    effectiveRate,
+    feePct: CORRIDOR_FEE,
+    route: `Realized rate · ${chain.label}`,
+  };
+}
+
+/**
+ * Best live quote for a corridor: the rich hub pool for NGN when configured,
+ * otherwise the realized-rate oracle for any seeded corridor. Returns null when
+ * there's no live price (caller keeps the indicative mock quote).
+ */
+export async function fetchCorridorQuote(
+  sendAmountUsd: number,
+  receiveCurrency: string,
+): Promise<LivePoolQuote | null> {
+  if (receiveCurrency === "NGN" && livePoolQuoteAvailable()) {
+    const pool = await fetchLivePoolQuote(sendAmountUsd);
+    if (pool) return pool;
+  }
+  return fetchOracleCorridorQuote(sendAmountUsd, receiveCurrency);
 }

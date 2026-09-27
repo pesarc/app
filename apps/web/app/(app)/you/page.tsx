@@ -20,8 +20,12 @@ import {
   Loader2,
   LineChart,
   Settings2,
-} from "lucide-react";
+  Globe,
+  ExternalLink,
+} from "@/components/icons";
+import { site } from "@pesarc/sdk/site";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
+import { usePersona, type Persona } from "@pesarc/sdk/persona";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { SEND_CURRENCIES, CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
@@ -38,8 +42,16 @@ const MORE = [
   { label: "Local", href: "/corridor", icon: MapPin },
 ];
 
+const PERSONA_OPTS: { value: Persona; label: string }[] = [
+  { value: "retail", label: "Personal" },
+  { value: "business", label: "Business" },
+  { value: "provider", label: "Saver" },
+  { value: "advanced", label: "Advanced" },
+];
+
 export default function YouPage() {
   const { mode, setMode } = useUIMode();
+  const { persona, setPersona } = usePersona();
   const { sendCurrency, setSendCurrency, kyc, setKyc } = usePrefs();
   const { mode: walletMode, authenticated, address, alias, login, logout } = useWallet();
 
@@ -96,6 +108,34 @@ export default function YouPage() {
         </div>
 
         <div className="border-t border-cream px-4 py-3.5">
+          <div className="text-[15px] font-bold text-ink">Experience</div>
+          <div className="text-[12.5px] font-medium text-slate mb-3">
+            Which surfaces you see. Business unlocks collections and the API; Saver opens with Earn.
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {PERSONA_OPTS.map((o) => {
+              const active = o.value === persona;
+              return (
+                <button
+                  key={o.value}
+                  onClick={() => {
+                    setPersona(o.value);
+                    if (o.value === "advanced") setMode("advanced");
+                  }}
+                  className={`rounded-[14px] border py-2.5 text-sm font-bold transition-colors ${
+                    active
+                      ? "bg-sky-tint/50 border-sky text-sky-deep"
+                      : "bg-snow border-fog text-harbor hover:border-slate/50"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t border-cream px-4 py-3.5">
           <div className="text-[15px] font-bold text-ink">Default currency</div>
           <div className="text-[12.5px] font-medium text-slate mb-3">
             The currency you send in — set once, no picking every time.
@@ -142,6 +182,24 @@ export default function YouPage() {
           );
         })}
       </Section>
+
+      {/* View the public site (landing lives on the apex; the app host sends
+          its root to /home, so link out to it explicitly). */}
+      <a
+        href={site.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-4 flex items-center gap-3 rounded-card bg-snow border border-fog px-4 py-3.5 hover:border-slate/50 transition-colors"
+      >
+        <span className="w-9 h-9 rounded-full bg-cream flex items-center justify-center text-harbor">
+          <Globe className="w-[18px] h-[18px]" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-bold text-ink">View site</span>
+          <span className="block text-[12.5px] font-medium text-slate">Open the Pesarc landing page</span>
+        </span>
+        <ExternalLink className="w-4 h-4 text-slate shrink-0" />
+      </a>
 
       {/* Auth */}
       {walletMode !== "mock" && (

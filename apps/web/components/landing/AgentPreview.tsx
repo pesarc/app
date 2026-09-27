@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, ArrowUp, Check } from "lucide-react";
+import { Bot, ArrowUp, Check } from "@/components/icons";
 
 type Kind = "settle" | "market" | "earn" | "invest";
 

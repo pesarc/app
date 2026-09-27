@@ -13,7 +13,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { LineChart, Waves, Zap, Bot, type LucideIcon } from "lucide-react";
+import { LineChart, Waves, Zap, Bot, type LucideIcon } from "@/components/icons";
 
 const ACCENT = "#3AA0FF";
 

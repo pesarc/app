@@ -9,7 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, X, Check, Loader2, Users, ExternalLink } from "lucide-react";
+import { ArrowLeft, Plus, X, Check, Loader2, Users, ExternalLink } from "@/components/icons";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 

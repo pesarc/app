@@ -1,16 +1,15 @@
 import Hero from "@/components/landing/Hero";
 import Shift from "@/components/landing/Shift";
-import { Features } from "@/components/landing/Sections";
 import NetworkHub from "@/components/landing/NetworkHub";
+import Different from "@/components/landing/Different";
 import { Platform, FinalCta } from "@/components/landing/Platform";
-import Waitlist from "@/components/landing/Waitlist";
 import Footer from "@/components/landing/Footer";
 import GlobeBackdrop from "@/components/landing/GlobeBackdrop";
 
 export default function Home() {
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden text-white [color-scheme:dark]"
+      className="relative min-h-screen overflow-x-clip text-white [color-scheme:dark]"
       style={{
         // Deep navy from the Pesarc logo blue family.
         background: "linear-gradient(160deg,#041a33 0%,#072a4d 45%,#041a33 100%)",
@@ -39,10 +38,9 @@ export default function Home() {
         <Hero />
         <div className="pointer-events-auto">
           <Shift />
-          <Features />
           <NetworkHub />
           <Platform />
-          <Waitlist />
+          <Different />
           <FinalCta />
           <Footer />
         </div>

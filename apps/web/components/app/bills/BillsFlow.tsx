@@ -14,7 +14,7 @@ import {
   Wifi,
   Zap,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/icons";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import type { BillCategory, DataPlan, MeterType, Operator } from "@pesarc/sdk/bills";
 import { Button, Card, Segmented } from "@/components/app/ui";

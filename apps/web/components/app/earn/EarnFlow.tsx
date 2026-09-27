@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/icons";
 import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
 import { fetchLiveCorridorTvl, liveTvlAvailable } from "@pesarc/sdk/chain/livePool";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
@@ -19,8 +19,10 @@ import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
+import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button, Card } from "@/components/app/ui";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import { Pagination, usePaged } from "@/components/app/Pagination";
 
 const POOLS_PER_PAGE = 4;
@@ -322,7 +324,9 @@ function DepositPanel({
   const [payWith, setPayWith] = useState(defaultStablecoin(sendCurrency).symbol);
   const payCcy = currencyOf(payWith);
   const amount = parseFloat(amountStr) || 0;
-  const insufficient = false; // demo: balances are per-stablecoin, not enforced here
+  // Live on-chain balance of the selected stablecoin (demo fallback when no wallet).
+  const bal = useLiveBalance(payCcy);
+  const insufficient = bal.available && bal.amount !== undefined ? amount > bal.amount : false;
   const valid = amount > 0 && !insufficient;
   const projected = useMemo(
     () => (amount * poolApy(pool)) / 100,
@@ -363,6 +367,21 @@ function DepositPanel({
         <StablecoinSelect value={payWith} onChange={setPayWith} label="Deposit with" />
       </div>
 
+      {/* Network + live balance for the selected stablecoin (MetaMask-style). */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <NetworkSwitcher />
+        <span className="text-[13px] font-bold text-harbor">
+          {bal.loading ? (
+            <span className="text-slate">Checking…</span>
+          ) : (
+            <>
+              {formatMoney(bal.amount ?? 0, payCcy)}
+              {!bal.available && <span className="ml-1 text-[11px] font-semibold text-slate">demo</span>}
+            </>
+          )}
+        </span>
+      </div>
+
       <div className="text-center py-4">
         <label className="block text-xs font-semibold text-slate uppercase tracking-widest mb-3">
           Amount to deposit
@@ -378,7 +397,9 @@ function DepositPanel({
             className="w-[6ch] bg-transparent text-6xl font-semibold text-ink text-center outline-none numerals placeholder:text-ink/25"
           />
         </div>
-        <p className="mt-2 text-sm text-slate">Deposit in {payWith}</p>
+        <p className={`mt-2 text-sm ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
+          {insufficient ? `Over your ${payWith} balance` : `Deposit in ${payWith}`}
+        </p>
       </div>
 
       {valid && (

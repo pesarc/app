@@ -145,14 +145,78 @@ export const simulatedBillsAdapter: BillsAdapter = {
   },
 };
 
-/** Real provider seam (env-gated). Not wired to a live provider yet. */
+/** True when a real bills provider is wired (env). */
 export function billsProviderConfigured(): boolean {
   return Boolean(process.env.BILLS_PROVIDER_URL);
 }
 
+/**
+ * Real provider adapter. POSTs the normalised purchase to BILLS_PROVIDER_URL
+ * (your provider endpoint, or a thin proxy in front of Reloadly / VTpass /
+ * Flutterwave Bills) and maps the response back to a BillResult. Server-only.
+ *
+ * Env: BILLS_PROVIDER_URL (base), BILLS_PROVIDER_KEY (bearer, optional).
+ * Expected response JSON: { ok, status, reference?, amount?, currency?, token?, units?, error? }.
+ */
+export function httpBillsAdapter(): BillsAdapter {
+  const baseUrl = (process.env.BILLS_PROVIDER_URL || "").replace(/\/$/, "");
+  const apiKey = process.env.BILLS_PROVIDER_KEY || "";
+  return {
+    async purchase(input) {
+      const amount = purchaseAmount(input);
+      const ref = reference();
+      try {
+        const res = await fetch(`${baseUrl}/purchase`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+          },
+          body: JSON.stringify({
+            category: input.category,
+            operatorId: input.operatorId,
+            customer: input.customer,
+            amount,
+            planId: input.planId,
+            meterType: input.meterType,
+            reference: ref,
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as Partial<BillResult>;
+        if (!res.ok || data.ok === false) {
+          return {
+            ok: false,
+            reference: data.reference ?? ref,
+            status: "failed",
+            amount: data.amount ?? amount,
+            currency: data.currency ?? "NGN",
+            error: data.error ?? "Bill payment failed.",
+          };
+        }
+        return {
+          ok: true,
+          reference: data.reference ?? ref,
+          status: data.status ?? "success",
+          amount: data.amount ?? amount,
+          currency: data.currency ?? "NGN",
+          token: data.token,
+          units: data.units,
+        };
+      } catch {
+        return {
+          ok: false,
+          reference: ref,
+          status: "failed",
+          amount,
+          currency: "NGN",
+          error: "Couldn't reach the bills provider.",
+        };
+      }
+    },
+  };
+}
+
 /** The active adapter: real provider when configured, else the sandbox. */
 export function getBillsAdapter(): BillsAdapter {
-  // A real httpBillsAdapter(BILLS_PROVIDER_URL, key) plugs in here once we have
-  // a provider account; the seam keeps the UI + agent unchanged.
-  return simulatedBillsAdapter;
+  return billsProviderConfigured() ? httpBillsAdapter() : simulatedBillsAdapter;
 }
