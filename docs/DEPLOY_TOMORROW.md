@@ -13,22 +13,24 @@ today. You run the `--broadcast` commands (they spend the real deployer key,
   quotes/settlement don't work yet. Seeding is part of this runbook.
 - Deployer balance: **2.79 USDC** on Arc (USDC is the gas token).
 
-## Budget (verified by simulation)
-| Action | Cost (USDC) |
-|---|---|
-| DeployPaymaster (gas 0.047 + stake 0.5 + deposit 1.5) | ~2.05 |
-| DeployCorridor × 3 (NGN, GHS, KES) @ 0.016 gas | ~0.05 |
-| **Infra subtotal** | **~2.10** (fits in 2.79) |
-| Agent signing key gas (its own key, if the agent settles on-chain) | ~0.5+ |
-| Demo wallet value to actually send ₦50,000 (~$31) | ~31 |
+## Plan: Option A — small-amount live (no top-up)
 
-**So: the infra deploy fits today's funds, but moving real ₦50k-scale value does
-not.** Two ways to run the live demo:
-- **Small-amount live (no top-up):** deploy the infra, then demo with tiny real
-  sends (₦500–₦1,000). Genuinely on-chain and gasless, costs cents.
-- **Full-scale live (recommended):** top the deployer up to ~**60 USDC** on Arc
-  first, bump `PM_DEPOSIT` to `25000000000000000000` (25 USDC), fund the agent
-  key, and fund the demo wallet with ~$35 so a real ₦50,000 send lands.
+Deploy the infrastructure inside today's 2.79 USDC and demo with **tiny real
+sends** (₦500–₦1,000). Genuinely on-chain and gasless; the stake + deposit are
+recoverable, so the demo's true cost is a few cents of gas plus the tiny amounts
+you send. A light paymaster keeps most of the balance free for those sends.
+
+| Action | Cost (USDC) | Recoverable? |
+|---|---|---|
+| DeployPaymaster (gas 0.047 + stake 0.3 + deposit 1.0) | ~1.35 | stake + deposit yes |
+| DeployCorridor × 3 (NGN, GHS, KES) @ 0.016 gas | ~0.05 | — |
+| **Infra subtotal** | **~1.40** | leaves ~1.39 USDC |
+| Fund demo wallet for tiny sends (Step 3) | ~1.0 | it's yours |
+| Agent key gas (only if the agent settles on-chain) | ~0.3 | it's yours |
+
+Everything fits in 2.79 with a small buffer. (Full-scale variant later: top the
+deployer to ~60 USDC and set `PM_DEPOSIT=25000000000000000000` for a real
+₦50k-scale send.)
 
 ## Step 0 — key hygiene (once)
 `vm.envUint` needs the `0x` prefix. Normalise at export time (no file edit,
@@ -41,14 +43,15 @@ export PRIVATE_KEY=$(grep '^PRIVATE_KEY=' .env | cut -d= -f2- | tr -d '"' | sed 
 ## Step 1 — deploy the paymaster (gasless)
 ```bash
 PAYMASTER_SIGNER=0xb440319eE67d10Ffce6F413e4B889D06F20BE675 \
-PM_STAKE=500000000000000000 \
-PM_DEPOSIT=1500000000000000000 \
+PM_STAKE=300000000000000000 \
+PM_DEPOSIT=1000000000000000000 \
 forge script script/DeployPaymaster.s.sol --rpc-url arc --broadcast --slow
 ```
+- 0.3 USDC stake + 1.0 USDC deposit. The deposit sponsors gas for the demo's
+  gasless sends (Arc gas is ~0.016–0.05 USDC per op, so 1.0 covers dozens).
 - Confirm the printed `VerifyingPaymaster:` equals `0xAe5493E713991691075E2daBBFFD61aB66dBFb22`
   (it will, at the current nonce) — so `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS`
   already matches, no change needed.
-- Full-scale: set `PM_DEPOSIT=25000000000000000000` (needs the top-up).
 
 ## Step 2 — seed the corridor rates (live quotes + netting)
 Run once per corridor. Rates are `local-per-USD × 1000`.
@@ -75,11 +78,21 @@ cast call 0x48484e904EA964a649D0c73666bA1E91d3Ca2349 \
   0xE76E4f347667d973a1B968733bE41738f2AE202C --rpc-url arc   # -> true
 ```
 
-## Step 3 — fund the demo actors (only for full-scale live)
-- **Agent key** — send a little USDC on Arc to the `SETTLE_OPERATOR_PK` /
-  `ARC_AGENT_PK` address so it can pay gas when it settles.
-- **Demo wallet** — after you sign in with Privy and see your smart-wallet
-  address, send it ~$35 USDC on Arc so a real ₦50,000 send has value to move.
+## Step 3 — fund the demo wallet (small amounts)
+On Arc, USDC **is** the native token, so funding is a plain value transfer. After
+you sign in with Privy and copy your smart-wallet address, send it ~1 USDC (gas
+is covered by the paymaster, so this is just value to send in the demo):
+```bash
+# ~1 USDC to the signed-in smart wallet (enough for several ₦500–₦1,000 sends)
+cast send <YOUR_SMART_WALLET> --value 1000000000000000000 \
+  --rpc-url arc --private-key "$PRIVATE_KEY"
+```
+Only if the **agent** settles from its own key (not the user's gasless wallet),
+also fund that key with ~0.3 USDC the same way:
+```bash
+cast send <SETTLE_OPERATOR_ADDRESS> --value 300000000000000000 \
+  --rpc-url arc --private-key "$PRIVATE_KEY"
+```
 
 ## Step 4 — env (make the app use all of it)
 Build-time (`BUILD_DOTENV` secret) — already set locally, mirror to prod:
