@@ -39,3 +39,9 @@ export const isWalletConfigured = Boolean(PRIVY_APP_ID);
 export const isSmartWalletConfigured = Boolean(
   ALCHEMY_API_KEY && ALCHEMY_GAS_POLICY_ID
 );
+
+// Auth mode (Path A rollout). "privy" (default) = Privy-native login modal
+// (google/email/passkey/wallet). "own" = our phone-OTP + Privy custom-auth
+// bridge (global SMS via Termii). Flip with NEXT_PUBLIC_AUTH_MODE=own once the
+// Privy dashboard JWKS + Termii env are configured.
+export const AUTH_MODE = (process.env.NEXT_PUBLIC_AUTH_MODE || "privy") as "privy" | "own";
