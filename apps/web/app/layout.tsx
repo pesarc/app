@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, JetBrains_Mono, Geist } from "next/font/google";
+import { Manrope, JetBrains_Mono, Geist, Newsreader } from "next/font/google";
 import "./globals.css";
 import { site } from "@pesarc/sdk/site";
 import Analytics from "@/components/Analytics";
@@ -21,9 +21,20 @@ const geist = Geist({
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains",
+  variable: "--font-mono",
   subsets: ["latin"],
   weight: ["300", "400", "500"],
+  display: "swap",
+});
+
+// Editorial serif for the display/italic headings across the landing. Wired as
+// --font-serif so the landing's `var(--font-serif, Georgia)` usages resolve to
+// an intentional face instead of falling back to Georgia.
+const newsreader = Newsreader({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 
@@ -77,7 +88,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${jetbrainsMono.variable} ${geist.variable} antialiased`}
+      className={`${manrope.variable} ${jetbrainsMono.variable} ${geist.variable} ${newsreader.variable} antialiased`}
     >
       <body className="overflow-x-hidden">
         {children}
