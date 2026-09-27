@@ -42,6 +42,8 @@ import { PayoutStatus } from "./PayoutStatus";
 import BankDetails, { type BankDestination } from "./BankDetails";
 import { authedPostJson } from "@pesarc/sdk/api/client";
 import { sendReference } from "@pesarc/sdk/reference";
+import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 type Step = "recipient" | "amount" | "confirm" | "settling" | "success";
 
@@ -441,7 +443,10 @@ function AmountStep({
 }) {
   const sendC = CURRENCIES[sendCurrency];
   const amount = parseFloat(amountStr) || 0;
-  const insufficient = amount > ACCOUNT.balance;
+  // Live on-chain balance for the active network, with a demo fallback.
+  const live = useLiveBalance();
+  const bal = live.available && live.amount !== undefined ? live.amount : ACCOUNT.balance;
+  const insufficient = amount > bal;
   // Recipient entered as a bank account: destination is already set/verified.
   const bankLocked = recipient.id === "custom-bank";
   // A bank payout needs a usable bank destination before we can review.
@@ -455,6 +460,22 @@ function AmountStep({
   return (
     <div>
       <StepNav onBack={onBack} title="How much?" />
+
+      {/* Network + live balance. Switch network to see (and spend) that
+          chain's on-chain balance, MetaMask-style. */}
+      <div className="flex items-center justify-between mb-3">
+        <NetworkSwitcher />
+        <span className="text-[13px] font-bold text-harbor">
+          {live.loading ? (
+            <span className="text-slate">Checking balance…</span>
+          ) : (
+            <>
+              {formatMoney(bal, sendCurrency)}
+              {!live.available && <span className="ml-1 text-[11px] font-semibold text-slate">demo</span>}
+            </>
+          )}
+        </span>
+      </div>
 
       {/* Corridor card — sender and recipient joined by the arc */}
       <div className="relative overflow-hidden rounded-[26px] bg-harbor text-white p-5 sm:p-6 mb-4 shadow-[rgba(19,66,111,0.28)_0px_8px_0px_0px]">
@@ -485,7 +506,7 @@ function AmountStep({
             </div>
             <div className={`mt-2 text-[12.5px] font-medium ${insufficient ? "text-white font-bold" : "text-white/55"}`}>
               {insufficient ? "Over your balance · " : "Balance "}
-              {formatMoney(ACCOUNT.balance, sendCurrency)}
+              {formatMoney(bal, sendCurrency)}
             </div>
           </div>
 
@@ -539,7 +560,7 @@ function AmountStep({
           );
         })}
         <button
-          onClick={() => setAmountStr(String(ACCOUNT.balance))}
+          onClick={() => setAmountStr(String(bal))}
           className="flex-1 rounded-[14px] border border-fog bg-snow px-0 py-2.5 text-sm font-bold text-harbor hover:border-slate/50 transition-colors"
         >
           Max
