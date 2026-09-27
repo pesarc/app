@@ -27,6 +27,7 @@ const COLUMNS: { title: string; links: FLink[] }[] = [
     title: "Company",
     links: [
       { label: "Why Pesarc", href: "/#why" },
+      { label: "Careers", href: "/careers" },
       { label: "Contact", href: "mailto:hello@pesarc.xyz", external: true },
     ],
   },
@@ -91,9 +92,17 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-        <span className="text-xs font-medium text-white/50">
-          © {new Date().getFullYear()} {site.name}. All rights reserved.
-        </span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="text-xs font-medium text-white/50">
+            © {new Date().getFullYear()} {site.name}. All rights reserved.
+          </span>
+          <Link href="/privacy" className="text-xs font-medium text-white/50 hover:text-white transition-colors">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-xs font-medium text-white/50 hover:text-white transition-colors">
+            Terms
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
           <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
