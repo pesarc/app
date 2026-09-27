@@ -20,7 +20,10 @@ import {
   Loader2,
   LineChart,
   Settings2,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
+import { site } from "@pesarc/sdk/site";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -142,6 +145,24 @@ export default function YouPage() {
           );
         })}
       </Section>
+
+      {/* View the public site (landing lives on the apex; the app host sends
+          its root to /home, so link out to it explicitly). */}
+      <a
+        href={site.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-4 flex items-center gap-3 rounded-card bg-snow border border-fog px-4 py-3.5 hover:border-slate/50 transition-colors"
+      >
+        <span className="w-9 h-9 rounded-full bg-cream flex items-center justify-center text-harbor">
+          <Globe className="w-[18px] h-[18px]" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-bold text-ink">View site</span>
+          <span className="block text-[12.5px] font-medium text-slate">Open the Pesarc landing page</span>
+        </span>
+        <ExternalLink className="w-4 h-4 text-slate shrink-0" />
+      </a>
 
       {/* Auth */}
       {walletMode !== "mock" && (
