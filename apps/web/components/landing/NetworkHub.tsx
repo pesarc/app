@@ -23,12 +23,13 @@ const cld = (id?: string) => (id ? `https://res.cloudinary.com/${CLOUD}/image/up
 const LOGO: Record<string, string> = {
   Ethereum: "eth-diamond-_color-filled_cbdlt6",
   Base: "Base_square_blue_dd1ktd",
-  Arc: "Arc_Icon_NavyGradient_iv3nmy",
+  Arc: "Arc_Icon_YellowGradient_avsvys",
   Solana: "solanaLogoMark_jvqcyo",
   Celo: "Celo_Symbol_RGB_ProsperityYellow_vvwx61",
   Arbitrum: "1225_Arbitrum_Logomark_FullColor_ClearSpace_xlpcpl",
   Optimism: "05dee11fbd0f605cc307d301daf68e2192297e50_k3gqrv",
   Algorand: "algorand-logomark-blue-RGB_ckba3s",
+  Polygon: "polygon-icon-primary-purple_w6psna",
 };
 
 // Per-logo size tuning so wildly different source art reads at one optical
@@ -38,8 +39,8 @@ const LOGO_SCALE: Record<string, number> = {
   Ethereum: 0.76,
   Base: 0.9,
   Optimism: 1.12,
-  Arbitrum: 1.42,
-  Algorand: 1.44,
+  Arbitrum: 1.6,
+  Algorand: 1.62,
 };
 
 type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
@@ -226,15 +227,15 @@ function Marquee() {
         .railtrack:hover{animation-play-state:paused}
         @media(prefers-reduced-motion:reduce){.railtrack{animation:none}}
       `}</style>
-      <div className="railtrack flex w-max gap-3">
+      <div className="railtrack flex w-max gap-2.5">
         {row.map((name, i) => {
           const hasLogo = Boolean(LOGO[name]);
           return (
             <div
               key={`${name}-${i}`}
-              className="flex items-center gap-2.5 px-3 py-1.5 shrink-0"
+              className="flex items-center gap-2 rounded-full border border-white/12 pl-2 pr-4 py-1 shrink-0"
             >
-              <span className="grid place-items-center w-12 h-12 shrink-0">
+              <span className="grid place-items-center h-12 shrink-0">
                 <Mark name={name} size={hasLogo ? 30 : 20} />
               </span>
               <span className="text-[13px] font-semibold text-white/80 whitespace-nowrap">{name}</span>
