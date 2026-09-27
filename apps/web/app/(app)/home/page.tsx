@@ -12,7 +12,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 export const metadata: Metadata = {
   title: "Home",
   description:
-    "Your Pesarc balance, with one tap to send or receive money across borders.",
+    "Your Pesarc balance and open positions, with one tap to trade the day's markets.",
 };
 
 export const dynamic = "force-dynamic";

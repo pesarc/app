@@ -62,12 +62,13 @@ export default function Waitlist() {
         </div>
 
         <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tighter font-medium text-white mb-6 text-balance" style={{ lineHeight: 1.12 }}>
-          Ready to send your <span style={{ color: "#3AA0FF" }}>first transfer?</span>
+          Ready to make your <span style={{ color: "#3AA0FF" }}>first call?</span>
         </h2>
 
         <p className="text-base md:text-lg text-white/60 max-w-xl mb-10 text-balance leading-relaxed">
-          Become an early beta-tester of Pesarc. Be first to send money home,
-          gasless, in under a minute, in your own currency.
+          Become an early beta-tester of Pesarc. Be first to trade the elections,
+          football and prices you already argue about, gasless, in your own
+          currency.
         </p>
 
         {done ? (

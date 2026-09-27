@@ -171,8 +171,8 @@ export default function MarketsView() {
           </Link>
         </div>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed">
-          Hedge your currency or take a view — settled in local money, never a dollar in the
-          path.
+          Take a view on elections, football, prices and world events. Stake and
+          settle in your own currency, gasless.
         </p>
 
         <ChainSelector className="mt-3.5" />
@@ -204,10 +204,11 @@ export default function MarketsView() {
           <Shield className="w-5 h-5" />
         </span>
         <div>
-          <div className="text-[15px] font-extrabold mb-0.5">A hedge, not a bet.</div>
+          <div className="text-[15px] font-extrabold mb-0.5">Always a price to trade.</div>
           <div className="text-[13px] font-medium text-white/70 leading-relaxed">
-            Markets resolve from Pesarc&apos;s own realized rate. Back the side that offsets
-            your real-world risk — you&apos;re insured, in your own currency.
+            Every market is backed by Pesarc&apos;s own on-chain liquidity, so you can
+            get in or out any time. Outcomes resolve on-chain, and you stake and
+            cash out in your own currency.
           </div>
         </div>
       </div>

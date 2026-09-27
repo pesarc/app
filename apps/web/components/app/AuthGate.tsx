@@ -32,7 +32,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             Sign in to {site.name}
           </h1>
           <p className="mt-2 text-sm text-slate font-medium">
-            Log in to send, hold, earn and settle money across borders.
+            Log in to trade Africa&apos;s markets and settle in your own currency.
           </p>
           <Button className="mt-7 w-full" onClick={() => login()}>
             Sign in <ArrowRight className="w-4 h-4" />
