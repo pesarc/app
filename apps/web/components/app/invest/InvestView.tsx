@@ -20,6 +20,7 @@ import { toInstrument } from "@pesarc/sdk/catalog-map";
 import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { getBroker } from "@pesarc/sdk/broker";
+import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
@@ -319,9 +320,12 @@ function BuySheet({
   const [busy, setBusy] = useState(false);
   const shares = parseFloat(sharesStr) || 0;
   const cost = shares * inst.price;
-  const valid = shares > 0;
   const payCcy = currencyOf(payWith);
   const payAmount = cost * midMarketRate(m.currency, payCcy);
+  // Live on-chain balance of the pay stablecoin (demo fallback when no wallet).
+  const bal = useLiveBalance(payCcy);
+  const insufficient = bal.available && bal.amount !== undefined ? payAmount > bal.amount : false;
+  const valid = shares > 0 && !insufficient;
 
   return (
     <>
@@ -387,6 +391,13 @@ function BuySheet({
           <div className="flex items-center justify-between mt-1 text-[12px] text-slate">
             <span>Market price</span>
             <span className="numerals">{formatMoney(cost, m.currency)}</span>
+          </div>
+          <div className={`flex items-center justify-between mt-1 text-[12px] ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
+            <span>{insufficient ? `Over your ${payWith} balance` : `${payWith} balance`}</span>
+            <span className="numerals">
+              {bal.loading ? "…" : formatNumber(bal.amount ?? 0, payCcy)}
+              {!bal.available && <span className="ml-1 text-slate/70">demo</span>}
+            </span>
           </div>
         </div>
 
