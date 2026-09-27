@@ -43,7 +43,7 @@ export default function Hero() {
                 />
               ))}
             </div>
-            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight}>
+            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight} className="uppercase tracking-wide">
               Open app
             </AccentButton>
           </nav>
@@ -56,7 +56,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.18 }}
-              className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance"
+              className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance uppercase"
               style={{ lineHeight: 1.06 }}
             >
               Send money
@@ -81,7 +81,7 @@ export default function Hero() {
               transition={{ duration: 0.8, ease, delay: 0.36 }}
               className="mt-9 flex flex-wrap items-center gap-4 pointer-events-auto w-fit"
             >
-              <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm">
+              <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm uppercase tracking-wide">
                 Become a beta-tester
               </AccentButton>
               <div className="inline-flex items-center gap-2 text-[13px] font-medium text-white/70">
@@ -152,7 +152,7 @@ export default function Hero() {
 function Badge() {
   return (
     <span
-      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-medium text-white/90"
+      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90"
       style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
