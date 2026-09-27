@@ -21,6 +21,39 @@ remittance corridors).
 Alternatives to consider swapping in: **South Africa (ZAR)** (largest economy,
 bank-first) or **Côte d'Ivoire/Senegal (XOF)** (Francophone, Wave/Orange Money).
 
+## On-chain addresses (Arc mainnet, chain `5042`)
+
+Every corridor settles on **Arc mainnet** (chain id `5042`, RPC
+`https://rpc.mainnet.arc.io`), where **USDC is the native gas token** (predeploy
+`0x3600000000000000000000000000000000000000`). A corridor is a `USDC ↔ cXXX`
+pair priced by the shared oracle and netted by the shared matcher — so the only
+per-corridor address is the local stablecoin. Canonical source of truth:
+`ARC_SUBMISSION.md` (deployed 2026-09-27).
+
+**Shared across all corridors:**
+
+| Contract | Address (Arc `5042`) |
+|---|---|
+| RealizedRateOracle | `0x48484e904EA964a649D0c73666bA1E91d3Ca2349` |
+| IntentMatcher (P2P netting) | `0x5f7Cb34cA29d0554998882B716DC86e0B764f206` |
+| PredictionMarket (hedge) | `0xe9f109b826de37A6481eAfC60985B5b36763558B` |
+| USDC (native gas predeploy) | `0x3600000000000000000000000000000000000000` |
+
+**Per corridor (the `cXXX` local stable):**
+
+| Corridor | Currency | Chain | Local stable (`cXXX`) address | Status |
+|---|---|---|---|---|
+| USD → Nigeria | NGN | Arc `5042` | `0xE76E4f347667d973a1B968733bE41738f2AE202C` | ✅ live |
+| USD → Ghana | GHS | Arc `5042` | `0xb3387B3cCAd4ef68e0c348735daA1C306D17C004` | ✅ live |
+| USD → Kenya | KES | Arc `5042` | `0x6616D69AcbB9fe9Ef630171C069CC069a0d8464f` | ✅ live |
+| USD → Uganda | UGX | Arc `5042` | (to deploy — mirror `DeployArc.s.sol`) | ⏳ not deployed |
+| USD → Tanzania | TZS | Arc `5042` | (to deploy) | ⏳ not deployed |
+
+The same contracts are also live on **Arc testnet** (chain `5042002`) at the
+identical addresses (deterministic deploy). To go live, each `cXXX` address is
+wired into the frontend registry as `NEXT_PUBLIC_ARC_TOKEN_<CCY>` (build-time) so
+`liveQuote`/`sendCorridor` pick the pool by the recipient's currency.
+
 ## What "a corridor works" requires (per country)
 
 1. **Local stablecoin** `cXXX` (ERC-20) on the hub chain. NGN/GHS/KES done; UGX/TZS
