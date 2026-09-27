@@ -8,6 +8,7 @@ import { type Market } from "@pesarc/sdk/markets";
 import { midMarketRate, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
 import { currencyOf } from "@pesarc/sdk/stablecoins";
 import { activeChain, explorerTxUrl } from "@pesarc/sdk/chain/registry";
+import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { evmStake } from "@pesarc/sdk/market-write";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
@@ -56,6 +57,9 @@ export default function StakeSheet({
   const needsSwap = payWith !== market.collateral;
   const stakeInCollateral = stake * midMarketRate(payCcy, collateralCcy);
   const impliedPayout = price > 0 ? (stakeInCollateral * 100) / price : 0;
+  // Live on-chain balance of the stake stablecoin (demo fallback when no wallet).
+  const bal = useLiveBalance(payCcy);
+  const insufficient = bal.available && bal.amount !== undefined ? stake > bal.amount : false;
 
   // Real write on the active venue; EVM stakes gaslessly via the smart wallet.
   const chain = activeChain();
@@ -184,7 +188,7 @@ export default function StakeSheet({
               />
             </div>
 
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-2">
               {[5000, 20000, 50000].map((q) => (
                 <button
                   key={q}
@@ -194,6 +198,14 @@ export default function StakeSheet({
                   {q.toLocaleString()}
                 </button>
               ))}
+            </div>
+
+            <div className={`flex items-center justify-between mb-3 text-[12px] ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
+              <span>{insufficient ? `Over your ${payWith} balance` : `${payWith} balance`}</span>
+              <span className="numerals">
+                {bal.loading ? "…" : formatNumber(bal.amount ?? 0, payCcy)}
+                {!bal.available && <span className="ml-1 text-slate/70">demo</span>}
+              </span>
             </div>
 
             {needsSwap && stake > 0 && (
@@ -228,7 +240,7 @@ export default function StakeSheet({
             <Button
               block
               size="lg"
-              disabled={stake <= 0 || busy}
+              disabled={stake <= 0 || insufficient || busy}
               onClick={confirm}
             >
               {busy ? (
