@@ -141,11 +141,6 @@ export default function NetworkHub() {
           transition={{ duration: 0.8, ease }}
           className="mt-12 rounded-2xl border border-white/12 bg-white/[0.02] p-4 sm:p-6 overflow-hidden"
         >
-          <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 px-2 mb-1" style={{ fontFamily: "var(--font-mono, ui-monospace), monospace" }}>
-            <span>Networks</span>
-            <span>Bank &amp; mobile money</span>
-          </div>
-
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="The networks your money travels on flow through you and your agent, out to your bank and mobile money.">
             <defs>
               <style>{`
