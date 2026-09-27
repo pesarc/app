@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "@/components/icons";
 import AgentPreview from "./AgentPreview";
-import MarketPreview from "./MarketPreview";
+import LivePreview from "./LivePreview";
 import { NavPill, AccentButton, ACCENT } from "./ui";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 const NAV_ICON: Record<string, LucideIcon> = {
-  Markets: LayoutGrid,
+  Product: LayoutGrid,
   Networks: Globe2,
   Beta: Sparkles,
 };
@@ -43,25 +43,25 @@ export default function Hero() {
                 />
               ))}
             </div>
-            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight}>
+            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight} className="uppercase tracking-wide">
               Open app
             </AccentButton>
           </nav>
         </motion.header>
 
         {/* Headline */}
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center pt-10 sm:pt-8 lg:pt-0">
           <div className="w-full max-w-2xl pointer-events-none select-none">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease, delay: 0.18 }}
-              className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance"
+              className="text-[3rem] sm:text-7xl lg:text-[5.4rem] font-medium tracking-tighter text-white text-balance uppercase"
               style={{ lineHeight: 1.06 }}
             >
-              Predict
+              Send money
               <br />
-              <span style={{ color: ACCENT }}>Africa.</span>
+              <span style={{ color: ACCENT }}>in seconds.</span>
             </motion.h1>
 
             <motion.p
@@ -70,9 +70,9 @@ export default function Hero() {
               transition={{ duration: 0.8, ease, delay: 0.28 }}
               className="mt-6 max-w-md text-base md:text-lg text-white/60 leading-relaxed"
             >
-              Take a view on the elections, football, prices and events you
-              already argue about, in your own currency, gasless. We provide the
-              on-chain liquidity, so there is always a price to trade against.
+              One simple app to send, hold, earn and settle money across borders,
+              in your own currency. No big fees, no waiting, no jargon, just money
+              the way you already think about it.
             </motion.p>
 
             <motion.div
@@ -81,7 +81,7 @@ export default function Hero() {
               transition={{ duration: 0.8, ease, delay: 0.36 }}
               className="mt-9 flex flex-wrap items-center gap-4 pointer-events-auto w-fit"
             >
-              <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm">
+              <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm uppercase tracking-wide">
                 Become a beta-tester
               </AccentButton>
               <div className="inline-flex items-center gap-2 text-[13px] font-medium text-white/70">
@@ -105,15 +105,15 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease, delay: 0.5 }}
-          className="z-20 mt-14 flex gap-4 -mx-6 px-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pointer-events-auto
-                     lg:absolute lg:bottom-10 lg:right-12 lg:mt-0 lg:mx-0 lg:px-0 lg:overflow-visible lg:flex-col lg:items-end"
+          className="z-20 mt-12 sm:mt-14 flex gap-4 -mx-6 px-6 py-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pointer-events-auto
+                     lg:absolute lg:bottom-10 lg:right-12 lg:mt-0 lg:mx-0 lg:px-0 lg:py-0 lg:overflow-visible lg:flex-col lg:items-end"
         >
           <motion.div
             className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
             animate={{ y: [0, -7, 0] }}
             transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
           >
-            <MarketPreview />
+            <LivePreview />
           </motion.div>
           <motion.div
             className="snap-center shrink-0 w-[86vw] max-w-[340px] lg:w-auto lg:max-w-none"
@@ -139,10 +139,6 @@ export default function Hero() {
         {/* Meta (desktop only) */}
         <div className="hidden lg:flex absolute bottom-8 left-12 flex-col items-start gap-3 pointer-events-auto">
           <Badge />
-          <div className="flex flex-col gap-0.5 text-[11px] font-medium uppercase tracking-widest text-white/40">
-            <span>{site.protocolVersion}</span>
-            <span>Gasless · Non-custodial</span>
-          </div>
         </div>
       </div>
     </section>
@@ -152,11 +148,11 @@ export default function Hero() {
 function Badge() {
   return (
     <span
-      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-medium text-white/90"
+      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90"
       style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
-      Prediction markets for Africa
+      Stablecoin settlement platform
     </span>
   );
 }

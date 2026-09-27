@@ -19,8 +19,9 @@ The open-source Goldgard hook lives separately at `jorshimayor/Goldgard`.
    is set (production MUST set it).
 4. **Test before you deploy.** `forge test`, `cargo test`, and `pnpm build` must be
    green. CI runs all three on `main` and `dev`.
-5. **Branch `dev` → PR → `main`.** `main` is what Vercel deploys. Never push straight
-   to `main` for feature work.
+5. **Branch flow: `dev` → `staging` → `main`.** Feature work lands on `dev`; promote
+   `dev` → `staging` for pre-prod verification, then `staging` → `main` for release.
+   `main` is what production deploys. Never push feature work straight to `main`.
 6. **Never use the em dash character (—) anywhere on the website or in product
    copy.** No em dashes in landing pages, app UI, marketing text, or user-facing
    strings. Rewrite the sentence, or use a comma, colon, parentheses, or a period
@@ -63,6 +64,27 @@ The open-source Goldgard hook lives separately at `jorshimayor/Goldgard`.
      phones. Avoid a lone orphan card in a row; span it or rebalance.
    - **When in doubt, add space.** Denser is not more premium. If a mobile screen
      feels busy, increase padding, gaps and line-height before removing content.
+9. **We are a UX company. The Mum Test governs everything.** Our edge is not the
+   crypto underneath, it is that a first-time, non-technical person (picture your
+   mum) can use us on the first try, without help. This binds copywriting, design,
+   and engineering equally:
+   - **Copy: money words, not crypto.** Say "send", "hold", "earn", "settle", "your
+     own currency", "in seconds". Never "wallet", "gas", "chain", "on-chain",
+     "stablecoin", "USDC", "0x", "protocol", or a token ticker on a consumer or
+     marketing surface. Lead with the outcome ("send money home"), not the machine.
+   - **Naming: features are features, not the brand.** The AI agent, prediction
+     markets, the settlement engine and any infra layer are *features* we offer, not
+     what we *are*. We are a stablecoin settlement platform: send, hold, earn,
+     settle, and (as one feature) predict. Do not build the marketing around any
+     single feature or any internal infra name.
+   - **Design: one obvious action per screen, chain and complexity hidden.** A
+     consumer sees "settled"; the explorer/proof is one optional tap away. One
+     primary CTA per view. Progressive disclosure: show Send/Receive/Hold first, and
+     reveal Earn, Invest, Markets, Business only when wanted.
+   - **Engineering serves the above.** Optimistic states, one-number quotes ("you
+     send X, they get Y"), readable errors (what went wrong + how to fix, never a
+     raw revert), gasless with no seed phrase. If a flow needs explaining, it is not
+     done. Grounded in the SSOT masterplan's "Mum Test" and "Money, not crypto" laws.
 
 ## Repository map
 
@@ -119,6 +141,16 @@ docs/           Specs, licensing/partner strategy, security audit, corridor runb
   interactive element needs an `aria-label`; external links carry `rel="noreferrer"`.
 - **Styling**: Tailwind utilities + the design tokens already in `globals.css` /
   `tailwind.config.ts` (emerald/gold/deepink). Don't introduce a component library.
+- **Icons: Hugeicons only, never `lucide-react`.** Lucide is banned — it does not
+  pass our design bar (thin, generic, fails the visual QA). Use **Hugeicons**
+  (`stroke-rounded` set, designer-standard) via the shared module
+  `@/components/icons` — never import from `lucide-react`, and never import
+  `@hugeicons/*` directly in a component. `components/icons.tsx` re-exports every
+  icon we use as a named component with the lucide-compatible call shape
+  (`<Send className="w-5 h-5" strokeWidth={1.7} />`), so call sites stay clean and
+  the icon set is swappable in one place. Need an icon that isn't exported yet? Add
+  it to `components/icons.tsx` (map it to its Hugeicons `stroke-rounded` glyph),
+  then import it from there. A `lucide-react` import anywhere is a review-blocker.
 
 ## Backend (Next.js API routes / Neon Postgres)
 

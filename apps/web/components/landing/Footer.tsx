@@ -2,7 +2,11 @@ import Link from "next/link";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 
-const COLUMNS = [
+const DOCS = "https://docs.pesarc.xyz";
+
+type FLink = { label: string; href: string; external?: boolean };
+
+const COLUMNS: { title: string; links: FLink[] }[] = [
   {
     title: "Product",
     links: [
@@ -12,24 +16,39 @@ const COLUMNS = [
     ],
   },
   {
-    title: "Resources",
+    title: "Developers",
     links: [
-      { label: "Documentation", href: "#" },
-      { label: "Security", href: "#" },
-      { label: "Status", href: "#" },
-      { label: "Blog", href: "#" },
+      { label: "Documentation", href: DOCS, external: true },
+      { label: "API reference", href: `${DOCS}/api-reference/introduction`, external: true },
+      { label: "Integrations", href: `${DOCS}/integrations/overview`, external: true },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Contact", href: "#" },
-      { label: "Privacy Policy", href: "#" },
+      { label: "Why Pesarc", href: "/#why" },
+      { label: "Careers", href: "/careers" },
+      { label: "Contact", href: "mailto:hello@pesarc.xyz", external: true },
     ],
   },
 ];
+
+function FooterLink({ link }: { link: FLink }) {
+  const cls = "text-sm font-medium text-white/70 hover:text-white transition-colors";
+  if (link.external) {
+    const isMail = link.href.startsWith("mailto:");
+    return (
+      <a href={link.href} className={cls} {...(isMail ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
+        {link.label}
+      </a>
+    );
+  }
+  return (
+    <Link href={link.href} className={cls}>
+      {link.label}
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
@@ -46,8 +65,8 @@ export default function Footer() {
             </span>
           </div>
           <p className="text-sm text-white/60 font-medium leading-relaxed">
-            The prediction market for Africa. Trade the events you already argue
-            about, in your own currency, gasless, backed by our own liquidity.
+            One simple app to send, hold, earn and settle money across borders,
+            in your own currency. Money the way you already think about it.
           </p>
         </div>
 
@@ -63,12 +82,7 @@ export default function Footer() {
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm font-medium text-white/70 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    <FooterLink link={link} />
                   </li>
                 ))}
               </ul>
@@ -78,9 +92,17 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-        <span className="text-xs font-medium text-white/50">
-          © {new Date().getFullYear()} {site.name}. All rights reserved.
-        </span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="text-xs font-medium text-white/50">
+            © {new Date().getFullYear()} {site.name}. All rights reserved.
+          </span>
+          <Link href="/privacy" className="text-xs font-medium text-white/50 hover:text-white transition-colors">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-xs font-medium text-white/50 hover:text-white transition-colors">
+            Terms
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
           <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">

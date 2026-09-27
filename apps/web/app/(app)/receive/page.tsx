@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Copy, Share2 } from "@/components/icons";
 import { ACCOUNT, ALIAS } from "@pesarc/sdk/account";
 import { CURRENCIES } from "@pesarc/sdk/money";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -30,7 +30,7 @@ export default function ReceivePage() {
   // the running app and routes into /pay, rather than a dead external URL.
   const link = useMemo(() => {
     const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://pesarc.money";
+      typeof window !== "undefined" ? window.location.origin : "https://app.pesarc.xyz";
     const params = new URLSearchParams();
     params.set("name", ALIAS);
     if (live && address) params.set("to", address);

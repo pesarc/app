@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Zap,
-} from "lucide-react";
+} from "@/components/icons";
 import { ACCOUNT, RECIPIENTS, initials, type Recipient } from "@pesarc/sdk/account";
 import { CURRENCIES, formatMoney, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
 import {
@@ -23,11 +23,7 @@ import {
   type PayoutMethod,
   type Quote,
 } from "@pesarc/sdk/quote";
-import {
-  fetchLivePoolQuote,
-  livePoolQuoteAvailable,
-  type LivePoolQuote,
-} from "@pesarc/sdk/chain/liveQuote";
+import { fetchCorridorQuote, type LivePoolQuote } from "@pesarc/sdk/chain/liveQuote";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -36,12 +32,15 @@ import { TEST_RECIPIENT, RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
-import { Avatar, Button, Card } from "@/components/app/ui";
+import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import { QuoteBreakdown, formatEta } from "./QuoteBreakdown";
 import { PayoutStatus } from "./PayoutStatus";
 import BankDetails, { type BankDestination } from "./BankDetails";
-import { authedPostJson } from "@pesarc/sdk/api/client";
+import { authedPostJson, authedFetch } from "@pesarc/sdk/api/client";
+import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { sendReference } from "@pesarc/sdk/reference";
+import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 type Step = "recipient" | "amount" | "confirm" | "settling" | "success";
 
@@ -61,26 +60,61 @@ export default function SendFlow() {
   const [payoutTxHash, setPayoutTxHash] = useState<string>();
   const [actualReceive, setActualReceive] = useState<number>();
 
+  // Deep-link prefill. The agent's bulk-file preview (and any share link) hands a
+  // recipient here as ?to=&amount=&ccy=&method=&name=&bank=. We seed the fields
+  // and land on the AMOUNT step so the user still reviews the quote and confirms
+  // — a prefilled link never auto-sends (read + draft only carries through).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const to = sp.get("to");
+    if (!to) return;
+    const method = sp.get("method");
+    const ccy = (sp.get("ccy") || "").toUpperCase();
+    const name = sp.get("name") || undefined;
+    const amt = sp.get("amount");
+    if (method === "bank") {
+      const dest: BankDestination = { bankCode: sp.get("bank") || "", accountNumber: to, accountName: name };
+      setBankDest(dest);
+      setPayout("bank");
+      setRecipient(recipientFromBank(dest));
+    } else {
+      const guess = detectPhone(to) ?? { pretty: to, country: "", flag: "🌍", ccy: (ccy || "NGN") as CurrencyCode };
+      if (ccy) guess.ccy = ccy as CurrencyCode;
+      setRecipient(recipientFromPhone(guess));
+    }
+    if (amt && Number(amt) > 0) setAmountStr(String(Number(amt)));
+    setStep("amount");
+    // Read the link once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const amount = parseFloat(amountStr) || 0;
 
-  // Live = a real on-chain gasless swap is possible right now.
+  // Live = a real on-chain gasless swap is possible right now. The swap targets
+  // the cNGN hub pool, so the real execution only runs for NGN recipients today;
+  // other corridors quote live off the oracle but settle via the simulated path
+  // until their pool/netting execution ships (lift this gate then).
   const live =
-    mode === "live" && authenticated && smart.ready && CONTRACTS_READY;
+    mode === "live" &&
+    authenticated &&
+    smart.ready &&
+    CONTRACTS_READY &&
+    recipient?.receiveCurrency === "NGN";
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
   const [livePool, setLivePool] = useState<LivePoolQuote | null>(null);
-  const liveQuotable =
-    livePoolQuoteAvailable() &&
-    sendCurrency === "USD" &&
-    recipient?.receiveCurrency === "NGN";
+  // Any USD corridor is quotable: NGN via the hub pool, the rest via the
+  // realized-rate oracle (null result → the indicative mock quote stands).
+  const liveQuotable = sendCurrency === "USD" && Boolean(recipient);
+  const receiveCurrency = recipient?.receiveCurrency;
 
   useEffect(() => {
     setLivePool(null);
-    if (!liveQuotable || amount <= 0) return;
+    if (!liveQuotable || amount <= 0 || !receiveCurrency) return;
     let stale = false;
     const t = setTimeout(() => {
-      fetchLivePoolQuote(amount).then((q) => {
+      fetchCorridorQuote(amount, receiveCurrency).then((q) => {
         if (!stale) setLivePool(q);
       });
     }, 350);
@@ -88,7 +122,7 @@ export default function SendFlow() {
       stale = true;
       clearTimeout(t);
     };
-  }, [liveQuotable, amount]);
+  }, [liveQuotable, amount, receiveCurrency]);
 
   const quote: Quote | null = useMemo(() => {
     if (!recipient || amount <= 0) return null;
@@ -137,8 +171,10 @@ export default function SendFlow() {
       >
         {step === "recipient" && (
           <RecipientStep
-            onSelect={(r) => {
+            onSelect={(r, opts) => {
               setRecipient(r);
+              if (opts?.bankDest) setBankDest(opts.bankDest);
+              if (opts?.payout) setPayout(opts.payout);
               setStep("amount");
             }}
           />
@@ -224,91 +260,192 @@ function Progress({ step }: { step: Step }) {
 
 /* ---------------- Step 1: Recipient ---------------- */
 
-function RecipientStep({ onSelect }: { onSelect: (r: Recipient) => void }) {
+// Infer the recipient's country + receive currency from a typed phone number's
+// dialing code, so a raw number becomes a real, local-currency recipient.
+const DIAL: { code: string; country: string; flag: string; ccy: CurrencyCode }[] = [
+  { code: "234", country: "Nigeria", flag: "🇳🇬", ccy: "NGN" },
+  { code: "233", country: "Ghana", flag: "🇬🇭", ccy: "GHS" },
+  { code: "254", country: "Kenya", flag: "🇰🇪", ccy: "KES" },
+];
+
+type PhoneGuess = { pretty: string; country: string; flag: string; ccy: CurrencyCode };
+
+function detectPhone(q: string): PhoneGuess | null {
+  const t = q.trim();
+  if (!/^\+?\d[\d\s-]{6,}$/.test(t)) return null; // looks like a phone number
+  const digits = t.replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  const m = DIAL.find((d) => digits.startsWith(d.code)) ?? DIAL[0]; // default Nigeria for local format
+  return { pretty: t, country: m.country, flag: m.flag, ccy: m.ccy };
+}
+
+function recipientFromPhone(p: PhoneGuess): Recipient {
+  return {
+    id: "custom-phone",
+    name: p.pretty,
+    handle: p.pretty,
+    country: p.country,
+    flag: p.flag,
+    receiveCurrency: p.ccy,
+    initialsColor: "#3AA0FF",
+  };
+}
+
+function recipientFromBank(dest: BankDestination): Recipient {
+  return {
+    id: "custom-bank",
+    name: dest.accountName || "Bank account",
+    handle: "•••• " + dest.accountNumber.slice(-4),
+    country: "Nigeria",
+    flag: "🇳🇬",
+    receiveCurrency: "NGN",
+    initialsColor: "#13426f",
+  };
+}
+
+function savedToRecipient(s: SavedRecipient): Recipient {
+  return {
+    id: "saved-" + s.id,
+    name: s.name,
+    handle: s.handle,
+    country: s.country ?? "",
+    flag: s.flag ?? "🌍",
+    receiveCurrency: s.receiveCurrency as CurrencyCode,
+    recent: true,
+    initialsColor: s.kind === "bank" ? "#13426f" : "#3AA0FF",
+  };
+}
+
+function RecipientStep({
+  onSelect,
+}: {
+  onSelect: (r: Recipient, opts?: { bankDest?: BankDestination; payout?: PayoutMethod }) => void;
+}) {
+  const [mode, setMode] = useState<"people" | "bank">("people");
   const [query, setQuery] = useState("");
-  const recents = RECIPIENTS.filter((r) => r.recent);
+  const [bankDest, setBankDest] = useState<BankDestination | null>(null);
+  const [saved, setSaved] = useState<Recipient[]>([]);
+
+  // Load the account's saved recipients (people you've sent to before).
+  useEffect(() => {
+    let alive = true;
+    authedFetch("/api/recipients")
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive && d?.ok) setSaved((d.recipients as SavedRecipient[]).map(savedToRecipient));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Saved recipients first, then the seed contacts (deduped by handle).
+  const contacts = [...saved, ...RECIPIENTS.filter((m) => !saved.some((s) => s.handle === m.handle))];
+  const recents = saved.length ? saved.slice(0, 5) : RECIPIENTS.filter((r) => r.recent);
+  const rest = contacts.filter((c) => !recents.some((x) => x.handle === c.handle));
   const filtered = query
-    ? RECIPIENTS.filter(
+    ? contacts.filter(
         (r) =>
           r.name.toLowerCase().includes(query.toLowerCase()) ||
           r.handle.toLowerCase().includes(query.toLowerCase())
       )
-    : RECIPIENTS;
-
-  const looksLikeHandle =
-    query.length > 3 &&
-    filtered.length === 0 &&
-    /[+@0-9]/.test(query);
+    : contacts;
+  const phone = detectPhone(query);
+  const showNewPhone = !!phone && filtered.length === 0;
 
   return (
     <div>
       <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Who are you sending to?
       </h1>
-      <p className="text-slate mb-6">
-        Pick someone recent, or enter a phone number or @alias.
+      <p className="text-slate mb-5">
+        Send to a contact, a phone number, or a bank account.
       </p>
 
-      <div className="relative mb-6">
-        <Search className="w-4 h-4 text-slate absolute left-4 top-1/2 -translate-y-1/2" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Name, phone, or @alias"
-          aria-label="Search recipients"
-          className="w-full bg-snow rounded-field border border-fog pl-11 pr-4 py-3.5 text-[15px] text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
+      <div className="mb-5">
+        <Segmented
+          aria-label="Recipient type"
+          value={mode}
+          onChange={(v) => setMode(v as "people" | "bank")}
+          options={[
+            { value: "people", label: "Contact / phone" },
+            { value: "bank", label: "Bank account" },
+          ]}
         />
       </div>
 
-      {looksLikeHandle && (
-        <button
-          onClick={() =>
-            onSelect({
-              id: "custom",
-              name: query,
-              handle: query,
-              country: "Nigeria",
-              flag: "🇳🇬",
-              receiveCurrency: "NGN",
-              initialsColor: "#EA580C",
-            })
-          }
-          className="w-full mb-6"
-        >
-          <Card className="flex items-center gap-3 p-4 hover:border-sky/40 transition">
-            <span className="w-10 h-10 rounded-full bg-sky-tint flex items-center justify-center text-sky">
-              <ArrowRight className="w-5 h-5" />
-            </span>
-            <div className="text-left">
-              <div className="font-semibold text-ink">Send to {query}</div>
-              <div className="text-sm text-slate">New recipient</div>
-            </div>
-          </Card>
-        </button>
-      )}
-
-      {!query && (
-        <p className="text-xs font-semibold text-slate uppercase tracking-widest mb-3">
-          Recent
-        </p>
-      )}
-
-      <div className="space-y-2">
-        {(query ? filtered : recents).map((r) => (
-          <RecipientRow key={r.id} r={r} onSelect={onSelect} />
-        ))}
-      </div>
-
-      {!query && (
+      {mode === "people" ? (
         <>
-          <p className="text-xs font-semibold text-slate uppercase tracking-widest mt-6 mb-3">
-            All contacts
-          </p>
+          <div className="relative mb-6">
+            <Search className="w-4 h-4 text-slate absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Name, phone, or @alias"
+              aria-label="Search recipients"
+              className="w-full bg-snow rounded-field border border-fog pl-11 pr-4 py-3.5 text-[15px] text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
+            />
+          </div>
+
+          {showNewPhone && phone && (
+            <button onClick={() => onSelect(recipientFromPhone(phone))} className="w-full mb-6">
+              <Card className="flex items-center gap-3 p-4 hover:border-sky/40 transition">
+                <span className="w-10 h-10 rounded-full bg-sky-tint flex items-center justify-center text-sky">
+                  <ArrowRight className="w-5 h-5" />
+                </span>
+                <div className="text-left">
+                  <div className="font-semibold text-ink">Send to {phone.pretty}</div>
+                  <div className="text-sm text-slate">
+                    {phone.flag} {phone.country} · receives {phone.ccy}
+                  </div>
+                </div>
+              </Card>
+            </button>
+          )}
+
+          {!query && (
+            <p className="text-xs font-semibold text-slate uppercase tracking-widest mb-3">
+              Recent
+            </p>
+          )}
           <div className="space-y-2">
-            {RECIPIENTS.filter((r) => !r.recent).map((r) => (
+            {(query ? filtered : recents).map((r) => (
               <RecipientRow key={r.id} r={r} onSelect={onSelect} />
             ))}
           </div>
+
+          {!query && rest.length > 0 && (
+            <>
+              <p className="text-xs font-semibold text-slate uppercase tracking-widest mt-6 mb-3">
+                All contacts
+              </p>
+              <div className="space-y-2">
+                {rest.map((r) => (
+                  <RecipientRow key={r.id} r={r} onSelect={onSelect} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="text-slate text-sm mb-3">
+            Enter the account and we&apos;ll confirm the name before you send.
+          </p>
+          <BankDetails onChange={setBankDest} />
+          <Button
+            size="lg"
+            block
+            className="mt-5"
+            disabled={!bankDest}
+            onClick={() =>
+              bankDest && onSelect(recipientFromBank(bankDest), { bankDest, payout: "bank" })
+            }
+          >
+            {bankDest?.accountName ? `Send to ${bankDest.accountName}` : "Continue"}
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </>
       )}
     </div>
@@ -369,7 +506,12 @@ function AmountStep({
 }) {
   const sendC = CURRENCIES[sendCurrency];
   const amount = parseFloat(amountStr) || 0;
-  const insufficient = amount > ACCOUNT.balance;
+  // Live on-chain balance for the active network, with a demo fallback.
+  const live = useLiveBalance();
+  const bal = live.available && live.amount !== undefined ? live.amount : ACCOUNT.balance;
+  const insufficient = amount > bal;
+  // Recipient entered as a bank account: destination is already set/verified.
+  const bankLocked = recipient.id === "custom-bank";
   // A bank payout needs a usable bank destination before we can review.
   const bankReady = payout !== "bank" || bankDest !== null;
   const valid = amount > 0 && !insufficient && bankReady;
@@ -381,6 +523,22 @@ function AmountStep({
   return (
     <div>
       <StepNav onBack={onBack} title="How much?" />
+
+      {/* Network + live balance. Switch network to see (and spend) that
+          chain's on-chain balance, MetaMask-style. */}
+      <div className="flex items-center justify-between mb-3">
+        <NetworkSwitcher />
+        <span className="text-[13px] font-bold text-harbor">
+          {live.loading ? (
+            <span className="text-slate">Checking balance…</span>
+          ) : (
+            <>
+              {formatMoney(bal, sendCurrency)}
+              {!live.available && <span className="ml-1 text-[11px] font-semibold text-slate">demo</span>}
+            </>
+          )}
+        </span>
+      </div>
 
       {/* Corridor card — sender and recipient joined by the arc */}
       <div className="relative overflow-hidden rounded-[26px] bg-harbor text-white p-5 sm:p-6 mb-4 shadow-[rgba(19,66,111,0.28)_0px_8px_0px_0px]">
@@ -411,7 +569,7 @@ function AmountStep({
             </div>
             <div className={`mt-2 text-[12.5px] font-medium ${insufficient ? "text-white font-bold" : "text-white/55"}`}>
               {insufficient ? "Over your balance · " : "Balance "}
-              {formatMoney(ACCOUNT.balance, sendCurrency)}
+              {formatMoney(bal, sendCurrency)}
             </div>
           </div>
 
@@ -465,51 +623,72 @@ function AmountStep({
           );
         })}
         <button
-          onClick={() => setAmountStr(String(ACCOUNT.balance))}
+          onClick={() => setAmountStr(String(bal))}
           className="flex-1 rounded-[14px] border border-fog bg-snow px-0 py-2.5 text-sm font-bold text-harbor hover:border-slate/50 transition-colors"
         >
           Max
         </button>
       </div>
 
-      {/* Payout method */}
-      <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
-        Payout to
-      </p>
-      <div className="space-y-2.5 mb-5">
-        {PAYOUT_METHODS.map((m) => {
-          const active = m.id === payout;
-          return (
-            <button
-              key={m.id}
-              onClick={() => setPayout(m.id)}
-              className={`w-full flex items-center gap-3 rounded-[18px] border p-3.5 text-left transition-colors ${
-                active
-                  ? "border-sky bg-sky-tint/40"
-                  : "border-fog bg-snow hover:border-slate/40"
-              }`}
-            >
-              <div className="flex-1">
-                <div className="font-bold text-harbor text-[15px]">{m.label}</div>
-                <div className="text-[12.5px] font-medium text-slate">{m.hint}</div>
-              </div>
-              <span
-                className={`w-[22px] h-[22px] rounded-full flex items-center justify-center ${
-                  active ? "bg-sky text-white" : "border-2 border-fog"
-                }`}
-              >
-                {active && <Check className="w-3 h-3" strokeWidth={3} />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Bank destination — collected inline for a real fiat payout */}
-      {payout === "bank" && (
+      {/* Payout method. When the recipient IS a bank account (entered on the
+          previous step), the destination is already set and verified, so we lock
+          it and show a summary instead of re-asking. */}
+      {bankLocked ? (
         <div className="mb-5">
-          <BankDetails onChange={onBankChange} />
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
+            Paying to
+          </p>
+          <div className="flex items-center gap-3 rounded-[18px] border border-fog bg-snow p-3.5">
+            <span className="w-9 h-9 rounded-full bg-sky-tint flex items-center justify-center text-sky-deep">
+              <Check className="w-4 h-4" strokeWidth={3} />
+            </span>
+            <div className="min-w-0">
+              <div className="font-bold text-harbor text-[15px] truncate">{recipient.name}</div>
+              <div className="text-[12.5px] font-medium text-slate">Bank account {recipient.handle}</div>
+            </div>
+          </div>
         </div>
+      ) : (
+        <>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
+            Payout to
+          </p>
+          <div className="space-y-2.5 mb-5">
+            {PAYOUT_METHODS.map((m) => {
+              const active = m.id === payout;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setPayout(m.id)}
+                  className={`w-full flex items-center gap-3 rounded-[18px] border p-3.5 text-left transition-colors ${
+                    active
+                      ? "border-sky bg-sky-tint/40"
+                      : "border-fog bg-snow hover:border-slate/40"
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-bold text-harbor text-[15px]">{m.label}</div>
+                    <div className="text-[12.5px] font-medium text-slate">{m.hint}</div>
+                  </div>
+                  <span
+                    className={`w-[22px] h-[22px] rounded-full flex items-center justify-center ${
+                      active ? "bg-sky text-white" : "border-2 border-fog"
+                    }`}
+                  >
+                    {active && <Check className="w-3 h-3" strokeWidth={3} />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bank destination — collected inline for a real fiat payout */}
+          {payout === "bank" && (
+            <div className="mb-5">
+              <BankDetails onChange={onBankChange} />
+            </div>
+          )}
+        </>
       )}
 
       {/* Basic vs Advanced detail (Advanced toggled in Settings) */}
@@ -821,6 +1000,20 @@ function SuccessStep({
           bankCode: bankDest?.bankCode,
         }).catch(() => {});
     }
+
+    // Remember this recipient so they reappear next time (best-effort).
+    const kind =
+      recipient.id === "custom-bank" ? "bank" : recipient.id === "custom-phone" ? "phone" : "contact";
+    authedPostJson("/api/recipients", {
+      name: recipient.name,
+      handle: recipient.handle,
+      kind,
+      receiveCurrency: recipient.receiveCurrency,
+      flag: recipient.flag,
+      country: recipient.country || undefined,
+      bankCode: bankDest?.bankCode,
+      accountLast4: bankDest?.accountNumber?.slice(-4),
+    }).catch(() => {});
   }, [recipient, quote, payoutLabel, ref, txHash, payoutTxHash, actualReceive, bankDest]);
 
   const share = async () => {

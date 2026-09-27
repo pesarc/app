@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo } from "react";
 import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
 import { ALIAS } from "@pesarc/sdk/account";
-import { PRIVY_APP_ID, isWalletConfigured } from "./config";
+import { PRIVY_APP_ID, isWalletConfigured, AUTH_MODE } from "./config";
 import {
   LiveSmartWalletProvider,
   MockSmartWalletProvider,
@@ -81,17 +81,110 @@ function LiveWalletBridge({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ------------------------- Own-auth mode (Path A) ------------------------- */
+// Identity comes from our phone-OTP -> signed session -> short access token.
+// Privy validates the token against our JWKS (set in the Privy dashboard) and
+// provisions the embedded wallet; there is no Privy login modal. Sign-in UI is
+// <PhoneSignIn/>, rendered by AuthGate when unauthenticated.
+
+function OwnAuthBridge({ children }: { children: React.ReactNode }) {
+  const { ready, authenticated, user, logout: privyLogout } = usePrivy();
+  const { wallets } = useWallets();
+
+  const value = useMemo<WalletState>(
+    () => ({
+      mode: "live",
+      ready,
+      authenticated,
+      address: wallets?.[0]?.address ?? user?.wallet?.address ?? undefined,
+      alias: ALIAS,
+      login: () => {}, // AuthGate shows <PhoneSignIn/> when unauthenticated
+      logout: async () => {
+        try {
+          await fetch("/api/auth/session", { method: "DELETE" });
+        } catch {}
+        try {
+          await privyLogout();
+        } catch {}
+        if (typeof window !== "undefined") window.location.reload();
+      },
+    }),
+    [ready, authenticated, user, wallets, privyLogout],
+  );
+
+  return (
+    <WalletContext.Provider value={value}>
+      <LiveSolanaProvider>
+        <LiveSmartWalletProvider>{children}</LiveSmartWalletProvider>
+      </LiveSolanaProvider>
+    </WalletContext.Provider>
+  );
+}
+
+function OwnAuthWalletProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        // Bring-your-own JWT: Privy calls this to get our access token, verifies
+        // it against our JWKS, and authenticates + provisions the wallet.
+        customAuth: {
+          isLoading: false,
+          getCustomAccessToken: async () => {
+            try {
+              const r = await fetch("/api/auth/session");
+              if (!r.ok) return undefined;
+              const d = (await r.json()) as { token?: string };
+              return typeof d.token === "string" ? d.token : undefined;
+            } catch {
+              return undefined;
+            }
+          },
+        },
+        embeddedWallets: {
+          ethereum: { createOnLogin: "all-users" },
+          solana: { createOnLogin: "all-users" },
+          showWalletUIs: false,
+        },
+        defaultChain: HUB_CHAIN,
+        supportedChains: [HUB_CHAIN],
+        appearance: {
+          theme: "light",
+          accentColor: "#2e96ff",
+          walletChainType: "ethereum-and-solana",
+          logo: undefined,
+        },
+      }}
+    >
+      <OwnAuthBridge>{children}</OwnAuthBridge>
+    </PrivyProvider>
+  );
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   if (!isWalletConfigured) {
     return <MockWalletProvider>{children}</MockWalletProvider>;
+  }
+
+  if (AUTH_MODE === "own") {
+    return <OwnAuthWalletProvider>{children}</OwnAuthWalletProvider>;
   }
 
   return (
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        // Sign-in: Google, phone, email, passkey — no seed phrase.
-        loginMethods: ["google", "sms", "email", "passkey"],
+        // Sign-in: Google, email, passkey — no seed phrase — plus an optional
+        // external wallet (MetaMask/Phantom/WalletConnect) for crypto-native
+        // users. Embedded wallets are still created for everyone (createOnLogin
+        // below), so the gasless smart-account flow works either way. External
+        // wallets must also be enabled in the Privy dashboard.
+        //
+        // Privy's built-in `sms` is intentionally OMITTED: its phone-OTP only
+        // covers US/Canada, which is a dead end for our NG/GH/KE users. Global
+        // phone login is handled by our own OTP provider + Privy custom auth —
+        // see docs/AUTH_OWN_STACK.md (Path A).
+        loginMethods: ["google", "email", "passkey", "wallet"],
         embeddedWallets: {
           // Alchemy smart-wallet client needs an EVM embedded wallet to sign;
           // the Solana embedded wallet powers on-chain staking on the SVM venue.

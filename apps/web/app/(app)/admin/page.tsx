@@ -5,7 +5,7 @@
 // forms per kind. (Access is gated by ADMIN_SECRET server-side when set.)
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, X, Check, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Check, Loader2 } from "@/components/icons";
 import { Select } from "@/components/app/ui";
 
 type Kind = "markets" | "stocks" | "agents";

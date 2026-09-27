@@ -17,7 +17,7 @@ import {
   Code2,
   Receipt,
   Settings2,
-} from "lucide-react";
+} from "@/components/icons";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";

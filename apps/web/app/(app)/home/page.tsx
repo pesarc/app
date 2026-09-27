@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, ArrowDownLeft, QrCode, Bell, Plus, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, QrCode, Bell, Plus, TrendingUp } from "@/components/icons";
 import { ACCOUNT, ACTIVITY } from "@pesarc/sdk/account";
 import { listTransfers } from "@pesarc/sdk/transfers";
 import { formatMoney, formatNumber, midMarketRate, CURRENCIES } from "@pesarc/sdk/money";

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { Shield, Radio, Plus } from "lucide-react";
+import { Shield, Radio, Plus } from "@/components/icons";
 import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {

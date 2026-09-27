@@ -16,7 +16,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-} from "lucide-react";
+} from "@/components/icons";
 import { Button, Card, Select } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
@@ -195,11 +195,10 @@ export default function CorridorFlow() {
       <Card className="p-4 mb-5 flex items-start gap-3 bg-sky-tint/60 border-sky/20">
         <ShieldCheck className="w-5 h-5 text-sky shrink-0 mt-0.5" />
         <div className="text-sm">
-          <div className="font-semibold text-ink">No dollar in the path</div>
+          <div className="font-semibold text-ink">Local currency, end to end</div>
           <div className="text-slate">
             Your send is matched against someone going the other way and settles
-            directly, local currency to local currency — no pool, no bridge, no
-            USD.
+            directly, from your currency straight into theirs, in seconds.
           </div>
         </div>
       </Card>
