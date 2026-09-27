@@ -90,8 +90,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={PRIVY_APP_ID}
       config={{
-        // Sign-in: Google, phone, email, passkey — no seed phrase.
-        loginMethods: ["google", "sms", "email", "passkey"],
+        // Sign-in: Google, phone, email, passkey — no seed phrase — plus an
+        // optional external wallet (MetaMask/Phantom/WalletConnect) for
+        // crypto-native users. Embedded wallets are still created for everyone
+        // (createOnLogin below), so the gasless smart-account flow works either
+        // way. External wallets must also be enabled in the Privy dashboard.
+        loginMethods: ["google", "sms", "email", "passkey", "wallet"],
         embeddedWallets: {
           // Alchemy smart-wallet client needs an EVM embedded wallet to sign;
           // the Solana embedded wallet powers on-chain staking on the SVM venue.
