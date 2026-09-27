@@ -12,7 +12,7 @@ import {
   ExternalLink,
   Landmark,
   Loader2,
-} from "lucide-react";
+} from "@/components/icons";
 import { Button, Card } from "@/components/app/ui";
 import FaucetCard from "@/components/app/FaucetCard";
 import { CORRIDORS, SOLANA_CORRIDOR } from "@pesarc/sdk/chain/corridors";

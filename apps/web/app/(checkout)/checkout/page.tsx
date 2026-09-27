@@ -7,7 +7,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Check, Lock, Store, Loader2, AlertCircle } from "lucide-react";
+import { Check, Lock, Store, Loader2, AlertCircle } from "@/components/icons";
 import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";

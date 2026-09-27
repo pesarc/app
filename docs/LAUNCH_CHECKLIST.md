@@ -79,6 +79,13 @@ When Termii sender-id is approved (business registration):
       `PAYSTACK_SECRET_KEY` (or your ramp provider's keys) **[server]**.
 - [ ] **Bills** (airtime/data/electricity): `BILLS_PROVIDER_URL` +
       `BILLS_PROVIDER_KEY` **[server]** → `httpBillsAdapter` routes real payments.
+- [ ] **cNGN** (Naira stablecoin: NGN→cNGN virtual accounts, cNGN→NGN
+      redemption, on-chain withdraw): `CNGN_API_KEY` + `CNGN_ENCRYPTION_KEY` +
+      `CNGN_SSH_PRIVATE_KEY` (+ optional `CNGN_BASE_URL`, `CNGN_WEBHOOK_SECRET`)
+      **[server]** → `cngnRampAdapter` handles NGN bank redemption and
+      `/api/virtual-accounts` mints deposit accounts. Key prefix
+      (`cngn_test`/`cngn_live`) selects sandbox vs prod. Unset → simulated
+      fallback.
 - [ ] **Invest** (stocks): `BROKER_API_URL` (+ `NEXT_PUBLIC_BROKER_API_URL` for
       client quotes) + key **[server/build]** → real broker orders.
 
@@ -128,6 +135,7 @@ Contract addresses are already deployed on Arc mainnet (see `ARC_SUBMISSION.md`)
 | `TERMII_API_KEY` / `TERMII_SENDER_ID`, `AUTH_JWT_PRIVATE_KEY_B64` / `AUTH_JWT_KID` | server | phone login (own-auth) |
 | `PAYSTACK_SECRET_KEY` | server | payouts + bank resolution |
 | `BILLS_PROVIDER_URL` / `BILLS_PROVIDER_KEY` | server | real bills |
+| `CNGN_API_KEY` / `CNGN_ENCRYPTION_KEY` / `CNGN_SSH_PRIVATE_KEY` (+ `CNGN_BASE_URL` / `CNGN_WEBHOOK_SECRET`) | server | cNGN redeem + virtual accounts |
 | `BROKER_API_URL` / `NEXT_PUBLIC_BROKER_API_URL` | server/build | real stock orders |
 | `DATABASE_URL` | server | Postgres |
 | `NEXT_PUBLIC_*_POOL_MANAGER/_SWAP_ROUTER/_TOKEN_*` | build | corridor pool (optional) |

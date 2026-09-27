@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "@/components/icons";
 import AgentPreview from "./AgentPreview";
 import LivePreview from "./LivePreview";
 import { NavPill, AccentButton, ACCENT } from "./ui";

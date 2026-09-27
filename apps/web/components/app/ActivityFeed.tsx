@@ -5,7 +5,7 @@
 // otherwise it renders the server-provided fallback rows (DB / sample data).
 
 import { useEffect, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink } from "@/components/icons";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { fetchOnchainActivity, type OnchainActivity } from "@pesarc/sdk/chain/history";

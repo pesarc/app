@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BarChart3, Bot, User, ArrowUpRight } from "lucide-react";
+import { Home, BarChart3, Bot, User, ArrowUpRight } from "@/components/icons";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/AppSidebar";
 

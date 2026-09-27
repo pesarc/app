@@ -107,6 +107,28 @@ execute; to make it act, set two things on the droplet (server-only):
 With both set (and `evmAgentReady`), "send ₦50,000 to Ama in Accra" or "pay my
 Ikeja electricity bill" is understood and executed, in the app and on WhatsApp.
 
+## 4c. cNGN (Naira stablecoin: deposits + redemption)
+
+The Nigeria fiat legs run through cNGN via the official `cngn-typescript-library`
+(server-side, wrapped in `sdk/cngn.ts`). In demo mode the ramp and virtual
+accounts use a simulated fallback; to make them real, set the cNGN secrets on
+the droplet (server-only, **never** `NEXT_PUBLIC`):
+
+1. `CNGN_API_KEY` — the `cngn_test…` / `cngn_live…` key from the cNGN dashboard.
+   The prefix selects sandbox vs production; no separate URL needed.
+2. `CNGN_ENCRYPTION_KEY` — AES-256-CBC key used to encrypt request bodies.
+3. `CNGN_SSH_PRIVATE_KEY` — your Ed25519 (OpenSSH) private key that decrypts
+   sealed responses. Store it on one line with `\n` for newlines.
+4. `CNGN_WEBHOOK_SECRET` (optional) — enables `/api/cngn/webhook` to verify and
+   apply deposit/redemption status callbacks. Add cNGN's dashboard IP allowlist
+   entry for the droplet too.
+5. `CNGN_BASE_URL` (optional) — override the API host (defaults to
+   `https://api.cngn.co/v1/api`).
+
+With these set (`cngnConfigured()`), the off-ramp routes cNGN → NGN bank
+redemptions through `cngnRampAdapter` and `/api/virtual-accounts` mints real
+NUBANs for NGN → cNGN deposits.
+
 ## 5. Set the env and deploy
 
 - **Client (build-time):** add the `NEXT_PUBLIC_*` values above to the repo's

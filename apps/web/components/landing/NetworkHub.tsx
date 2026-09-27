@@ -9,7 +9,7 @@
 // a react-icons brand logo, then a brand-coloured badge. Navy / #3AA0FF.
 
 import { motion } from "framer-motion";
-import { User, Bot, Landmark, Smartphone } from "lucide-react";
+import { User, Bot, Landmark, Smartphone } from "@/components/icons";
 import type { IconType } from "react-icons";
 import { SiEthereum, SiSolana, SiPolygon, SiCoinbase, SiOptimism } from "react-icons/si";
 

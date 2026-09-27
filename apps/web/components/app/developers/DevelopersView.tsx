@@ -13,7 +13,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Terminal,
-} from "lucide-react";
+} from "@/components/icons";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import { Button, Card, Select } from "@/components/app/ui";
 
