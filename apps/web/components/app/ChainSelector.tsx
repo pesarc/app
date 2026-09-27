@@ -4,7 +4,7 @@
 // markets board reads it and the smart wallet re-initialises so staking targets
 // the selected chain. Only shown when more than one EVM chain is configured.
 
-import { Layers } from "lucide-react";
+import { Layers } from "@/components/icons";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 
 export default function ChainSelector({ className = "" }: { className?: string }) {

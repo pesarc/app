@@ -4,7 +4,7 @@
 // ramp partner reports the NGN payout as paid.
 
 import { useEffect, useState } from "react";
-import { Banknote, Check, Loader2, Smartphone } from "lucide-react";
+import { Banknote, Check, Loader2, Smartphone } from "@/components/icons";
 import { authedFetch } from "@pesarc/sdk/api/client";
 
 type Status = "initiated" | "processing" | "paid";

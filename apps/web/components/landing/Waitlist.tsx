@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Check, Sparkles, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Sparkles, Loader2 } from "@/components/icons";
 
 type State = "idle" | "loading" | "success" | "duplicate" | "error";
 

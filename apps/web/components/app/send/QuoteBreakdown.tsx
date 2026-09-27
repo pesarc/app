@@ -1,4 +1,4 @@
-import { Route, Gauge, Clock, ShieldCheck } from "lucide-react";
+import { Route, Gauge, Clock, ShieldCheck } from "@/components/icons";
 import { type Quote } from "@pesarc/sdk/quote";
 import { CURRENCIES, formatMoney, formatNumber } from "@pesarc/sdk/money";
 

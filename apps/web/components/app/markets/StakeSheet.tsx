@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Info, Check, ArrowRight, Loader2, ExternalLink } from "lucide-react";
+import { X, Info, Check, ArrowRight, Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
 import { midMarketRate, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";

@@ -10,7 +10,7 @@ import {
   Code2,
   Hash,
   type LucideIcon,
-} from "lucide-react";
+} from "@/components/icons";
 
 const LIME = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;

@@ -1,7 +1,7 @@
 # Go-live config — make login, wallets and gasless real in prod
 
-Right now the app runs live-with-fallback: when Privy + Alchemy + a corridor
-pool aren't wired for the environment, it shows demo balances and mock quotes.
+Right now the app runs live-with-fallback: when Privy + the in-house paymaster +
+a corridor aren't wired for the environment, it shows demo balances and mock quotes.
 This is the checklist to turn each part on for `app.pesarc.xyz` (the droplet).
 
 `NEXT_PUBLIC_*` values are baked into the client at **build time**, so they go in
@@ -25,22 +25,44 @@ Dashboard: <https://dashboard.privy.io> → your app.
 5. Copy the **App ID** → set `NEXT_PUBLIC_PRIVY_APP_ID` in `BUILD_DOTENV`.
    (There's already a `PROD_PRIVY_APP_ID` in your `.env`; use the prod app's ID.)
 
-## 2. Alchemy (gasless smart accounts)
+## 2. Gasless — in-house paymaster (no Alchemy PAYG)
 
-Dashboard: <https://dashboard.alchemy.com>.
+We run our OWN ERC-4337 gasless on Arc: a **bundler** relays the UserOperation,
+and **our** `VerifyingPaymaster` pays for it, signed by the `/api/paymaster`
+service key. No third-party sponsorship policy, no Alchemy PAYG.
 
-1. Create an **App** for your hub chain; copy the **API key** →
-   `NEXT_PUBLIC_ALCHEMY_API_KEY`.
-2. **Gas Manager** → create a **gas policy** (sponsorship rules: which
-   contracts/methods, per-user + global caps). Copy the **policy ID** →
-   `NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID` (and the per-chain ones,
-   `NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID_ARB_SEPOLIA` etc. from `wallet/config.ts`
-   if you sponsor multiple chains).
-3. **Fund the policy** — gasless only works while the policy has balance. Start
-   small, watch the burn.
+**Step 1 — deploy + stake + fund the paymaster (once).** The script does all
+three in one broadcast. Run it from `contracts/evm` (needs USDC in the deployer
+for gas + the stake + the deposit):
 
-Both `ALCHEMY_API_KEY` and a `GAS_POLICY_ID` must be set or `isSmartWalletConfigured`
-is false and sends fall back to the demo path.
+```bash
+PRIVATE_KEY=<deployer_pk_with_usdc> \
+PAYMASTER_SIGNER=0xb440319eE67d10Ffce6F413e4B889D06F20BE675 \
+PM_DEPOSIT=25000000000000000000 \
+PM_STAKE=1000000000000000000 \
+forge script script/DeployPaymaster.s.sol --rpc-url arc --broadcast --slow
+```
+
+- `PAYMASTER_SIGNER` is the **address** of `INHOUSE_PAYMASTER_PK` (already in
+  `.env.local` as the verifyingSigner). It signs sponsorships and holds no funds.
+- `PM_DEPOSIT` is the USDC the paymaster spends on sponsored gas (example: 25
+  USDC — the default is only 1). `PM_STAKE` is the ERC-4337 reputation bond.
+- The deploy address is deterministic, so the printed
+  `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS=` should equal the value already in env
+  (`0xAe5493…b22`). **Confirm it matches** before relying on it.
+
+**Step 2 — env.** (Already set in `.env.local`; mirror to prod.)
+
+- `NEXT_PUBLIC_GAS_SPONSOR_ARC=inhouse` **[build]**
+- `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS=<deployed addr>` **[build]**
+- `INHOUSE_PAYMASTER_PK=<service signer key>` **[server]**
+- Bundler: `NEXT_PUBLIC_PIMLICO_API_KEY=<key>` **[build]** — Pimlico bundles for
+  free; only our paymaster pays. (Or `NEXT_PUBLIC_ARC_BUNDLER_URL` if Arc ships
+  a native bundler.)
+
+**Step 3 — keep it funded.** Sponsored gas burns the paymaster's USDC deposit.
+Watch `paymaster.getDeposit()`; top up with `paymaster.deposit{value:…}()` (owner
+= the deployer). If the deposit hits zero, sends fall back to the demo path.
 
 ## 3. Google OAuth client (for branded Google login + consent)
 
@@ -70,18 +92,42 @@ The agent's brain is already built and provider-agnostic (`sdk/llm/extract.ts`,
 tool-based extraction). In demo mode it understands and replies but doesn't
 execute; to make it act, set two things on the droplet (server-only):
 
-1. **An LLM key** — either
-   - Anthropic (native): `ANTHROPIC_API_KEY` (or `LLM_PROVIDER=anthropic` +
-     `LLM_API_KEY`), plus `LLM_MODEL=claude-opus-5`. For a high-volume intent
-     extractor, `claude-haiku-4-5` is much cheaper and fast — your call.
-   - Or any OpenAI-compatible endpoint: `LLM_PROVIDER=openai`, `LLM_BASE_URL`,
-     `LLM_API_KEY`, `LLM_MODEL`.
+1. **An LLM key** — we use **OpenRouter** (OpenAI-compatible, one key for many
+   models):
+   - `LLM_PROVIDER=openai`
+   - `LLM_BASE_URL=https://openrouter.ai/api/v1`
+   - `LLM_API_KEY=<sk-or-…>`
+   - `LLM_MODEL=anthropic/claude-3.5-sonnet` (swap to a cheaper model for a
+     high-volume intent classifier — `LLM_MODEL` is all you change).
+   - `OPENROUTER_SITE_URL=https://app.pesarc.xyz` (attribution header).
 2. **An agent signing key** — `SETTLE_OPERATOR_PK` (or `ARC_AGENT_PK` for a
    specific chain): the server-side key that submits and settles the agent's
    on-chain intents. Fund it with a little USDC for gas on Arc.
 
 With both set (and `evmAgentReady`), "send ₦50,000 to Ama in Accra" or "pay my
 Ikeja electricity bill" is understood and executed, in the app and on WhatsApp.
+
+## 4c. cNGN (Naira stablecoin: deposits + redemption)
+
+The Nigeria fiat legs run through cNGN via the official `cngn-typescript-library`
+(server-side, wrapped in `sdk/cngn.ts`). In demo mode the ramp and virtual
+accounts use a simulated fallback; to make them real, set the cNGN secrets on
+the droplet (server-only, **never** `NEXT_PUBLIC`):
+
+1. `CNGN_API_KEY` — the `cngn_test…` / `cngn_live…` key from the cNGN dashboard.
+   The prefix selects sandbox vs production; no separate URL needed.
+2. `CNGN_ENCRYPTION_KEY` — AES-256-CBC key used to encrypt request bodies.
+3. `CNGN_SSH_PRIVATE_KEY` — your Ed25519 (OpenSSH) private key that decrypts
+   sealed responses. Store it on one line with `\n` for newlines.
+4. `CNGN_WEBHOOK_SECRET` (optional) — enables `/api/cngn/webhook` to verify and
+   apply deposit/redemption status callbacks. Add cNGN's dashboard IP allowlist
+   entry for the droplet too.
+5. `CNGN_BASE_URL` (optional) — override the API host (defaults to
+   `https://api.cngn.co/v1/api`).
+
+With these set (`cngnConfigured()`), the off-ramp routes cNGN → NGN bank
+redemptions through `cngnRampAdapter` and `/api/virtual-accounts` mints real
+NUBANs for NGN → cNGN deposits.
 
 ## 5. Set the env and deploy
 
@@ -101,6 +147,6 @@ Ikeja electricity bill" is understood and executed, in the app and on WhatsApp.
 - A small test send shows a **live rate** (not "indicative") and a real tx hash.
 - Gasless: the send completes without the user holding a gas token.
 
-Work top-down: Privy first (login), then Alchemy (gasless), then the corridor
-env (live quotes). Each is independent, so you can turn them on one at a time and
-watch the demo tags disappear.
+Work top-down: Privy first (login), then the in-house paymaster (gasless), then
+the corridor env (live quotes). Each is independent, so you can turn them on one
+at a time and watch the demo tags disappear.

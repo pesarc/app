@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, TrendingUp, LineChart, type LucideIcon } from "lucide-react";
+import { Send, Bot, TrendingUp, LineChart, type LucideIcon } from "@/components/icons";
 
 const ACCENT = "#3AA0FF";
 

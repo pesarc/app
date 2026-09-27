@@ -1,16 +1,19 @@
 "use client";
 
-// Shown once, after login, before the app: pick retail or business. The choice
-// routes you to the right surface and decides whether the business experience is
-// ever shown. Retail is the default path (the Mum Test audience).
+// Shown once, after login, before the app: pick your audience. The choice routes
+// you to the right surface, decides whether the business experience is ever
+// shown, and turns on the Advanced tier for power users. Personal is the default
+// path (the Mum Test audience).
 import { useRouter } from "next/navigation";
-import { User, Building2, ArrowRight } from "lucide-react";
-import { usePersona, type Persona } from "@pesarc/sdk/persona";
+import { User, Building2, PiggyBank, Gauge, ArrowRight } from "@/components/icons";
+import { usePersona, homeFor, type Persona } from "@pesarc/sdk/persona";
+import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { LogoMark } from "@/components/app/Logo";
 import { site } from "@pesarc/sdk/site";
 
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { persona, ready, setPersona } = usePersona();
+  const { setMode } = useUIMode();
   const router = useRouter();
 
   // Wait for the saved choice to load so the picker never flashes for returning
@@ -20,7 +23,9 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
   const choose = (p: Persona) => {
     setPersona(p);
-    router.replace(p === "business" ? "/business" : "/home");
+    // Power users start in the Advanced UI tier; everyone else stays basic.
+    if (p === "advanced") setMode("advanced");
+    router.replace(homeFor(p));
   };
 
   return (
@@ -40,16 +45,30 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
           <Option
             icon={User}
             title="For myself"
-            body="Trade the markets, send money home and pay bills. The simple, everyday experience."
+            body="Send money home, pay bills and trade the markets. The simple, everyday experience."
             cta="Continue as personal"
             onClick={() => choose("retail")}
           />
           <Option
             icon={Building2}
             title="For my business"
-            body="Collect payments, settle with suppliers, an API and tools built for SMEs and teams."
+            body="Collect payments, settle with suppliers, plus an API and tools built for SMEs and teams."
             cta="Continue as business"
             onClick={() => choose("business")}
+          />
+          <Option
+            icon={PiggyBank}
+            title="To earn on my money"
+            body="Provide liquidity and earn a yield in your own currency. Lands you straight in Earn."
+            cta="Continue as saver"
+            onClick={() => choose("provider")}
+          />
+          <Option
+            icon={Gauge}
+            title="I'm an advanced user"
+            body="Every control on: live quotes, on-chain proofs, corridors and the full toolset."
+            cta="Continue as advanced"
+            onClick={() => choose("advanced")}
           />
         </div>
       </div>

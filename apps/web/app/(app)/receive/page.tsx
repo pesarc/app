@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Copy, Share2 } from "@/components/icons";
 import { ACCOUNT, ALIAS } from "@pesarc/sdk/account";
 import { CURRENCIES } from "@pesarc/sdk/money";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
