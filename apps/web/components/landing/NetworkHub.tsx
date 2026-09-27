@@ -21,7 +21,14 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const CLOUD = "noivtpg4";
 const cld = (id?: string) => (id ? `https://res.cloudinary.com/${CLOUD}/image/upload/${id}` : "");
 const LOGO: Record<string, string> = {
-  // e.g. Arc: "logos/arc", Celo: "logos/celo", Arbitrum: "logos/arbitrum"
+  Ethereum: "eth-diamond-_color-filled_cbdlt6",
+  Base: "Base_square_blue_dd1ktd",
+  Arc: "Arc_Icon_NavyGradient_iv3nmy",
+  Solana: "solanaLogoMark_jvqcyo",
+  Celo: "Celo_Symbol_RGB_ProsperityYellow_vvwx61",
+  Arbitrum: "1225_Arbitrum_Logomark_FullColor_ClearSpace_xlpcpl",
+  Optimism: "05dee11fbd0f605cc307d301daf68e2192297e50_k3gqrv",
+  Algorand: "algorand-logomark-blue-RGB_ckba3s",
 };
 
 type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
@@ -34,12 +41,13 @@ const BRANDS: Record<string, Brand> = {
   Arbitrum: { color: "#5AB6F5", mono: "A" },
   Optimism: { color: "#FF6B6B", Icon: SiOptimism },
   Polygon: { color: "#A98BFF", Icon: SiPolygon },
+  Algorand: { color: "#6E8BFF" },
   "Bank transfer": { color: "#8FC7FF", lucide: "bank" },
   "Mobile Money": { color: "#5FD0C0", lucide: "phone" },
 };
 
 // Networks = the chains in the registry we settle on. Rails = cash in / out.
-const NETWORKS = ["Ethereum", "Base", "Arc", "Solana", "Celo", "Arbitrum", "Optimism", "Polygon"];
+const NETWORKS = ["Ethereum", "Base", "Arc", "Solana", "Celo", "Arbitrum", "Optimism", "Algorand", "Polygon"];
 const RAILS = ["Bank transfer", "Mobile Money"];
 const ALL = [...NETWORKS, ...RAILS];
 
@@ -75,6 +83,7 @@ function bez(x1: number, y1: number, x2: number, y2: number) {
 //       "right" = word after icon (web2, reads away from centre).
 function HubNode({ name, x, y, side }: { name: string; x: number; y: number; side: "left" | "right" }) {
   const b = BRANDS[name] ?? { color: ACCENT };
+  const hasLogo = Boolean(LOGO[name]);
   const labelX = side === "left" ? x - 52 : x + 52;
   const anchor = side === "left" ? "end" : "start";
   return (
@@ -82,9 +91,9 @@ function HubNode({ name, x, y, side }: { name: string; x: number; y: number; sid
       <foreignObject x={x - 34} y={y - 34} width="68" height="68">
         <div
           className="w-full h-full rounded-2xl grid place-items-center overflow-hidden"
-          style={{ background: `${b.color}1f`, border: `1px solid ${b.color}66` }}
+          style={{ background: hasLogo ? "#ffffff" : `${b.color}1f`, border: `1px solid ${b.color}66`, padding: hasLogo ? 8 : 0 }}
         >
-          <Mark name={name} size={30} />
+          <Mark name={name} size={hasLogo ? 40 : 30} />
         </div>
       </foreignObject>
       <text
@@ -208,14 +217,15 @@ function Marquee() {
       <div className="railtrack flex w-max gap-3">
         {row.map((name, i) => {
           const b = BRANDS[name] ?? { color: ACCENT };
+          const hasLogo = Boolean(LOGO[name]);
           return (
             <div
               key={`${name}-${i}`}
               className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5 shrink-0"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
             >
-              <span className="grid place-items-center w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ background: `${b.color}22` }}>
-                <Mark name={name} size={16} />
+              <span className="grid place-items-center w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ background: hasLogo ? "#fff" : `${b.color}22`, padding: hasLogo ? 3 : 0 }}>
+                <Mark name={name} size={hasLogo ? 22 : 16} />
               </span>
               <span className="text-[13px] font-semibold text-white/80 whitespace-nowrap">{name}</span>
             </div>
