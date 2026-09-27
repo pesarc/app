@@ -5,10 +5,12 @@
 // configured (local dev), useWallet() reports authenticated=true, so dev is
 // unaffected.
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
+import { AUTH_MODE } from "@pesarc/sdk/wallet/config";
 import { Button } from "@/components/app/ui";
 import { LogoMark } from "@/components/app/Logo";
 import { site } from "@pesarc/sdk/site";
 import { Loader2, ArrowRight } from "lucide-react";
+import PhoneSignIn from "@/components/app/PhoneSignIn";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { ready, authenticated, login } = useWallet();
@@ -22,6 +24,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!authenticated) {
+    // Own-auth mode (Path A): our phone-OTP sign-in instead of the Privy modal.
+    if (AUTH_MODE === "own") return <PhoneSignIn />;
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream px-6 [color-scheme:light]">
         <div className="w-full max-w-sm text-center">
