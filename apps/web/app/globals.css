@@ -49,7 +49,11 @@ body {
 }
 
 .font-mono {
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 .text-balance {
