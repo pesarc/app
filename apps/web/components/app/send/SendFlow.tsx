@@ -23,11 +23,7 @@ import {
   type PayoutMethod,
   type Quote,
 } from "@pesarc/sdk/quote";
-import {
-  fetchLivePoolQuote,
-  livePoolQuoteAvailable,
-  type LivePoolQuote,
-} from "@pesarc/sdk/chain/liveQuote";
+import { fetchCorridorQuote, type LivePoolQuote } from "@pesarc/sdk/chain/liveQuote";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -66,24 +62,31 @@ export default function SendFlow() {
 
   const amount = parseFloat(amountStr) || 0;
 
-  // Live = a real on-chain gasless swap is possible right now.
+  // Live = a real on-chain gasless swap is possible right now. The swap targets
+  // the cNGN hub pool, so the real execution only runs for NGN recipients today;
+  // other corridors quote live off the oracle but settle via the simulated path
+  // until their pool/netting execution ships (lift this gate then).
   const live =
-    mode === "live" && authenticated && smart.ready && CONTRACTS_READY;
+    mode === "live" &&
+    authenticated &&
+    smart.ready &&
+    CONTRACTS_READY &&
+    recipient?.receiveCurrency === "NGN";
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
   const [livePool, setLivePool] = useState<LivePoolQuote | null>(null);
-  const liveQuotable =
-    livePoolQuoteAvailable() &&
-    sendCurrency === "USD" &&
-    recipient?.receiveCurrency === "NGN";
+  // Any USD corridor is quotable: NGN via the hub pool, the rest via the
+  // realized-rate oracle (null result → the indicative mock quote stands).
+  const liveQuotable = sendCurrency === "USD" && Boolean(recipient);
+  const receiveCurrency = recipient?.receiveCurrency;
 
   useEffect(() => {
     setLivePool(null);
-    if (!liveQuotable || amount <= 0) return;
+    if (!liveQuotable || amount <= 0 || !receiveCurrency) return;
     let stale = false;
     const t = setTimeout(() => {
-      fetchLivePoolQuote(amount).then((q) => {
+      fetchCorridorQuote(amount, receiveCurrency).then((q) => {
         if (!stale) setLivePool(q);
       });
     }, 350);
@@ -91,7 +94,7 @@ export default function SendFlow() {
       stale = true;
       clearTimeout(t);
     };
-  }, [liveQuotable, amount]);
+  }, [liveQuotable, amount, receiveCurrency]);
 
   const quote: Quote | null = useMemo(() => {
     if (!recipient || amount <= 0) return null;
