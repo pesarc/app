@@ -103,9 +103,9 @@ function LeftRail({ progress }: { progress?: MotionValue<number> }) {
         <span className="italic text-white/55">Serious underneath.</span>
       </h2>
       <p className="mt-6 max-w-md text-sm sm:text-base font-light text-white/60 leading-relaxed">
-        Anyone can build a pretty money app. What makes Pesarc hard to copy is what
-        happens under the hood, and why it gets better the more it is used. Scroll
-        through the six things that hold it up.
+        Send, hold and earn in your own money, in seconds, for one clear fee you can
+        actually read. No seed phrase, no gas, and it works on any phone. Scroll
+        through six things you get, and how each one works.
       </p>
       {progress && (
         <div className="mt-9 flex items-center gap-2.5">
@@ -193,8 +193,9 @@ function DifferentPinned() {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
   return (
-    // Tall track = ~one panel of scroll per moat; the framed panel pins.
-    <div ref={ref} className="relative" style={{ height: `${MOATS.length * 85}vh` }}>
+    // Tall track: the framed panel pins while the moats slide through it. ~0.6
+    // viewport of scroll per moat keeps the cadence snappy (nexus-like).
+    <div ref={ref} className="relative" style={{ height: `${MOATS.length * 62}vh` }}>
       <div className="sticky top-0 flex h-screen items-center px-4 sm:px-6 lg:px-10">
         <div className="mx-auto w-full max-w-6xl">
           <div
