@@ -1,8 +1,8 @@
 "use client";
 
-// The Pesarc settlement agent — Celo "Agents at Work" submission.
-// Tell it what to send in plain language; it turns that into an on-chain
-// intent and settles it peer-to-peer in local currency, no dollar in the path.
+// The Pesarc agent. Tell it what you need in plain language (send money, pay a
+// bill, top up airtime, spin up a market); it understands and settles in the
+// user's own currency. Provider-agnostic LLM brain lives in sdk/llm/extract.ts.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
