@@ -30,6 +30,13 @@ Unless you're only testing a name, go **Ltd**.
 
 ## Steps (CAC portal, DIY)
 
+> **The two dropdowns that confuse everyone:**
+> - **Business Classification → `Company`** (not Business Name / Limited
+>   Partnership / LLP). A "Company" is a real incorporated legal entity.
+> - **Business Type → `Private Company Limited By Shares`** (not Unlimited, not
+>   Public). This is the standard private "Ltd" — liability limited to your
+>   shares; what banks and investors expect. Your name will end in "Limited".
+
 1. **Create an account** on the CAC portal (pre.cac.gov.ng / the CAC company
    registration portal).
 2. **Reserve the name** "Pesarc" (~₦500–1,000). If taken, try "Pesarc
