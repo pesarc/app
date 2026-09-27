@@ -31,6 +31,16 @@ const LOGO: Record<string, string> = {
   Algorand: "algorand-logomark-blue-RGB_ckba3s",
 };
 
+// Per-logo size tuning so wildly different source art reads at one optical
+// weight: the ETH diamond runs tall, Base is a heavy solid square, while the
+// Arbitrum and Algorand marks read small. 1 = no change.
+const LOGO_SCALE: Record<string, number> = {
+  Ethereum: 0.76,
+  Base: 0.9,
+  Arbitrum: 1.16,
+  Algorand: 1.18,
+};
+
 type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
 const BRANDS: Record<string, Brand> = {
   Ethereum: { color: "#8AA0FF", Icon: SiEthereum },
@@ -56,8 +66,9 @@ const HUB_RIGHT = ["Bank transfer", "Mobile Money"];
 
 function Mark({ name, size = 20 }: { name: string; size?: number }) {
   const url = cld(LOGO[name]);
+  const s = Math.round(size * (LOGO_SCALE[name] ?? 1));
   // eslint-disable-next-line @next/next/no-img-element -- small brand logo; next/image can't render inside SVG
-  if (url) return <img src={url} alt={name} width={size} height={size} style={{ objectFit: "contain" }} />;
+  if (url) return <img src={url} alt={name} width={s} height={s} style={{ objectFit: "contain" }} />;
   const b = BRANDS[name] ?? { color: ACCENT };
   if (b.Icon) return <b.Icon size={size} color={b.color} />;
   if (b.lucide === "bank") return <Landmark size={size - 2} color={b.color} />;
@@ -91,7 +102,7 @@ function HubNode({ name, x, y, side }: { name: string; x: number; y: number; sid
       <foreignObject x={x - 34} y={y - 34} width="68" height="68">
         <div
           className="w-full h-full rounded-2xl grid place-items-center overflow-hidden"
-          style={{ background: hasLogo ? "#ffffff" : `${b.color}1f`, border: `1px solid ${b.color}66`, padding: hasLogo ? 8 : 0 }}
+          style={{ background: hasLogo ? "#e9eef5" : `${b.color}1f`, border: `1px solid ${b.color}66`, padding: hasLogo ? 8 : 0 }}
         >
           <Mark name={name} size={hasLogo ? 40 : 30} />
         </div>
@@ -224,8 +235,8 @@ function Marquee() {
               className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5 shrink-0"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
             >
-              <span className="grid place-items-center w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ background: hasLogo ? "#fff" : `${b.color}22`, padding: hasLogo ? 3 : 0 }}>
-                <Mark name={name} size={hasLogo ? 22 : 16} />
+              <span className="grid place-items-center w-9 h-9 rounded-full shrink-0 overflow-hidden" style={{ background: hasLogo ? "transparent" : `${b.color}22` }}>
+                <Mark name={name} size={hasLogo ? 26 : 16} />
               </span>
               <span className="text-[13px] font-semibold text-white/80 whitespace-nowrap">{name}</span>
             </div>
