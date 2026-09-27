@@ -40,7 +40,8 @@ import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import { QuoteBreakdown, formatEta } from "./QuoteBreakdown";
 import { PayoutStatus } from "./PayoutStatus";
 import BankDetails, { type BankDestination } from "./BankDetails";
-import { authedPostJson } from "@pesarc/sdk/api/client";
+import { authedPostJson, authedFetch } from "@pesarc/sdk/api/client";
+import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { sendReference } from "@pesarc/sdk/reference";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
@@ -271,6 +272,19 @@ function recipientFromBank(dest: BankDestination): Recipient {
   };
 }
 
+function savedToRecipient(s: SavedRecipient): Recipient {
+  return {
+    id: "saved-" + s.id,
+    name: s.name,
+    handle: s.handle,
+    country: s.country ?? "",
+    flag: s.flag ?? "🌍",
+    receiveCurrency: s.receiveCurrency as CurrencyCode,
+    recent: true,
+    initialsColor: s.kind === "bank" ? "#13426f" : "#3AA0FF",
+  };
+}
+
 function RecipientStep({
   onSelect,
 }: {
@@ -279,15 +293,33 @@ function RecipientStep({
   const [mode, setMode] = useState<"people" | "bank">("people");
   const [query, setQuery] = useState("");
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
+  const [saved, setSaved] = useState<Recipient[]>([]);
 
-  const recents = RECIPIENTS.filter((r) => r.recent);
+  // Load the account's saved recipients (people you've sent to before).
+  useEffect(() => {
+    let alive = true;
+    authedFetch("/api/recipients")
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive && d?.ok) setSaved((d.recipients as SavedRecipient[]).map(savedToRecipient));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Saved recipients first, then the seed contacts (deduped by handle).
+  const contacts = [...saved, ...RECIPIENTS.filter((m) => !saved.some((s) => s.handle === m.handle))];
+  const recents = saved.length ? saved.slice(0, 5) : RECIPIENTS.filter((r) => r.recent);
+  const rest = contacts.filter((c) => !recents.some((x) => x.handle === c.handle));
   const filtered = query
-    ? RECIPIENTS.filter(
+    ? contacts.filter(
         (r) =>
           r.name.toLowerCase().includes(query.toLowerCase()) ||
           r.handle.toLowerCase().includes(query.toLowerCase())
       )
-    : RECIPIENTS;
+    : contacts;
   const phone = detectPhone(query);
   const showNewPhone = !!phone && filtered.length === 0;
 
@@ -352,13 +384,13 @@ function RecipientStep({
             ))}
           </div>
 
-          {!query && (
+          {!query && rest.length > 0 && (
             <>
               <p className="text-xs font-semibold text-slate uppercase tracking-widest mt-6 mb-3">
                 All contacts
               </p>
               <div className="space-y-2">
-                {RECIPIENTS.filter((r) => !r.recent).map((r) => (
+                {rest.map((r) => (
                   <RecipientRow key={r.id} r={r} onSelect={onSelect} />
                 ))}
               </div>
@@ -937,6 +969,20 @@ function SuccessStep({
           bankCode: bankDest?.bankCode,
         }).catch(() => {});
     }
+
+    // Remember this recipient so they reappear next time (best-effort).
+    const kind =
+      recipient.id === "custom-bank" ? "bank" : recipient.id === "custom-phone" ? "phone" : "contact";
+    authedPostJson("/api/recipients", {
+      name: recipient.name,
+      handle: recipient.handle,
+      kind,
+      receiveCurrency: recipient.receiveCurrency,
+      flag: recipient.flag,
+      country: recipient.country || undefined,
+      bankCode: bankDest?.bankCode,
+      accountLast4: bankDest?.accountNumber?.slice(-4),
+    }).catch(() => {});
   }, [recipient, quote, payoutLabel, ref, txHash, payoutTxHash, actualReceive, bankDest]);
 
   const share = async () => {
