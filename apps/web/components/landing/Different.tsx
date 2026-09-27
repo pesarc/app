@@ -81,12 +81,6 @@ const MOATS: Moat[] = [
   },
 ];
 
-const VERSUS: { them: string; us: string }[] = [
-  { them: "Banks & remittance apps", us: "Seconds not days, your currency not dollars, one clear fee" },
-  { them: "Other money wallets", us: "Your money stays yours, and it works on a basic phone" },
-  { them: "Crypto apps", us: "No jargon, no gas, no seed phrase, spoken in your own money" },
-];
-
 /* ------------------------------ the left rail ------------------------------ */
 
 function LeftRail({ progress }: { progress?: MotionValue<number> }) {
@@ -286,39 +280,6 @@ export default function Different() {
       style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(7,42,77,0.72)" }}
     >
       {isDesktop ? <DifferentPinned /> : <DifferentStack />}
-
-      {/* Coda: defensibility one-liner + a quick, plain-language contrast. */}
-      <div className="px-6 sm:px-8 lg:px-12 pb-24 lg:pb-28">
-        <div className="mx-auto max-w-6xl">
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.7, ease }}
-            className="mx-auto max-w-2xl text-center text-base sm:text-lg font-light text-white/70"
-          >
-            The more people send, the cheaper and deeper it gets. Liquidity,
-            distribution and a developer platform that compound together.
-          </motion.p>
-
-          <div className="mt-12 overflow-hidden rounded-2xl border border-white/12 bg-white/[0.02]">
-            {VERSUS.map((v, i) => (
-              <div
-                key={v.them}
-                className={`grid items-center gap-2 px-5 py-5 sm:grid-cols-[1fr_auto_2fr] sm:gap-6 sm:px-7 ${i > 0 ? "border-t border-white/10" : ""}`}
-              >
-                <span className="text-sm font-semibold text-white/50">{v.them}</span>
-                <span className="hidden text-[11px] font-bold uppercase tracking-[0.2em] text-white/30 sm:block" style={mono}>
-                  vs
-                </span>
-                <span className="text-sm font-medium text-white/85">
-                  <span style={{ color: ACCENT }}>Pesarc.</span> {v.us}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </section>
   );
 }
