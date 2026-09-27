@@ -2,33 +2,29 @@
 
 // "Networks and banks" as a live hub (ref: the connected-tools animation): the
 // networks your money travels on flow through YOU and your agent in the middle,
-// out to the banks and mobile money you already use. Node names sit next to each
-// logo (hidden under 640px, where the marquee below carries them). The centre is
-// icons only. The marquee scrolls through every network (from the chain
-// registry) and rail we support. Logos: Cloudinary URL first (LOGO map), then a
-// react-icons brand logo, then a brand-coloured badge. Navy / #3AA0FF.
+// out to your bank and mobile money. Web3 side reads word -> icon (toward the
+// centre); web2 side reads icon -> word (away from the centre). Centre is icons
+// only. The marquee below scrolls through every network (from the chain
+// registry) and the cash-in/out rails. Logos: Cloudinary first (LOGO map), then
+// a react-icons brand logo, then a brand-coloured badge. Navy / #3AA0FF.
 
 import { motion } from "framer-motion";
-import { User, Bot, Landmark } from "lucide-react";
+import { User, Bot, Landmark, Smartphone } from "lucide-react";
 import type { IconType } from "react-icons";
-import {
-  SiEthereum,
-  SiSolana,
-  SiPolygon,
-  SiCoinbase,
-  SiOptimism,
-  SiAirtel,
-} from "react-icons/si";
+import { SiEthereum, SiSolana, SiPolygon, SiCoinbase, SiOptimism } from "react-icons/si";
 
 const ACCENT = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// Real brand logos hosted on Cloudinary. Fill with delivery URLs, e.g.
-//   Arc: "https://res.cloudinary.com/<cloud>/image/upload/logos/arc.svg"
-// Anything here overrides the react-icons / badge fallback below.
-const LOGO: Record<string, string> = {};
+// Cloudinary: real brand logos. Fill LOGO with public IDs and they win over the
+// react-icons / badge fallback below. Delivery needs only the (public) cloud name.
+const CLOUD = "noivtpg4";
+const cld = (id?: string) => (id ? `https://res.cloudinary.com/${CLOUD}/image/upload/${id}` : "");
+const LOGO: Record<string, string> = {
+  // e.g. Arc: "logos/arc", Celo: "logos/celo", Arbitrum: "logos/arbitrum"
+};
 
-type Brand = { color: string; Icon?: IconType; mono?: string; bank?: boolean };
+type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
 const BRANDS: Record<string, Brand> = {
   Ethereum: { color: "#8AA0FF", Icon: SiEthereum },
   Base: { color: "#4F86FF", Icon: SiCoinbase },
@@ -38,49 +34,48 @@ const BRANDS: Record<string, Brand> = {
   Arbitrum: { color: "#5AB6F5", mono: "A" },
   Optimism: { color: "#FF6B6B", Icon: SiOptimism },
   Polygon: { color: "#A98BFF", Icon: SiPolygon },
-  Paystack: { color: "#3AC8F7", mono: "P" },
-  Flutterwave: { color: "#F5A623", mono: "F" },
-  "M-Pesa": { color: "#5BD06A", mono: "M" },
-  "MTN MoMo": { color: "#FFCC00", mono: "M" },
-  Airtel: { color: "#FF6B6B", Icon: SiAirtel },
-  "Bank transfer": { color: "#8FC7FF", bank: true },
+  "Bank transfer": { color: "#8FC7FF", lucide: "bank" },
+  "Mobile Money": { color: "#5FD0C0", lucide: "phone" },
 };
 
-// Networks = the chains in the registry we settle on. Rails = cash in / out we
-// actually support (banks via Paystack/Flutterwave, mobile money via Flutterwave).
+// Networks = the chains in the registry we settle on. Rails = cash in / out.
 const NETWORKS = ["Ethereum", "Base", "Arc", "Solana", "Celo", "Arbitrum", "Optimism", "Polygon"];
-const RAILS = ["Bank transfer", "Paystack", "Flutterwave", "M-Pesa", "MTN MoMo", "Airtel"];
+const RAILS = ["Bank transfer", "Mobile Money"];
 const ALL = [...NETWORKS, ...RAILS];
 
-// Hub nodes (a representative set per side; the full list is in the marquee).
 const HUB_LEFT = ["Ethereum", "Base", "Arc", "Solana", "Celo"];
-const HUB_RIGHT = ["Bank transfer", "M-Pesa", "MTN MoMo", "Paystack", "Flutterwave"];
+const HUB_RIGHT = ["Bank transfer", "Mobile Money"];
 
 function Mark({ name, size = 20 }: { name: string; size?: number }) {
-  const url = LOGO[name];
-  // eslint-disable-next-line @next/next/no-img-element -- small brand logo inside an SVG; next/image can't render here
+  const url = cld(LOGO[name]);
+  // eslint-disable-next-line @next/next/no-img-element -- small brand logo; next/image can't render inside SVG
   if (url) return <img src={url} alt={name} width={size} height={size} style={{ objectFit: "contain" }} />;
   const b = BRANDS[name] ?? { color: ACCENT };
   if (b.Icon) return <b.Icon size={size} color={b.color} />;
-  if (b.bank) return <Landmark size={size - 2} color={b.color} />;
+  if (b.lucide === "bank") return <Landmark size={size - 2} color={b.color} />;
+  if (b.lucide === "phone") return <Smartphone size={size - 2} color={b.color} />;
   return <span style={{ color: b.color, fontWeight: 800, fontSize: size * 0.62 }}>{b.mono}</span>;
 }
 
 // ---- the hub (SVG) ----
 const W = 1000;
 const HUB = { x: 500, y: 285 };
-const YS = [70, 178, 285, 392, 500];
-const LEFT_X = 150;
-const RIGHT_X = 850;
+const YS_LEFT = [70, 178, 285, 392, 500];
+const YS_RIGHT = [212, 358];
+const LEFT_X = 250;
+const RIGHT_X = 750;
 
 function bez(x1: number, y1: number, x2: number, y2: number) {
   const mx = (x1 + x2) / 2;
   return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
 }
 
-function HubNode({ name, x, y, align }: { name: string; x: number; y: number; align: "start" | "end" }) {
+// side: "left" = word before icon (web3, reads toward centre);
+//       "right" = word after icon (web2, reads away from centre).
+function HubNode({ name, x, y, side }: { name: string; x: number; y: number; side: "left" | "right" }) {
   const b = BRANDS[name] ?? { color: ACCENT };
-  const labelX = align === "start" ? x + 40 : x - 40;
+  const labelX = side === "left" ? x - 42 : x + 42;
+  const anchor = side === "left" ? "end" : "start";
   return (
     <g>
       <foreignObject x={x - 28} y={y - 28} width="56" height="56">
@@ -95,7 +90,7 @@ function HubNode({ name, x, y, align }: { name: string; x: number; y: number; al
         className="nlabel"
         x={labelX}
         y={y + 5}
-        textAnchor={align}
+        textAnchor={anchor}
         fill="rgba(255,255,255,0.72)"
         fontSize="15"
         fontWeight="600"
@@ -109,8 +104,8 @@ function HubNode({ name, x, y, align }: { name: string; x: number; y: number; al
 
 export default function NetworkHub() {
   const links = [
-    ...HUB_LEFT.map((_, i) => ({ key: `l${i}`, d: bez(LEFT_X + 28, YS[i], HUB.x - 62, HUB.y) })),
-    ...HUB_RIGHT.map((_, i) => ({ key: `r${i}`, d: bez(HUB.x + 62, HUB.y, RIGHT_X - 28, YS[i]) })),
+    ...HUB_LEFT.map((_, i) => ({ key: `l${i}`, d: bez(LEFT_X + 28, YS_LEFT[i], HUB.x - 62, HUB.y) })),
+    ...HUB_RIGHT.map((_, i) => ({ key: `r${i}`, d: bez(HUB.x + 62, HUB.y, RIGHT_X - 28, YS_RIGHT[i]) })),
   ];
 
   return (
@@ -147,7 +142,6 @@ export default function NetworkHub() {
         >
           <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 px-2 mb-1" style={{ fontFamily: "var(--font-mono, ui-monospace), monospace" }}>
             <span>Networks</span>
-            <span className="hidden sm:inline">You + agent</span>
             <span>Bank &amp; mobile money</span>
           </div>
 
@@ -178,10 +172,10 @@ export default function NetworkHub() {
             ))}
 
             {HUB_LEFT.map((name, i) => (
-              <HubNode key={name} name={name} x={LEFT_X} y={YS[i]} align="start" />
+              <HubNode key={name} name={name} x={LEFT_X} y={YS_LEFT[i]} side="left" />
             ))}
             {HUB_RIGHT.map((name, i) => (
-              <HubNode key={name} name={name} x={RIGHT_X} y={YS[i]} align="end" />
+              <HubNode key={name} name={name} x={RIGHT_X} y={YS_RIGHT[i]} side="right" />
             ))}
 
             {/* centre: you + agent, icons only */}
@@ -197,7 +191,7 @@ export default function NetworkHub() {
           </svg>
         </motion.div>
 
-        {/* Marquee: every network + rail we support, names beside each logo. */}
+        {/* Marquee: every network + rail we support, name beside each logo. */}
         <Marquee />
       </div>
     </section>
@@ -210,7 +204,7 @@ function Marquee() {
     <div className="mt-6 relative overflow-hidden" style={{ maskImage: "linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)" }}>
       <style>{`
         @keyframes railmarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        .railtrack{animation:railmarquee 30s linear infinite}
+        .railtrack{animation:railmarquee 26s linear infinite}
         .railtrack:hover{animation-play-state:paused}
         @media(prefers-reduced-motion:reduce){.railtrack{animation:none}}
       `}</style>
