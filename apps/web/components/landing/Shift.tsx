@@ -71,7 +71,7 @@ function RowItem({ icon: Icon, label, lit }: Row & { lit?: boolean }) {
 
 function TheShift() {
   return (
-    <section className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+    <section className="relative px-6 sm:px-8 lg:px-12 py-24 lg:py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.55)" }}>
       <div className="mx-auto max-w-6xl">
         <div className="mb-14 text-center">
           <Eyebrow>The shift</Eyebrow>

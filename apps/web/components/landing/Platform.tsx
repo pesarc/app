@@ -134,7 +134,7 @@ export function FinalCta() {
   const done = state === "success" || state === "duplicate";
 
   return (
-    <section id="beta" className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-6 py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+    <section id="beta" className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-6 py-28" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(4,26,51,0.55)" }}>
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-40"
         style={{ backgroundImage: "linear-gradient(rgba(58,160,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(58,160,255,0.06) 1px, transparent 1px)", backgroundSize: "48px 48px" }}

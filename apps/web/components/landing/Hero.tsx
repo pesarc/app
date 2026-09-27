@@ -156,7 +156,7 @@ function Badge() {
       style={{ border: "1px solid rgba(58,160,255,0.35)", background: "rgba(58,160,255,0.06)" }}
     >
       <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
-      Cross-border money, made simple
+      Stablecoin settlement platform
     </span>
   );
 }
