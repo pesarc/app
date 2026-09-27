@@ -6,6 +6,14 @@ licensed partners — accurate, and it avoids over-claiming regulated activities
 you don't yet hold a licence for. Not legal advice; have counsel confirm the
 exact wording for any regulated filing.
 
+## CAC "Description of the Business Activity" (20–500 chars, ~476)
+> Pesarc Digital Technologies Ltd builds and operates a financial-technology
+> platform for cross-border payments and money transfers, letting individuals and
+> businesses send, receive, hold and manage funds in their local currencies via
+> mobile, web, USSD and agent channels. It operates non-custodially: users control
+> their own funds, and cash-in and cash-out are processed through licensed banking
+> and mobile-money partners. It also offers payment tools and an API for merchants.
+
 ## One line (form field, e.g. CAC "nature of business")
 > The development and operation of a financial-technology platform that enables
 > individuals and businesses to send, receive, hold and manage money across
