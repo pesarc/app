@@ -2,11 +2,11 @@
 
 // "Networks and banks" as a live hub (ref: the connected-tools animation): the
 // networks your money travels on flow through YOU and your agent in the middle,
-// out to the banks and mobile money you already use. The centre is icons only
-// (no words); node names live OUTSIDE the animation, in the marquee below, which
-// scrolls through every network and rail we support (networks come from the
-// chain registry). Real brand logos where they exist; brand-coloured badges
-// otherwise (swap in Cloudinary logos once wired). Navy / #3AA0FF.
+// out to the banks and mobile money you already use. Node names sit next to each
+// logo (hidden under 640px, where the marquee below carries them). The centre is
+// icons only. The marquee scrolls through every network (from the chain
+// registry) and rail we support. Logos: Cloudinary URL first (LOGO map), then a
+// react-icons brand logo, then a brand-coloured badge. Navy / #3AA0FF.
 
 import { motion } from "framer-motion";
 import { User, Bot, Landmark } from "lucide-react";
@@ -18,12 +18,15 @@ import {
   SiCoinbase,
   SiOptimism,
   SiAirtel,
-  SiVisa,
-  SiMastercard,
 } from "react-icons/si";
 
 const ACCENT = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;
+
+// Real brand logos hosted on Cloudinary. Fill with delivery URLs, e.g.
+//   Arc: "https://res.cloudinary.com/<cloud>/image/upload/logos/arc.svg"
+// Anything here overrides the react-icons / badge fallback below.
+const LOGO: Record<string, string> = {};
 
 type Brand = { color: string; Icon?: IconType; mono?: string; bank?: boolean };
 const BRANDS: Record<string, Brand> = {
@@ -40,22 +43,23 @@ const BRANDS: Record<string, Brand> = {
   "M-Pesa": { color: "#5BD06A", mono: "M" },
   "MTN MoMo": { color: "#FFCC00", mono: "M" },
   Airtel: { color: "#FF6B6B", Icon: SiAirtel },
-  GTBank: { color: "#FF7A6B", mono: "GT" },
   "Bank transfer": { color: "#8FC7FF", bank: true },
-  Visa: { color: "#5A8DEB", Icon: SiVisa },
-  Mastercard: { color: "#F79E1B", Icon: SiMastercard },
 };
 
-// Networks = the chains in the registry we settle on; rails = cash in/out.
+// Networks = the chains in the registry we settle on. Rails = cash in / out we
+// actually support (banks via Paystack/Flutterwave, mobile money via Flutterwave).
 const NETWORKS = ["Ethereum", "Base", "Arc", "Solana", "Celo", "Arbitrum", "Optimism", "Polygon"];
-const RAILS = ["Paystack", "Flutterwave", "M-Pesa", "MTN MoMo", "Airtel", "GTBank", "Bank transfer", "Visa", "Mastercard"];
+const RAILS = ["Bank transfer", "Paystack", "Flutterwave", "M-Pesa", "MTN MoMo", "Airtel"];
 const ALL = [...NETWORKS, ...RAILS];
 
 // Hub nodes (a representative set per side; the full list is in the marquee).
 const HUB_LEFT = ["Ethereum", "Base", "Arc", "Solana", "Celo"];
-const HUB_RIGHT = ["Paystack", "M-Pesa", "MTN MoMo", "Flutterwave", "GTBank"];
+const HUB_RIGHT = ["Bank transfer", "M-Pesa", "MTN MoMo", "Paystack", "Flutterwave"];
 
 function Mark({ name, size = 20 }: { name: string; size?: number }) {
+  const url = LOGO[name];
+  // eslint-disable-next-line @next/next/no-img-element -- small brand logo inside an SVG; next/image can't render here
+  if (url) return <img src={url} alt={name} width={size} height={size} style={{ objectFit: "contain" }} />;
   const b = BRANDS[name] ?? { color: ACCENT };
   if (b.Icon) return <b.Icon size={size} color={b.color} />;
   if (b.bank) return <Landmark size={size - 2} color={b.color} />;
@@ -74,17 +78,32 @@ function bez(x1: number, y1: number, x2: number, y2: number) {
   return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
 }
 
-function HubNode({ name, x, y }: { name: string; x: number; y: number }) {
+function HubNode({ name, x, y, align }: { name: string; x: number; y: number; align: "start" | "end" }) {
   const b = BRANDS[name] ?? { color: ACCENT };
+  const labelX = align === "start" ? x + 40 : x - 40;
   return (
-    <foreignObject x={x - 28} y={y - 28} width="56" height="56">
-      <div
-        className="w-full h-full rounded-xl grid place-items-center"
-        style={{ background: `${b.color}1f`, border: `1px solid ${b.color}66` }}
+    <g>
+      <foreignObject x={x - 28} y={y - 28} width="56" height="56">
+        <div
+          className="w-full h-full rounded-xl grid place-items-center overflow-hidden"
+          style={{ background: `${b.color}1f`, border: `1px solid ${b.color}66` }}
+        >
+          <Mark name={name} size={24} />
+        </div>
+      </foreignObject>
+      <text
+        className="nlabel"
+        x={labelX}
+        y={y + 5}
+        textAnchor={align}
+        fill="rgba(255,255,255,0.72)"
+        fontSize="15"
+        fontWeight="600"
+        style={{ fontFamily: "var(--font-mono, ui-monospace), monospace" }}
       >
-        <Mark name={name} size={24} />
-      </div>
-    </foreignObject>
+        {name}
+      </text>
+    </g>
   );
 }
 
@@ -140,6 +159,7 @@ export default function NetworkHub() {
                 @keyframes hubpulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
                 .hubring{transform-box:fill-box;transform-origin:center;animation:hubpulse 3.4s ease-in-out infinite}
                 @media(prefers-reduced-motion:reduce){.flow,.hubring,.pkt{animation:none!important}}
+                @media(max-width:640px){.nlabel{display:none}}
               `}</style>
               <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor={ACCENT} stopOpacity="0.5" />
@@ -158,10 +178,10 @@ export default function NetworkHub() {
             ))}
 
             {HUB_LEFT.map((name, i) => (
-              <HubNode key={name} name={name} x={LEFT_X} y={YS[i]} />
+              <HubNode key={name} name={name} x={LEFT_X} y={YS[i]} align="start" />
             ))}
             {HUB_RIGHT.map((name, i) => (
-              <HubNode key={name} name={name} x={RIGHT_X} y={YS[i]} />
+              <HubNode key={name} name={name} x={RIGHT_X} y={YS[i]} align="end" />
             ))}
 
             {/* centre: you + agent, icons only */}
@@ -177,7 +197,7 @@ export default function NetworkHub() {
           </svg>
         </motion.div>
 
-        {/* Marquee: every network + rail we support, names outside the animation. */}
+        {/* Marquee: every network + rail we support, names beside each logo. */}
         <Marquee />
       </div>
     </section>
@@ -190,7 +210,7 @@ function Marquee() {
     <div className="mt-6 relative overflow-hidden" style={{ maskImage: "linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)", WebkitMaskImage: "linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)" }}>
       <style>{`
         @keyframes railmarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        .railtrack{animation:railmarquee 34s linear infinite}
+        .railtrack{animation:railmarquee 30s linear infinite}
         .railtrack:hover{animation-play-state:paused}
         @media(prefers-reduced-motion:reduce){.railtrack{animation:none}}
       `}</style>
@@ -203,7 +223,7 @@ function Marquee() {
               className="flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5 shrink-0"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
             >
-              <span className="grid place-items-center w-8 h-8 rounded-full shrink-0" style={{ background: `${b.color}22`, border: `1px solid ${b.color}55` }}>
+              <span className="grid place-items-center w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ background: `${b.color}22`, border: `1px solid ${b.color}55` }}>
                 <Mark name={name} size={16} />
               </span>
               <span className="text-[13px] font-semibold text-white/80 whitespace-nowrap">{name}</span>
