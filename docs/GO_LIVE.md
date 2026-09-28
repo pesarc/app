@@ -150,3 +150,45 @@ NUBANs for NGN → cNGN deposits.
 Work top-down: Privy first (login), then the in-house paymaster (gasless), then
 the corridor env (live quotes). Each is independent, so you can turn them on one
 at a time and watch the demo tags disappear.
+
+## 7. Arc submission demo (mainnet-live)
+
+The whole flow runs in **demo mode** on dev with nothing configured (every step
+functions, tagged "Demo"), which is enough to rehearse. For the **mainnet-live**
+recording, set the env below, then follow the shot list. Chain + addresses are in
+`CORRIDORS_ROADMAP.md` and `ARC_SUBMISSION.md` (Arc mainnet, chain `5042`, USDC is
+the native gas token).
+
+### Minimum env for a live mainnet demo
+| Need | Set | Where |
+|---|---|---|
+| Sign in + embedded wallet on Arc | `NEXT_PUBLIC_PRIVY_APP_ID` (+ Arc `5042` in the registry) | build |
+| Gasless | paymaster **deployed + funded** on Arc (§2) · `NEXT_PUBLIC_GAS_SPONSOR_ARC=inhouse` · `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS` · `INHOUSE_PAYMASTER_PK` · `NEXT_PUBLIC_PIMLICO_API_KEY` | build+server |
+| Live corridor quotes + settle | `NEXT_PUBLIC_ARC_*` corridor token addresses (cNGN/cGHS/cKES) | build |
+| Agent executes (not just replies) | `LLM_API_KEY` (OpenRouter, §4b) + `SETTLE_OPERATOR_PK`/`ARC_AGENT_PK` funded with a little USDC on Arc | server |
+| Real cash-out | `PAYSTACK_SECRET_KEY` **or** `CNGN_*` (§4c). Without it the off-ramp is a realistic sandbox that advances initiated → paid | server |
+| Records + history | `DATABASE_URL` (else in-memory/JSONL) | server |
+| Demo wallet balance | real **USDC on Arc** in the signed-in smart wallet (mainnet has no faucet) | on-chain |
+
+### Shot list (maps to the submission flow)
+1. **Sign in with Privy (Google)** → an embedded smart wallet is created on Arc.
+   Show the wallet address; note USDC is the gas token.
+2. **Funds.** On mainnet there is no faucet: pre-fund the smart wallet with USDC
+   on Arc before recording (for a testnet rehearsal, the in-app faucet mints
+   cNGN/cGHS/cKES). Show the balance header go from empty to funded.
+3. **"Send ₦50,000 to Ama"** in the agent (or Send). The agent confirms the
+   corridor and asks bank vs contact, then settles **peer-to-peer via
+   IntentMatcher** in local currency — no dollar shown in the path. Show the
+   on-chain tx and "Matched peer-to-peer".
+4. **Hedge ₦50,000** on a parimutuel market (PredictionMarket on Arc). Back Yes/No;
+   show the position settling **gaslessly** in cNGN with an on-chain tx.
+5. **Earn + Invest.** Provide liquidity on a corridor (Earn), then buy a
+   Global-South stock in **Invest**, quoted and settled in cNGN. (Invest shows
+   real orders only with `BROKER_API_URL`; otherwise narrate as sandbox.)
+6. **Cash out** to a Nigerian bank via the off-ramp: pick the bank (name resolves
+   from `/api/banks`), confirm, and show the payout move initiated → paid. Live
+   with `PAYSTACK_SECRET_KEY`/`CNGN_*`; a realistic sandbox otherwise.
+
+Tip: personas make the story tight — sign in as **Personal** for steps 1-4 and 6,
+and switch to **Saver** (Settings → Experience) to open straight into Earn for
+step 5.
