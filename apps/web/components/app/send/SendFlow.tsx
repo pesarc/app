@@ -40,6 +40,7 @@ import { authedPostJson, authedFetch } from "@pesarc/sdk/api/client";
 import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { sendReference } from "@pesarc/sdk/reference";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 type Step = "recipient" | "amount" | "confirm" | "settling" | "success";
@@ -51,6 +52,9 @@ export default function SendFlow() {
   const { sendCurrency } = usePrefs(); // default currency — no per-send picking
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
+  // Solana selected → the EVM smart-wallet execution must not run; the flow
+  // falls to its demo/simulated path (real execution stays on the EVM/Arc leg).
+  const { isSvm } = useActiveNetwork();
   const [step, setStep] = useState<Step>("recipient");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [amountStr, setAmountStr] = useState("");
@@ -99,6 +103,7 @@ export default function SendFlow() {
     authenticated &&
     smart.ready &&
     CONTRACTS_READY &&
+    !isSvm &&
     recipient?.receiveCurrency === "NGN";
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
@@ -524,10 +529,11 @@ function AmountStep({
     <div>
       <StepNav onBack={onBack} title="How much?" />
 
-      {/* Network + live balance. Switch network to see (and spend) that
-          chain's on-chain balance, MetaMask-style. */}
+      {/* Network + live balance. Switch network (every EVM chain + Solana) to
+          see (and spend) that chain's balance, MetaMask-style. Visible for all
+          modes — the product now requires visible multi-chain here. */}
       <div className="flex items-center justify-between mb-3">
-        {advanced ? <NetworkSwitcher /> : <span />}
+        <NetworkSwitcher />
         <span className="text-[13px] font-bold text-harbor">
           {live.loading ? (
             <span className="text-slate">Checking balance…</span>

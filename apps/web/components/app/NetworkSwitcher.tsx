@@ -1,12 +1,13 @@
 "use client";
 
-// A MetaMask-style network picker: shows the active chain and lets the user
+// A MetaMask-style network picker: shows the active network and lets the user
 // switch which network (and therefore which on-chain balance) they're looking
-// at. Backed by the app-wide active-chain context, so switching re-points reads
-// and the smart wallet.
+// at. Backed by the app-wide unified network state — every EVM chain PLUS
+// Solana — so switching re-points reads and the smart wallet, and selecting
+// Solana flips the flows to their demo/SVM path.
 import { useState } from "react";
 import { ChevronDown, Check } from "@/components/icons";
-import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 
 // Brand-ish dot per chain so the list reads at a glance.
 const DOT: Record<string, string> = {
@@ -25,7 +26,7 @@ function dotFor(key: string): string {
 }
 
 export default function NetworkSwitcher({ className = "" }: { className?: string }) {
-  const { chain, chains, setChainKey } = useActiveEvmChain();
+  const { networks, active: current, setNetwork } = useActiveNetwork();
   const [open, setOpen] = useState(false);
 
   return (
@@ -37,8 +38,8 @@ export default function NetworkSwitcher({ className = "" }: { className?: string
         aria-expanded={open}
         className="inline-flex items-center gap-2 rounded-full border border-fog bg-snow px-3 py-1.5 text-[13px] font-bold text-harbor hover:border-slate/40 transition-colors"
       >
-        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dotFor(chain.key) }} />
-        {chain.label}
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dotFor(current.key) }} />
+        {current.label}
         <ChevronDown className={`w-3.5 h-3.5 text-slate transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -50,8 +51,8 @@ export default function NetworkSwitcher({ className = "" }: { className?: string
             className="absolute right-0 mt-2 z-20 w-60 rounded-2xl border border-fog bg-snow shadow-pop-sm p-1.5 max-h-72 overflow-auto"
           >
             <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate">Network</p>
-            {chains.map((c) => {
-              const active = c.key === chain.key;
+            {networks.map((c) => {
+              const active = c.key === current.key;
               return (
                 <button
                   key={c.key}
@@ -59,7 +60,7 @@ export default function NetworkSwitcher({ className = "" }: { className?: string
                   role="option"
                   aria-selected={active}
                   onClick={() => {
-                    setChainKey(c.key);
+                    setNetwork(c.key);
                     setOpen(false);
                   }}
                   className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
