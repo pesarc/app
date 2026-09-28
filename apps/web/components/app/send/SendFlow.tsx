@@ -849,7 +849,7 @@ function SettlingStep({
       },
       { label: `Paying out to ${payoutLabel}`, sub: "Landing in their account" },
     ],
-    [quote.route, payoutLabel, executeReal]
+    [payoutLabel]
   );
 
   const [active, setActive] = useState(0);
