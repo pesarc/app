@@ -7,8 +7,11 @@ today. You run the `--broadcast` commands (they spend the real deployer key,
 ## What's already true (checked on-chain)
 - Corridors' stablecoins (cNGN/cGHS/cKES), IntentMatcher, RealizedRateOracle,
   PredictionMarket: **live** on Arc `5042` (addresses in `CORRIDORS_ROADMAP.md`).
-- Paymaster: **not deployed** (address `0xAe5493…b22` is the deterministic slot,
-  still free — a fresh deploy lands exactly there, so no env change after).
+- Paymaster: **not deployed**. The deployer nonce is now **23**, so a fresh
+  deploy lands at **`0x7f457EA8dC5d775543Be40f68Ff01992c5dC5f85`** (not the older
+  `0xAe5493…b22`). Deploy it as the deployer's **next** tx so this holds; `.env`
+  is already updated to it. If you send any deployer tx first, use the address
+  the broadcast prints.
 - Oracle rates: **not seeded** — `hasData` is false for every corridor, so live
   quotes/settlement don't work yet. Seeding is part of this runbook.
 - Deployer balance: **2.79 USDC** on Arc (USDC is the gas token).
@@ -49,9 +52,10 @@ forge script script/DeployPaymaster.s.sol --rpc-url arc --broadcast --slow
 ```
 - 0.3 USDC stake + 1.0 USDC deposit. The deposit sponsors gas for the demo's
   gasless sends (Arc gas is ~0.016–0.05 USDC per op, so 1.0 covers dozens).
-- Confirm the printed `VerifyingPaymaster:` equals `0xAe5493E713991691075E2daBBFFD61aB66dBFb22`
-  (it will, at the current nonce) — so `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS`
-  already matches, no change needed.
+- **Run this FIRST** (before funding wallets), so it deploys at nonce 23 →
+  `0x7f457EA8dC5d775543Be40f68Ff01992c5dC5f85`. Copy the printed
+  `VerifyingPaymaster:` into `NEXT_PUBLIC_INHOUSE_PAYMASTER_ADDRESS` (build env);
+  `.env.local` is already set to this address.
 
 ## Step 2 — seed the corridor rates (live quotes + netting)
 Run once per corridor. Rates are `local-per-USD × 1000`.
