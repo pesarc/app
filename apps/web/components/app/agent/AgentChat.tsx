@@ -29,6 +29,7 @@ import {
 import { Card } from "@/components/app/ui";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
+import { currencyName } from "@pesarc/sdk/money";
 import type { ParsedUpload, DraftRow } from "@pesarc/sdk/agent/files";
 
 /** Pull the first amount out of a message, e.g. "send 50,000 naira" → 50000. */
@@ -62,7 +63,7 @@ const EXAMPLES = [
 const GREETING: Msg = {
   role: "agent",
   text:
-    "Hi — I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
+    "Hi, I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
 };
 
 // ---- Chat history (per-device, localStorage) ----------------------------
@@ -213,7 +214,7 @@ export default function AgentChat() {
           }
         }
       } catch {
-        setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network — try again." }]);
+        setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network. Try again." }]);
       }
       setBusy(false);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -286,10 +287,10 @@ export default function AgentChat() {
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-semibold numerals text-harbor">
-                {budget.token} {Math.round(budget.remaining).toLocaleString()}
+                {currencyName(budget.token)} {Math.round(budget.remaining).toLocaleString()}
               </span>
               <span className="text-xs text-slate">
-                of {budget.token} {budget.cap.toLocaleString()} cap
+                of {currencyName(budget.token)} {budget.cap.toLocaleString()} cap
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden mt-2">
@@ -445,7 +446,7 @@ export default function AgentChat() {
             speech.listening
               ? "Listening…"
               : speech.supported
-                ? "Speak or type — e.g. buy 1GB of MTN data"
+                ? "Speak or type, e.g. buy 1GB of MTN data"
                 : "e.g. send 50,000 naira to Ghana"
           }
           aria-label="Message the agent"
@@ -528,7 +529,7 @@ function ChatHistory({
       </div>
       {threads.length === 0 ? (
         <p className="text-[12.5px] text-slate leading-snug">
-          Your conversations will appear here — saved on this device.
+          Your conversations will appear here, saved on this device.
         </p>
       ) : (
         <ul className="space-y-1 max-h-64 overflow-y-auto -mr-1 pr-1">

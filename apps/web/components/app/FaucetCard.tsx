@@ -36,7 +36,7 @@ export default function FaucetCard() {
       });
       setRes(await r.json());
     } catch {
-      setRes({ ok: false, error: "Couldn't reach the faucet — try again." });
+      setRes({ ok: false, error: "Couldn't reach the faucet. Try again." });
     }
     setBusy(false);
   };
@@ -50,14 +50,14 @@ export default function FaucetCard() {
         <div className="flex-1 min-w-0">
           <div className="text-[15px] font-extrabold text-harbor">Get test funds</div>
           <p className="text-[13px] font-medium text-slate leading-snug mt-0.5">
-            Testnet only — mints cNGN, cGHS &amp; cKES to your wallet on Arbitrum Sepolia so you
+            Testnet only, mints cNGN, cGHS &amp; cKES to your wallet on Arbitrum Sepolia so you
             can try sending and staking.
           </p>
 
           {res?.ok ? (
             <div className="mt-3 rounded-2xl bg-sky-tint/40 px-4 py-3">
               <div className="inline-flex items-center gap-1.5 text-[13px] font-bold text-sky-deep">
-                <Check className="w-4 h-4" /> Funded — 500,000 of each stablecoin
+                <Check className="w-4 h-4" /> Funded: 500,000 of each stablecoin
               </div>
               {res.minted?.[0]?.tx && (
                 <a

@@ -320,6 +320,7 @@ function DepositPanel({
   onConfirm: (amount: number) => void;
 }) {
   const { sendCurrency } = usePrefs();
+  const { isAdvanced } = useUIMode();
   const [amountStr, setAmountStr] = useState("");
   const [payWith, setPayWith] = useState(defaultStablecoin(sendCurrency).symbol);
   const payCcy = currencyOf(payWith);
@@ -369,7 +370,7 @@ function DepositPanel({
 
       {/* Network + live balance for the selected stablecoin (MetaMask-style). */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <NetworkSwitcher />
+        {isAdvanced ? <NetworkSwitcher /> : <span />}
         <span className="text-[13px] font-bold text-harbor">
           {bal.loading ? (
             <span className="text-slate">Checking…</span>

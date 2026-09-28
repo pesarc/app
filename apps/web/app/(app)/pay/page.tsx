@@ -14,7 +14,7 @@ import {
   Zap,
 } from "@/components/icons";
 import { ACCOUNT } from "@pesarc/sdk/account";
-import { formatMoney, formatNumber } from "@pesarc/sdk/money";
+import { formatMoney, formatNumber, currencyName } from "@pesarc/sdk/money";
 import { applyLivePool, getQuote, type Quote } from "@pesarc/sdk/quote";
 import {
   fetchLivePoolQuote,
@@ -177,7 +177,7 @@ export default function PayPage() {
         Scan &amp; pay
       </h1>
       <p className="text-slate mb-6">
-        Point at a Pesarc QR — see who you&apos;re paying and the fee, then
+        Point at a Pesarc QR, see who you&apos;re paying and the fee, then
         pay in one tap.
       </p>
 
@@ -187,7 +187,7 @@ export default function PayPage() {
           {cameraError && (
             <Card className="p-4 mt-4 flex items-center gap-3 text-sm text-slate">
               <CameraOff className="w-4 h-4 shrink-0" />
-              Camera unavailable — paste a payment link or address instead.
+              Camera unavailable. Paste a payment link or address instead.
             </Card>
           )}
           <div className="mt-4 flex gap-2">
@@ -296,7 +296,7 @@ export default function PayPage() {
             <ScanLine className="w-5 h-5" />
           </span>
           <div className="font-medium text-ink">
-            {live ? "Settling on-chain…" : "Processing payment…"}
+            {live ? "Sending…" : "Processing payment…"}
           </div>
           <div className="text-xs text-slate">No fees</div>
         </Card>
@@ -317,11 +317,11 @@ export default function PayPage() {
               {result?.received !== undefined
                 ? `${result.received.toLocaleString(undefined, {
                     maximumFractionDigits: 2,
-                  })} tNGN`
+                  })} ${currencyName("NGN")}`
                 : formatMoney(quote.receiveAmount, "NGN")}
             </RowLine>
             {result?.tx && (
-              <RowLine label="On-chain">
+              <RowLine label="Proof">
                 <a
                   href={explorerTxUrl(result.tx)}
                   target="_blank"

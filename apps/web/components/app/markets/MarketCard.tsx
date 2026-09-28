@@ -2,6 +2,7 @@ import { Shield, Sun, Users, Link2 } from "@/components/icons";
 import { isMulti, outcomePrices, type Market } from "@pesarc/sdk/markets";
 import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Selection } from "./display";
+import { currencyName } from "@pesarc/sdk/money";
 
 const COLLATERAL_SYMBOL: Record<string, string> = {
   cNGN: "₦",
@@ -59,7 +60,7 @@ export default function MarketCard({
               </span>
             ) : (
               <span className="text-[11px] font-bold text-slate">
-                {kindLabel(market.kind)} · settled in {market.collateral}
+                {kindLabel(market.kind)} · settled in {currencyName(market.collateral)}
               </span>
             )}
             {community && (
