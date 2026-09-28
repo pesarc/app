@@ -6,7 +6,13 @@ export const site = {
   tagline: "Send money home in seconds.",
   description:
     "Pesarc is one simple app to send, hold, earn and settle money across borders, in your own currency. No big fees, no waiting, no jargon, just money the way you already think about it.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://pesarc.xyz",
+  // Strip stray surrounding quotes/whitespace an env value may carry (e.g. a
+  // BUILD_DOTENV line like NEXT_PUBLIC_SITE_URL="https://…" leaving the quotes
+  // inside the value) so downstream `new URL()` never chokes on it.
+  url:
+    (process.env.NEXT_PUBLIC_SITE_URL || "https://pesarc.xyz")
+      .trim()
+      .replace(/^["']+|["']+$/g, "") || "https://pesarc.xyz",
   // The dashboard lives on its own host in production (app.pesarc.xyz) while the
   // landing lives on the apex. Set NEXT_PUBLIC_APP_URL to that origin so the
   // landing's "Open app" CTA crosses to it; unset (dev) → relative same-origin.
