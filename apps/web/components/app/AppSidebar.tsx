@@ -17,6 +17,7 @@ import {
   Code2,
   Receipt,
   Settings2,
+  RefreshCw,
 } from "@/components/icons";
 import { site } from "@pesarc/sdk/site";
 import { LogoMark } from "@/components/app/Logo";
@@ -43,6 +44,7 @@ const MAIN: Item[] = [
   { label: "Markets", href: "/markets", icon: BarChart3 },
   { label: "Agent", href: "/agent", icon: Bot },
   { label: "Send", href: "/send", icon: ArrowUpRight },
+  { label: "Swap", href: "/swap", icon: RefreshCw },
 ];
 
 const MONEY: Item[] = [
