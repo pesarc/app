@@ -38,8 +38,18 @@ const newsreader = Newsreader({
   display: "swap",
 });
 
+// Never let a malformed site URL (e.g. a quoted env value) crash metadata
+// resolution and 500 the app; fall back to the canonical domain.
+function safeMetadataBase(): URL {
+  try {
+    return new URL(site.url);
+  } catch {
+    return new URL("https://pesarc.xyz");
+  }
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(site.url),
+  metadataBase: safeMetadataBase(),
   title: {
     default: `${site.name} — Send money home in seconds`,
     template: `%s · ${site.name}`,
