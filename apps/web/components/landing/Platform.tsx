@@ -204,8 +204,8 @@ export function FinalCta() {
         </a>
       </motion.div>
 
-      <div className="absolute bottom-7 w-full text-center opacity-60">
-        <span className="text-[11px] uppercase tracking-[0.2em] text-white/45" style={mono}>Pesarc, money the way you think about it</span>
+      <div className="absolute bottom-7 w-full text-center opacity-75">
+        <span className="text-[11px] uppercase tracking-[0.2em] text-white/70" style={mono}>Pesarc, money the way you think about it</span>
       </div>
     </section>
   );
