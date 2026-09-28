@@ -97,8 +97,9 @@ execute; to make it act, set two things on the droplet (server-only):
    - `LLM_PROVIDER=openai`
    - `LLM_BASE_URL=https://openrouter.ai/api/v1`
    - `LLM_API_KEY=<sk-or-…>`
-   - `LLM_MODEL=anthropic/claude-3.5-sonnet` (swap to a cheaper model for a
-     high-volume intent classifier — `LLM_MODEL` is all you change).
+   - `LLM_MODEL=deepseek/deepseek-v4.1-flash` (cheap + fast, verified working as
+     the agent's intent classifier; `anthropic/claude-3.5-sonnet` is retired on
+     OpenRouter — use a current slug. `LLM_MODEL` is all you change).
    - `OPENROUTER_SITE_URL=https://app.pesarc.xyz` (attribution header).
 2. **An agent signing key** — `SETTLE_OPERATOR_PK` (or `ARC_AGENT_PK` for a
    specific chain): the server-side key that submits and settles the agent's
