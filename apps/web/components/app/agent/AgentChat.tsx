@@ -29,6 +29,7 @@ import {
 import { Card } from "@/components/app/ui";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
+import { currencyName } from "@pesarc/sdk/money";
 import type { ParsedUpload, DraftRow } from "@pesarc/sdk/agent/files";
 
 /** Pull the first amount out of a message, e.g. "send 50,000 naira" → 50000. */
@@ -62,7 +63,7 @@ const EXAMPLES = [
 const GREETING: Msg = {
   role: "agent",
   text:
-    "Hi — I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
+    "Hi, I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
 };
 
 // ---- Chat history (per-device, localStorage) ----------------------------
@@ -213,7 +214,7 @@ export default function AgentChat() {
           }
         }
       } catch {
-        setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network — try again." }]);
+        setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network. Try again." }]);
       }
       setBusy(false);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -286,10 +287,10 @@ export default function AgentChat() {
             </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-semibold numerals text-harbor">
-                {budget.token} {Math.round(budget.remaining).toLocaleString()}
+                {currencyName(budget.token)} {Math.round(budget.remaining).toLocaleString()}
               </span>
               <span className="text-xs text-slate">
-                of {budget.token} {budget.cap.toLocaleString()} cap
+                of {currencyName(budget.token)} {budget.cap.toLocaleString()} cap
               </span>
             </div>
             <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden mt-2">
@@ -303,7 +304,7 @@ export default function AgentChat() {
               />
             </div>
             <p className="text-[11px] text-slate mt-2">
-              The agent can only spend up to this cap — enforced on-chain by your session key.
+              The agent can only spend up to this limit, which you set.
             </p>
           </Card>
         </motion.div>
@@ -354,12 +355,12 @@ export default function AgentChat() {
                     <div className="mt-2.5 pt-2.5 border-t border-black/[0.06] space-y-1.5">
                       {m.matched && (
                         <div className="flex items-center gap-1.5 text-xs text-sky font-medium">
-                          <Check className="w-3.5 h-3.5" /> Matched peer-to-peer · zero USD
+                          <Check className="w-3.5 h-3.5" /> Matched with someone sending the other way
                         </div>
                       )}
                       {m.pending && (
                         <div className="flex items-center gap-1.5 text-xs text-harbor font-medium">
-                          <Sparkles className="w-3.5 h-3.5" /> Waiting for opposing flow
+                          <Sparkles className="w-3.5 h-3.5" /> Finding a match
                         </div>
                       )}
                       {m.submitUrl && (
@@ -369,7 +370,7 @@ export default function AgentChat() {
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-sky hover:underline"
                         >
-                          Intent on-chain <ExternalLink className="w-3 h-3" />
+                          View proof <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                       {m.settlements?.map((s, j) => (
@@ -445,7 +446,7 @@ export default function AgentChat() {
             speech.listening
               ? "Listening…"
               : speech.supported
-                ? "Speak or type — e.g. buy 1GB of MTN data"
+                ? "Speak or type, e.g. buy 1GB of MTN data"
                 : "e.g. send 50,000 naira to Ghana"
           }
           aria-label="Message the agent"
@@ -528,7 +529,7 @@ function ChatHistory({
       </div>
       {threads.length === 0 ? (
         <p className="text-[12.5px] text-slate leading-snug">
-          Your conversations will appear here — saved on this device.
+          Your conversations will appear here, saved on this device.
         </p>
       ) : (
         <ul className="space-y-1 max-h-64 overflow-y-auto -mr-1 pr-1">
@@ -644,17 +645,17 @@ function UploadPreview({ upload }: { upload: ParsedUpload }) {
   );
 }
 
-/* Bounded on-chain authority — what makes the agent safe to trust. */
+/* What makes the agent safe to trust, in plain words. */
 function AgentCapabilities() {
   const items = [
-    { icon: ShieldCheck, title: "Session-key spend cap", body: "Every action is metered against an on-chain cap and expiry you granted." },
-    { icon: Bot, title: "ERC-8004 identity", body: "The agent has its own on-chain identity — actions are attributable, not anonymous." },
-    { icon: Sparkles, title: "x402-metered tools", body: "Paid tools charge per call over x402; no standing access, no surprises." },
+    { icon: ShieldCheck, title: "A daily limit you set", body: "The agent can never spend more than the limit you give it each day." },
+    { icon: Bot, title: "Every action is logged", body: "Nothing happens anonymously. You can see and check everything it does." },
+    { icon: Sparkles, title: "You only pay per task", body: "No standing access and no surprises. It only acts when you ask." },
   ];
   return (
     <Card className="p-4">
       <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-3">
-        Bounded, on-chain
+        Safe by design
       </div>
       <div className="space-y-3.5">
         {items.map((it) => {

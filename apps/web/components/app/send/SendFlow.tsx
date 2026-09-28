@@ -527,7 +527,7 @@ function AmountStep({
       {/* Network + live balance. Switch network to see (and spend) that
           chain's on-chain balance, MetaMask-style. */}
       <div className="flex items-center justify-between mb-3">
-        <NetworkSwitcher />
+        {advanced ? <NetworkSwitcher /> : <span />}
         <span className="text-[13px] font-bold text-harbor">
           {live.loading ? (
             <span className="text-slate">Checking balance…</span>
@@ -592,7 +592,7 @@ function AmountStep({
             {recipient.name} receives
           </div>
           <div className="text-[34px] leading-none font-extrabold tracking-tight text-sky-tint numerals">
-            {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "—"}
+            {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "-"}
           </div>
           {savings > 0 && (
             <div className="inline-flex items-center gap-1.5 mt-3 rounded-full bg-sky/20 text-sky-tint text-xs font-bold px-3 py-1.5">
@@ -721,7 +721,7 @@ function AmountStep({
 
       <div className="flex items-center justify-center gap-1.5 mt-4 text-[12.5px] font-medium text-slate">
         <ShieldCheck className="w-3.5 h-3.5 text-sky-deep" />
-        Recipient screened · gasless · settled in local currency
+        Recipient checked · no fees · in your own currency
       </div>
     </div>
   );
@@ -799,7 +799,7 @@ function ConfirmStep({
 
       <div className="flex items-center gap-2 text-sm text-slate mb-5 px-1">
         <ShieldCheck className="w-4 h-4 text-sky shrink-0" />
-        Recipient screened · no scam flags · gasless, no network fee
+        Recipient checked · no scam flags · no fees to send
       </div>
 
       <Button size="lg" block onClick={onSend}>
@@ -842,16 +842,12 @@ function SettlingStep({
     PAYOUT_METHODS.find((m) => m.id === quote.payout)?.label ?? "payout";
   const steps = useMemo(
     () => [
-      { label: "Authorizing your payment", sub: "Gasless — no network fee" },
+      { label: "Confirming your payment", sub: "No fees to send" },
       {
-        label: executeReal
-          ? "Settling on-chain"
-          : quote.route.startsWith("CoW")
-          ? "Matching liquidity (CoW)"
-          : "Routing via Circle CCTP V2",
-        sub: executeReal ? "Smart wallet · sponsored gas" : "Settling on the unified hub",
+        label: "Sending your money",
+        sub: "This takes a few seconds",
       },
-      { label: `Paying out · ${payoutLabel}`, sub: "Local last-mile partner" },
+      { label: `Paying out to ${payoutLabel}`, sub: "Landing in their account" },
     ],
     [quote.route, payoutLabel, executeReal]
   );
@@ -1069,18 +1065,18 @@ function SuccessStep({
         {actualReceive !== undefined && (
           <>
             <div className="border-t border-black/[0.06]" />
-            <Row label="Received on-chain">
+            <Row label="They received">
+              {CURRENCIES[quote.receiveCurrency]?.symbol ?? ""}
               {actualReceive.toLocaleString(undefined, {
                 maximumFractionDigits: 2,
-              })}{" "}
-              tNGN
+              })}
             </Row>
           </>
         )}
         {txHash && (
           <>
             <div className="border-t border-black/[0.06]" />
-            <Row label="On-chain">
+            <Row label="Proof">
               <a
                 href={explorerTxUrl(txHash)}
                 target="_blank"

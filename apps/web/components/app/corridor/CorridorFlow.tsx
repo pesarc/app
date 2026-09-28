@@ -21,7 +21,7 @@ import { Button, Card, Select } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { CONTRACTS } from "@pesarc/sdk/chain/contracts";
-import { chainLabel, explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import { erc20Abi } from "@pesarc/abi";
 import { intentMatcherAbi } from "@pesarc/abi";
 import {
@@ -96,7 +96,7 @@ export default function CorridorFlow() {
     if (minOut === null || minOut <= 0) {
       setNotice({
         ok: false,
-        text: "No realized rate for this pair yet — it appears once the corridor has settled once.",
+        text: "We don't have a rate for this pair yet. It appears once the corridor has settled once.",
       });
       return;
     }
@@ -138,7 +138,7 @@ export default function CorridorFlow() {
       ]);
       setNotice({
         ok: true,
-        text: "Intent submitted — the solver will match it with someone going the other way.",
+        text: "Sent. We're matching it with someone sending the other way.",
         tx,
       });
       setAmountStr("");
@@ -179,9 +179,7 @@ export default function CorridorFlow() {
     return (
       <Shell>
         <Card className="p-6 text-sm text-slate">
-          Local corridors aren&apos;t configured on this deployment yet (needs
-          <code className="mx-1">NEXT_PUBLIC_ARB_INTENT_MATCHER</code> and at
-          least two local stables).
+          This isn&apos;t available yet.
         </Card>
       </Shell>
     );
@@ -261,13 +259,13 @@ export default function CorridorFlow() {
         <div className="rounded-field bg-black/[0.03] px-4 py-3 text-sm mb-4">
           {rate === null ? (
             <span className="text-slate">
-              No realized rate for {from?.code}/{to?.code} yet — it appears once
-              this corridor settles once.
+              We don&apos;t have a rate for {from?.code}/{to?.code} yet. It appears
+              once this corridor settles once.
             </span>
           ) : (
             <>
               <div className="flex justify-between mb-1">
-                <span className="text-slate">Realized rate</span>
+                <span className="text-slate">Today&apos;s rate</span>
                 <span className="font-medium text-ink numerals">
                   1 {from.code} = {fmt(rate)} {to.code}
                 </span>
@@ -283,7 +281,7 @@ export default function CorridorFlow() {
               )}
               <div className="flex items-center gap-1.5 text-xs text-slate pt-1">
                 <Sparkles className="w-3.5 h-3.5 text-sky" />
-                Discovered from settled flow on {chainLabel()} — not a price feed
+                Based on real Pesarc transfers.
               </div>
             </>
           )}
@@ -296,11 +294,11 @@ export default function CorridorFlow() {
           onClick={submit}
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-          Submit intent
+          Send
         </Button>
         {!live && (
           <p className="text-xs text-slate mt-3 text-center">
-            Sign in with a live wallet to send on the local corridor.
+            Sign in to send locally.
           </p>
         )}
       </Card>
@@ -344,7 +342,7 @@ export default function CorridorFlow() {
 
       {intents.length === 0 ? (
         <Card className="p-5 text-sm text-slate">
-          No sends yet. Submit an intent above — it settles as soon as someone
+          No sends yet. Send above, and it settles as soon as someone
           goes the other way.
         </Card>
       ) : (
@@ -415,7 +413,7 @@ function IntentRow({
         </>
       ) : (
         <div className="flex items-center justify-between text-xs text-slate">
-          <span>Expired — funds are refundable</span>
+          <span>Expired, funds are refundable</span>
           <button
             onClick={() => onCancel(intent.id)}
             disabled={busy}
@@ -486,7 +484,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           Send locally
         </h1>
         <p className="text-slate">
-          Naira to cedis, cedis to shillings — matched against real flow going
+          Naira to cedis, cedis to shillings, matched against real flow going
           the other way.
         </p>
       </div>
