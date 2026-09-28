@@ -2,6 +2,7 @@ import { Shield, Sun, Users, Link2 } from "@/components/icons";
 import { isMulti, outcomePrices, type Market } from "@pesarc/sdk/markets";
 import { type LiveMarket } from "@pesarc/sdk/markets.live";
 import { displayPrices, displayPool, type Selection } from "./display";
+import { currencyName } from "@pesarc/sdk/money";
 
 const COLLATERAL_SYMBOL: Record<string, string> = {
   cNGN: "₦",
@@ -59,7 +60,7 @@ export default function MarketCard({
               </span>
             ) : (
               <span className="text-[11px] font-bold text-slate">
-                {kindLabel(market.kind)} · settled in {market.collateral}
+                {kindLabel(market.kind)} · settled in {currencyName(market.collateral)}
               </span>
             )}
             {community && (
@@ -158,7 +159,7 @@ export default function MarketCard({
       <div className="flex items-center justify-between pt-3.5 border-t border-cream">
         <span className="text-[12.5px] font-semibold text-slate numerals">
           {sym}
-          {compact(pool)} pool · closes {market.closes}
+          {compact(pool)} in · closes {market.closes}
         </span>
         <span
           className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
@@ -166,7 +167,7 @@ export default function MarketCard({
           }`}
         >
           {oracle ? <Sun className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-          {oracle ? "Realized-rate oracle" : "Bonded attestor"}
+          {oracle ? "Settles on the real rate" : "Settled by Pesarc"}
         </span>
       </div>
     </div>

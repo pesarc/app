@@ -8,6 +8,7 @@ import { CURRENCIES } from "@pesarc/sdk/money";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { chainLabel } from "@pesarc/sdk/chain/chains";
+import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { Button, Card } from "@/components/app/ui";
 
 export default function ReceivePage() {
@@ -17,6 +18,7 @@ export default function ReceivePage() {
   const sym = CURRENCIES[ACCOUNT.currency].symbol;
 
   const { mode, authenticated } = useWallet();
+  const { isAdvanced } = useUIMode();
   const smart = useSmartWallet();
   // Live = the QR/link is the wallet's REAL address on the hub chain, so
   // anyone can pay it directly on testnet.
@@ -91,8 +93,8 @@ export default function ReceivePage() {
       </h1>
       <p className="text-slate mb-6">
         {live
-          ? `Share your address or QR — payments land in your wallet on ${chainLabel()}.`
-          : `Share your alias or QR. Anyone can pay you in their own currency — you receive ${ACCOUNT.currency}.`}
+          ? "Share your QR or link. Money lands in your account in seconds."
+          : `Share your alias or QR. Anyone can pay you in their own currency, you receive ${ACCOUNT.currency}.`}
       </p>
 
       <Card className="p-6 flex flex-col items-center mb-4">
@@ -113,10 +115,10 @@ export default function ReceivePage() {
             Your alias
           </div>
           <div className="text-2xl font-semibold text-ink">{ALIAS}</div>
-          {live && address && (
+          {live && address && isAdvanced && (
             <div className="mt-2">
               <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-0.5">
-                Wallet · {chainLabel()}
+                Account · {chainLabel()}
               </div>
               <div className="font-mono text-sm text-ink/80 break-all">
                 {address}

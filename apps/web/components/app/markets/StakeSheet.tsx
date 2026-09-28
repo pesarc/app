@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { X, Info, Check, ArrowRight, Loader2, ExternalLink } from "@/components/icons";
 import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
-import { midMarketRate, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
+import { midMarketRate, formatNumber, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { currencyOf } from "@pesarc/sdk/stablecoins";
 import { activeChain, explorerTxUrl } from "@pesarc/sdk/chain/registry";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
@@ -54,6 +54,9 @@ export default function StakeSheet({
   // auto-swapped to it (cross-FX). All the market math is in collateral units.
   const collateralCcy = market.collateral.slice(1) as CurrencyCode; // cNGN -> NGN
   const payCcy = currencyOf(payWith);
+  // User-facing money names (never the raw ticker) for visible copy.
+  const payName = currencyName(payCcy);
+  const collateralName = currencyName(collateralCcy);
   const needsSwap = payWith !== market.collateral;
   const stakeInCollateral = stake * midMarketRate(payCcy, collateralCcy);
   const impliedPayout = price > 0 ? (stakeInCollateral * 100) / price : 0;
@@ -145,8 +148,8 @@ export default function StakeSheet({
             </span>
             <p className="font-semibold text-ink">{label} position placed</p>
             <p className="text-sm text-slate mt-1">
-              {payWith} {stake.toLocaleString()} staked
-              {needsSwap ? ` (→ ${market.collateral} ${Math.round(stakeInCollateral).toLocaleString()})` : ""}
+              {payName} {stake.toLocaleString()} staked
+              {needsSwap ? ` (→ ${collateralName} ${Math.round(stakeInCollateral).toLocaleString()})` : ""}
               {" "}· settles {market.resolves} from{" "}
               {market.resolver.kind === "oracle"
                 ? "the realized rate"
@@ -174,10 +177,10 @@ export default function StakeSheet({
             </div>
 
             <label className="block text-xs font-medium text-slate mb-1.5">
-              Amount ({payWith})
+              Amount ({payName})
             </label>
             <div className="flex items-center rounded-xl border border-fog bg-snow px-4 py-3 mb-2">
-              <span className="text-slate mr-2 text-sm">{payWith}</span>
+              <span className="text-slate mr-2 text-sm">{payName}</span>
               <input
                 inputMode="decimal"
                 autoFocus
@@ -201,7 +204,7 @@ export default function StakeSheet({
             </div>
 
             <div className={`flex items-center justify-between mb-3 text-[12px] ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
-              <span>{insufficient ? `Over your ${payWith} balance` : `${payWith} balance`}</span>
+              <span>{insufficient ? `Over your ${payName} balance` : `${payName} balance`}</span>
               <span className="numerals">
                 {bal.loading ? "…" : formatNumber(bal.amount ?? 0, payCcy)}
                 {!bal.available && <span className="ml-1 text-slate/70">demo</span>}
@@ -210,18 +213,18 @@ export default function StakeSheet({
 
             {needsSwap && stake > 0 && (
               <div className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-sky-deep mb-3">
-                {payWith} {formatNumber(stake, payCcy)}
+                {payName} {formatNumber(stake, payCcy)}
                 <ArrowRight className="w-3.5 h-3.5" />
-                {market.collateral} {formatNumber(stakeInCollateral, collateralCcy)}
+                {collateralName} {formatNumber(stakeInCollateral, collateralCcy)}
                 <span className="text-slate font-medium">· auto-swapped</span>
               </div>
             )}
 
             <div className="rounded-xl bg-black/[0.03] p-3 text-sm space-y-1.5 mb-4">
-              <Row label="Price" value={`${price}¢ per ${market.collateral} 1`} />
+              <Row label="Price" value={`${price}¢ per ${collateralName} 1`} />
               <Row
                 label="Max payout if right"
-                value={`${market.collateral} ${Math.round(
+                value={`${collateralName} ${Math.round(
                   impliedPayout
                 ).toLocaleString()}`}
                 accent
@@ -232,7 +235,7 @@ export default function StakeSheet({
             {market.hedge && (
               <p className="flex items-start gap-2 text-[11px] text-slate mb-4">
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-sky" />
-                This is a hedge, not a bet — it pays out to offset the real-world
+                This is a hedge, not a bet. It pays out to offset the real-world
                 move, in your own currency.
               </p>
             )}
@@ -248,7 +251,7 @@ export default function StakeSheet({
                   <Loader2 className="w-4 h-4 animate-spin" /> Staking…
                 </>
               ) : stake > 0 ? (
-                `Stake ${payWith} ${stake.toLocaleString()} on ${label}`
+                `Stake ${payName} ${stake.toLocaleString()} on ${label}`
               ) : (
                 "Enter an amount"
               )}
