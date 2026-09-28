@@ -14,6 +14,7 @@ import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { STABLECOINS, currencyOf } from "@pesarc/sdk/stablecoins";
 import { CURRENCIES, midMarketRate, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 const FEE = 0.004; // 0.4% swap fee, shown up front.
 
@@ -83,7 +84,10 @@ export default function SwapFlow() {
   return (
     <div className="mx-auto w-full max-w-md px-4 sm:px-6 py-6 md:py-10">
       <div className="mb-5">
-        <h1 className="text-[27px] font-extrabold tracking-tight text-harbor">Swap</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-[27px] font-extrabold tracking-tight text-harbor">Swap</h1>
+          <NetworkSwitcher />
+        </div>
         <p className="text-slate">Turn one of your currencies into another at the live rate.</p>
       </div>
 

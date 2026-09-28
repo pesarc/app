@@ -3,7 +3,7 @@
 // homes" plan (docs/MULTI_CHAIN.md). availableVenues() powers a venue switcher.
 
 import { fetchLiveMarkets as fetchEvmMarkets, type LiveMarket } from "./markets.live";
-import { activeChain, explorerAddressUrl } from "./chain/registry";
+import { activeChain, explorerAddressUrl, getActiveChainKey } from "./chain/registry";
 import { svmConfig, svmExplorerAccount } from "./svm/config";
 
 export type VenueKind = "evm" | "svm";
@@ -33,8 +33,12 @@ export function availableVenues(): Venue[] {
   return [evmVenue(), svmVenue()].filter(Boolean) as Venue[];
 }
 
-/** Whether Solana is the default selection (NEXT_PUBLIC_ACTIVE_CHAIN=solana*). */
+/** Whether Solana is the active selection. Checks the in-session active-chain
+ *  key first (set by the network picker), then NEXT_PUBLIC_ACTIVE_CHAIN, then
+ *  falls back to SVM when the active EVM chain has no market but SVM does. */
 function svmSelected(): boolean {
+  const runtime = (getActiveChainKey() || "").toLowerCase();
+  if (runtime.startsWith("solana") || runtime.startsWith("svm")) return true;
   const want = (process.env.NEXT_PUBLIC_ACTIVE_CHAIN || "").toLowerCase();
   if (want.startsWith("solana") || want.startsWith("svm")) return true;
   return !activeChain().predictionMarket && Boolean(svmVenue());
