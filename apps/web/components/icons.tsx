@@ -97,6 +97,7 @@ import {
   TerminalIcon,
   Wifi01Icon,
   AttachmentIcon,
+  ArrowDown01Icon,
 } from "@hugeicons/core-free-icons";
 
 /** Lucide-compatible icon props. Kept minimal on purpose. */
@@ -206,3 +207,4 @@ export const Square = make(SquareIcon);
 export const Terminal = make(TerminalIcon);
 export const Wifi = make(Wifi01Icon);
 export const Paperclip = make(AttachmentIcon);
+export const ArrowDown = make(ArrowDown01Icon);
