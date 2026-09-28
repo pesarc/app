@@ -190,7 +190,7 @@ export function FinalCta() {
             >
               {state === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                 <>
-                  Become a beta-tester
+                  Join beta
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </>
               )}
