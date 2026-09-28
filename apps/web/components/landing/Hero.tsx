@@ -82,7 +82,7 @@ export default function Hero() {
               className="mt-9 flex flex-wrap items-center gap-4 pointer-events-auto w-fit"
             >
               <AccentButton href="#beta" icon={ArrowUpRight} badge className="px-6 py-3.5 text-sm uppercase tracking-wide">
-                Become a beta-tester
+                Join beta
               </AccentButton>
               <div className="inline-flex items-center gap-2 text-[13px] font-medium text-white/70">
                 <span className="relative flex w-2 h-2">

@@ -123,7 +123,7 @@ export default function Waitlist() {
                   </>
                 ) : (
                   <>
-                    Become a beta-tester
+                    Join beta
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
