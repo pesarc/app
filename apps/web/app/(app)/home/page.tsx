@@ -44,7 +44,18 @@ const CORRIDORS: { from: CurrencyCode; to: CurrencyCode }[] = [
 ];
 
 export default async function HomePage() {
-  const rows = await listTransfers();
+  // Never let a slow or failing data source take the whole page down. Race the
+  // fetch against a short timeout and fall back to sample activity, so a DB
+  // hang or error can't 500 the home screen (the primary surface).
+  let rows: Awaited<ReturnType<typeof listTransfers>> = [];
+  try {
+    rows = await Promise.race([
+      listTransfers(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 2500)),
+    ]);
+  } catch {
+    rows = [];
+  }
 
   const fallback: FallbackItem[] = (rows.length
     ? rows.map((r) => ({
