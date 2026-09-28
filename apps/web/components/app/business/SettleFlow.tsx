@@ -327,7 +327,7 @@ export default function SettleFlow() {
                 ) : (
                   <ArrowRight className="w-4 h-4" />
                 )}
-                Record gaslessly
+                Record instantly
               </Button>
             </Card>
           )}

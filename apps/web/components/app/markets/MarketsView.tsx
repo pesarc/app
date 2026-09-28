@@ -172,7 +172,7 @@ export default function MarketsView() {
         </div>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed">
           Take a view on elections, football, prices and world events. Stake and
-          settle in your own currency, gasless.
+          settle in your own currency, with no fees.
         </p>
 
         <ChainSelector className="mt-3.5" />

@@ -56,7 +56,7 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
       <div className="flex flex-wrap gap-2 pt-1">
         <Chip icon={Route} text={quote.route} />
         <Chip icon={Clock} text={`~${formatEta(quote.etaSeconds)}`} />
-        <Chip icon={Gauge} text="Gasless · sponsored" />
+        <Chip icon={Gauge} text="No fees" />
         <Chip icon={ShieldCheck} text="Recipient screened" />
       </div>
     </div>
