@@ -59,6 +59,43 @@ export const CURRENCIES: Record<CurrencyCode, Currency> = {
   PHP: { code: "PHP", symbol: "₱", name: "Philippine Peso", flag: "🇵🇭", region: "asia", locale: "en-PH", decimals: 2, usdPer: 1 / 57 },
 };
 
+/**
+ * Short, colloquial money name for a currency — what a first-time user calls
+ * their money ("Naira", "Shillings", "Cedis", "Dollars"). Used in consumer copy
+ * in place of a bank/stablecoin ticker (Mum Test: money words, not crypto).
+ */
+export const CURRENCY_NAMES: Record<CurrencyCode, string> = {
+  // Africa
+  NGN: "Naira", ZAR: "Rand", EGP: "Egyptian Pounds", KES: "Shillings",
+  GHS: "Cedis", MAD: "Dirhams", TZS: "Shillings", UGX: "Shillings",
+  XOF: "CFA Francs", ETB: "Birr",
+  // Western
+  USD: "Dollars", GBP: "Pounds", EUR: "Euros", CAD: "Dollars",
+  AUD: "Dollars", CHF: "Francs",
+  // Asia / Gulf
+  INR: "Rupees", CNY: "Yuan", JPY: "Yen", AED: "Dirhams",
+  SGD: "Dollars", PHP: "Pesos",
+};
+
+/**
+ * Resolve a currency code OR a stablecoin ticker (e.g. "cNGN", "tUSD") to a
+ * user-facing money name. Falls back to the raw input if unknown.
+ */
+export function currencyName(codeOrTicker: string): string {
+  const raw = (codeOrTicker || "").trim();
+  const upper = raw.toUpperCase();
+  // Direct currency code match.
+  if (upper in CURRENCY_NAMES) {
+    return CURRENCY_NAMES[upper as CurrencyCode];
+  }
+  // Stablecoin ticker like "cNGN" / "tUSD" — strip a leading c/t prefix.
+  const stripped = upper.replace(/^[CT]/, "");
+  if (stripped in CURRENCY_NAMES) {
+    return CURRENCY_NAMES[stripped as CurrencyCode];
+  }
+  return raw;
+}
+
 /** All currency codes, in declaration (region) order. */
 export const ALL_CURRENCIES = Object.keys(CURRENCIES) as CurrencyCode[];
 

@@ -84,13 +84,13 @@ export default function ProposeMarketView() {
       });
       const j = await res.json();
       if (!res.ok || !j.ok) {
-        setError(j.error ?? "Could not submit — try again.");
+        setError(j.error ?? "Could not submit. Try again.");
       } else {
         setTxUrl(j.onChain?.txUrl ?? null);
         setDone(true);
       }
     } catch {
-      setError("Could not reach the network — try again.");
+      setError("Could not reach the network. Try again.");
     }
     setBusy(false);
   };
@@ -106,7 +106,7 @@ export default function ProposeMarketView() {
         </h1>
         <p className="text-sm font-medium text-slate mb-4 max-w-xs mx-auto">
           {txUrl
-            ? "It's live on the board — and created on-chain. You can propose another or take a position."
+            ? "It's live on the board, and created on-chain. You can propose another or take a position."
             : "It's live on the board with a Community badge. You can propose another or take a position."}
         </p>
         {txUrl && (
@@ -156,7 +156,7 @@ export default function ProposeMarketView() {
         <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Propose a market</h1>
       </div>
       <p className="text-sm font-medium text-slate mb-6 leading-relaxed">
-        Create a prediction market — Yes/No or multiple-choice — and seed it with a bond. Settled
+        Create a prediction market (Yes/No or multiple-choice) and seed it with a bond. Settled
         in local currency.
       </p>
 
@@ -294,7 +294,7 @@ export default function ProposeMarketView() {
           />
         </div>
         <p className="text-[12px] text-slate mt-2 leading-snug">
-          Seeds the market&apos;s pools so odds start balanced. Demo — a production deployment posts
+          Seeds the market&apos;s pools so odds start balanced. Demo: a production deployment posts
           this bond on-chain when the market is promoted.
         </p>
       </Field>

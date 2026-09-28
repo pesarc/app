@@ -1,6 +1,7 @@
 "use client";
 
 import { STABLECOINS } from "@pesarc/sdk/stablecoins";
+import { currencyName } from "@pesarc/sdk/money";
 
 /** A pill row for choosing which stablecoin funds an action (buy/stake/deposit). */
 export function StablecoinSelect({
@@ -28,7 +29,7 @@ export function StablecoinSelect({
                   : "bg-snow border-fog text-harbor hover:border-slate/50"
               }`}
             >
-              <span>{s.flag}</span> {s.symbol}
+              <span>{s.flag}</span> {currencyName(s.currency)}
             </button>
           );
         })}
