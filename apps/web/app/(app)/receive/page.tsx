@@ -8,8 +8,10 @@ import { CURRENCIES } from "@pesarc/sdk/money";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { chainLabel } from "@pesarc/sdk/chain/chains";
+import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { Button, Card } from "@/components/app/ui";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 export default function ReceivePage() {
   const [amount, setAmount] = useState("");
@@ -20,9 +22,13 @@ export default function ReceivePage() {
   const { mode, authenticated } = useWallet();
   const { isAdvanced } = useUIMode();
   const smart = useSmartWallet();
+  // Solana selected → the EVM smart-wallet address (0x…) is not a valid Solana
+  // account, so we don't surface it. No real SVM address is wired yet, so the
+  // link falls back to the alias-only pay link (never a broken 0x).
+  const { isSvm, active } = useActiveNetwork();
   // Live = the QR/link is the wallet's REAL address on the hub chain, so
   // anyone can pay it directly on testnet.
-  const live = mode === "live" && authenticated && Boolean(smart.address);
+  const live = mode === "live" && authenticated && Boolean(smart.address) && !isSvm;
   const address = smart.address as string | undefined;
 
   // The pay link doubles as the QR payload the Scan & Pay flow parses:
@@ -88,9 +94,12 @@ export default function ReceivePage() {
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
-        Receive money
-      </h1>
+      <div className="flex items-start justify-between gap-3 mb-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">
+          Receive money
+        </h1>
+        <NetworkSwitcher className="mt-1" />
+      </div>
       <p className="text-slate mb-6">
         {live
           ? "Share your QR or link. Money lands in your account in seconds."
@@ -115,15 +124,28 @@ export default function ReceivePage() {
             Your alias
           </div>
           <div className="text-2xl font-semibold text-ink">{ALIAS}</div>
-          {live && address && isAdvanced && (
+          {isSvm ? (
             <div className="mt-2">
               <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-0.5">
-                Account · {chainLabel()}
+                Network · {active.label}
               </div>
-              <div className="font-mono text-sm text-ink/80 break-all">
-                {address}
+              <div className="text-sm text-ink/70">
+                Pay this alias — no {active.label} address needed
               </div>
             </div>
+          ) : (
+            live &&
+            address &&
+            isAdvanced && (
+              <div className="mt-2">
+                <div className="text-xs font-semibold text-slate uppercase tracking-widest mb-0.5">
+                  Account · {chainLabel()}
+                </div>
+                <div className="font-mono text-sm text-ink/80 break-all">
+                  {address}
+                </div>
+              </div>
+            )
           )}
         </div>
       </Card>
