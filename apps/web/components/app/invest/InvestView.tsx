@@ -17,7 +17,7 @@ import {
   type InstrumentFilter,
 } from "@pesarc/sdk/invest";
 import { toInstrument } from "@pesarc/sdk/catalog-map";
-import { formatMoney, formatNumber, midMarketRate } from "@pesarc/sdk/money";
+import { formatMoney, formatNumber, midMarketRate, currencyName } from "@pesarc/sdk/money";
 import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { getBroker } from "@pesarc/sdk/broker";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
@@ -142,7 +142,7 @@ export default function InvestView() {
       <header className="mb-4">
         <h1 className="text-[27px] font-extrabold text-harbor tracking-tight">Invest</h1>
         <p className="text-sm font-medium text-slate mt-1.5 leading-relaxed max-w-xl">
-          Buy stocks &amp; ETFs across African and global markets — priced and settled in local
+          Buy stocks &amp; ETFs across African and global markets, priced and settled in local
           currency.
         </p>
         {!getBroker().live && (
@@ -168,7 +168,7 @@ export default function InvestView() {
               </div>
               <div className="text-[13px] text-white/60 font-medium">
                 {holdings.length === 0
-                  ? "No positions yet — buy your first below."
+                  ? "No positions yet. Buy your first below."
                   : `${holdings.length} position${holdings.length > 1 ? "s" : ""} · valued in ${sendCurrency}`}
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function InvestView() {
             ))}
             {list.length === 0 && (
               <p className="text-sm text-slate py-8 text-center sm:col-span-2">
-                Nothing matches — try another market or search.
+                Nothing matches. Try another market or search.
               </p>
             )}
           </Stagger>
@@ -321,6 +321,7 @@ function BuySheet({
   const shares = parseFloat(sharesStr) || 0;
   const cost = shares * inst.price;
   const payCcy = currencyOf(payWith);
+  const payName = currencyName(payCcy); // user-facing money name, never the ticker
   const payAmount = cost * midMarketRate(m.currency, payCcy);
   // Live on-chain balance of the pay stablecoin (demo fallback when no wallet).
   const bal = useLiveBalance(payCcy);
@@ -385,7 +386,7 @@ function BuySheet({
           <div className="flex items-center justify-between">
             <span className="text-[13.5px] font-semibold text-harbor">Estimated cost</span>
             <span className="text-lg font-extrabold text-harbor numerals">
-              {payWith} {formatNumber(payAmount, payCcy)}
+              {payName} {formatNumber(payAmount, payCcy)}
             </span>
           </div>
           <div className="flex items-center justify-between mt-1 text-[12px] text-slate">
@@ -393,7 +394,7 @@ function BuySheet({
             <span className="numerals">{formatMoney(cost, m.currency)}</span>
           </div>
           <div className={`flex items-center justify-between mt-1 text-[12px] ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
-            <span>{insufficient ? `Over your ${payWith} balance` : `${payWith} balance`}</span>
+            <span>{insufficient ? `Over your ${payName} balance` : `${payName} balance`}</span>
             <span className="numerals">
               {bal.loading ? "…" : formatNumber(bal.amount ?? 0, payCcy)}
               {!bal.available && <span className="ml-1 text-slate/70">demo</span>}
@@ -426,7 +427,7 @@ function BuySheet({
         <p className="text-center text-[11.5px] text-slate mt-3">
           {getBroker().live
             ? "Routed to your connected broker."
-            : "Demo — records a paper position. No real order is placed."}
+            : "Demo: records a paper position. No real order is placed."}
         </p>
       </motion.div>
     </>
