@@ -272,7 +272,7 @@ export default function PayPage() {
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate pt-1">
-                <Zap className="w-3.5 h-3.5 text-sky" /> Gasless · settles
+                <Zap className="w-3.5 h-3.5 text-sky" /> No fees · settles
                 in seconds
               </div>
             </Card>
@@ -298,7 +298,7 @@ export default function PayPage() {
           <div className="font-medium text-ink">
             {live ? "Settling on-chain…" : "Processing payment…"}
           </div>
-          <div className="text-xs text-slate">Gasless · sponsored</div>
+          <div className="text-xs text-slate">No fees</div>
         </Card>
       )}
 

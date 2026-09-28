@@ -158,7 +158,7 @@ export default function MarketCard({
       <div className="flex items-center justify-between pt-3.5 border-t border-cream">
         <span className="text-[12.5px] font-semibold text-slate numerals">
           {sym}
-          {compact(pool)} pool · closes {market.closes}
+          {compact(pool)} in · closes {market.closes}
         </span>
         <span
           className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
@@ -166,7 +166,7 @@ export default function MarketCard({
           }`}
         >
           {oracle ? <Sun className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-          {oracle ? "Realized-rate oracle" : "Bonded attestor"}
+          {oracle ? "Settles on the real rate" : "Settled by Pesarc"}
         </span>
       </div>
     </div>

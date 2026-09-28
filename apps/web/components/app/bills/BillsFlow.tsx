@@ -60,7 +60,7 @@ export default function BillsFlow() {
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 md:py-12">
       <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">Pay a bill</h1>
       <p className="text-slate mb-7">
-        Airtime, data, and electricity in a couple of taps. Gasless, settled in
+        Airtime, data, and electricity in a couple of taps. No fees, settled in
         seconds. Or just ask the agent to do it.
       </p>
 
@@ -303,7 +303,7 @@ function PurchaseForm({
           <>Pay {amount > 0 ? naira(amount) : ""}</>
         )}
       </Button>
-      <p className="mt-3 text-center text-xs text-slate">Gasless · settles in seconds</p>
+      <p className="mt-3 text-center text-xs text-slate">No fees · settles in seconds</p>
     </div>
   );
 }

@@ -303,7 +303,7 @@ export default function AgentChat() {
               />
             </div>
             <p className="text-[11px] text-slate mt-2">
-              The agent can only spend up to this cap — enforced on-chain by your session key.
+              The agent can only spend up to this limit, which you set.
             </p>
           </Card>
         </motion.div>
@@ -354,12 +354,12 @@ export default function AgentChat() {
                     <div className="mt-2.5 pt-2.5 border-t border-black/[0.06] space-y-1.5">
                       {m.matched && (
                         <div className="flex items-center gap-1.5 text-xs text-sky font-medium">
-                          <Check className="w-3.5 h-3.5" /> Matched peer-to-peer · zero USD
+                          <Check className="w-3.5 h-3.5" /> Matched with someone sending the other way
                         </div>
                       )}
                       {m.pending && (
                         <div className="flex items-center gap-1.5 text-xs text-harbor font-medium">
-                          <Sparkles className="w-3.5 h-3.5" /> Waiting for opposing flow
+                          <Sparkles className="w-3.5 h-3.5" /> Finding a match
                         </div>
                       )}
                       {m.submitUrl && (
@@ -369,7 +369,7 @@ export default function AgentChat() {
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-sky hover:underline"
                         >
-                          Intent on-chain <ExternalLink className="w-3 h-3" />
+                          View proof <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                       {m.settlements?.map((s, j) => (
@@ -644,17 +644,17 @@ function UploadPreview({ upload }: { upload: ParsedUpload }) {
   );
 }
 
-/* Bounded on-chain authority — what makes the agent safe to trust. */
+/* What makes the agent safe to trust, in plain words. */
 function AgentCapabilities() {
   const items = [
-    { icon: ShieldCheck, title: "Session-key spend cap", body: "Every action is metered against an on-chain cap and expiry you granted." },
-    { icon: Bot, title: "ERC-8004 identity", body: "The agent has its own on-chain identity — actions are attributable, not anonymous." },
-    { icon: Sparkles, title: "x402-metered tools", body: "Paid tools charge per call over x402; no standing access, no surprises." },
+    { icon: ShieldCheck, title: "A daily limit you set", body: "The agent can never spend more than the limit you give it each day." },
+    { icon: Bot, title: "Every action is logged", body: "Nothing happens anonymously. You can see and check everything it does." },
+    { icon: Sparkles, title: "You only pay per task", body: "No standing access and no surprises. It only acts when you ask." },
   ];
   return (
     <Card className="p-4">
       <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-3">
-        Bounded, on-chain
+        Safe by design
       </div>
       <div className="space-y-3.5">
         {items.map((it) => {
