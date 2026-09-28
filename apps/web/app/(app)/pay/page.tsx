@@ -26,7 +26,9 @@ import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import { Button, Card } from "@/components/app/ui";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import { authedPostJson } from "@pesarc/sdk/api/client";
 import { payReference } from "@pesarc/sdk/reference";
 
@@ -77,8 +79,11 @@ function parseScan(raw: string): Target | null {
 export default function PayPage() {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
+  // Solana selected → skip the EVM smart-wallet execution and use the
+  // simulated path (real execution stays on the EVM/Arc leg).
+  const { isSvm } = useActiveNetwork();
   const live =
-    mode === "live" && authenticated && smart.ready && CONTRACTS_READY;
+    mode === "live" && authenticated && smart.ready && CONTRACTS_READY && !isSvm;
 
   const [step, setStep] = useState<Step>("scan");
   const [target, setTarget] = useState<Target | null>(null);
@@ -173,9 +178,12 @@ export default function PayPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
-        Scan &amp; pay
-      </h1>
+      <div className="flex items-start justify-between gap-3 mb-1.5">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink">
+          Scan &amp; pay
+        </h1>
+        <NetworkSwitcher className="mt-1" />
+      </div>
       <p className="text-slate mb-6">
         Point at a Pesarc QR, see who you&apos;re paying and the fee, then
         pay in one tap.
