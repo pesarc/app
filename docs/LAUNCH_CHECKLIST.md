@@ -60,7 +60,7 @@ We run our OWN ERC-4337 gasless (Alchemy PAYG not needed): a bundler relays, and
 The brain (`sdk/llm/extract.ts`) is provider-agnostic; set a key + a signing key.
 - [ ] LLM: **OpenRouter** (OpenAI-compatible) — `LLM_PROVIDER=openai`,
       `LLM_BASE_URL=https://openrouter.ai/api/v1`, `LLM_API_KEY=<sk-or-…>`,
-      `LLM_MODEL=anthropic/claude-3.5-sonnet` (or a cheaper model for the classifier),
+      `LLM_MODEL=deepseek/deepseek-v4.1-flash` (cheap, verified; pick a current OpenRouter slug),
       `OPENROUTER_SITE_URL=https://app.pesarc.xyz` **[server]**.
 - [ ] Agent signing key: `SETTLE_OPERATOR_PK` (or `ARC_AGENT_PK`) **[server]** —
       fund with a little USDC for gas on Arc.
