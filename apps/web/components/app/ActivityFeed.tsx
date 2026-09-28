@@ -57,6 +57,11 @@ export type FallbackItem = {
   flag: string;
 };
 
+/** A short, friendly network name for the per-row badge ("Arbitrum Sepolia" -> "Arbitrum"). */
+function shortNetwork(label: string): string {
+  return label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
+}
+
 function timeAgo(unixSeconds?: number): string {
   if (!unixSeconds) return "";
   const m = Math.floor((Date.now() / 1000 - unixSeconds) / 60);
@@ -90,11 +95,9 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   }, [live, smart.address]);
 
   if (live && onchain && onchain.length > 0) {
+    const network = shortNetwork(chainLabel());
     return (
       <div className="space-y-2.5">
-        <div className="text-[11px] font-semibold uppercase tracking-widest text-slate mb-1">
-          On-chain · {chainLabel()}
-        </div>
         {onchain.map((a) => {
           const sent = a.kind === "sent";
           return (
@@ -110,8 +113,15 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
                 initialsColor={sent ? "#13426f" : "#0254a5"}
                 positive={!sent}
                 sub={
-                  <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1.5">
                     {sent ? "Sent" : "Received"} · {timeAgo(a.timestamp)}
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full bg-black/[0.04] px-1.5 py-0.5 text-[10.5px] font-semibold text-slate"
+                      title={`Settled on ${chainLabel()}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky" />
+                      {network}
+                    </span>
                     <ExternalLink className="w-3 h-3 opacity-60" />
                   </span>
                 }

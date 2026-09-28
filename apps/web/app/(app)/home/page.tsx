@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, ArrowDownLeft, QrCode, Bell, Plus, TrendingUp } from "@/components/icons";
+import { ArrowUpRight, ArrowDownLeft, QrCode, Plus, TrendingUp } from "@/components/icons";
+import { NotificationsBell } from "@/components/app/NotificationsBell";
 import { ACCOUNT, ACTIVITY } from "@pesarc/sdk/account";
 import { listTransfers } from "@pesarc/sdk/transfers";
 import { formatMoney, formatNumber, midMarketRate, CURRENCIES } from "@pesarc/sdk/money";
@@ -74,15 +75,14 @@ export default async function HomePage() {
           <span className="text-xl font-extrabold tracking-tight text-harbor">Welcome back</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
-            aria-label="Notifications"
-            className="w-[42px] h-[42px] rounded-full bg-snow border border-fog shadow-card-flat flex items-center justify-center text-harbor"
+          <NotificationsBell />
+          <Link
+            href="/you"
+            aria-label="Your profile and settings"
+            className="w-[42px] h-[42px] rounded-full bg-harbor text-white flex items-center justify-center font-extrabold text-[15px] hover:opacity-90 transition-opacity"
           >
-            <Bell className="w-5 h-5" />
-          </button>
-          <span className="w-[42px] h-[42px] rounded-full bg-harbor text-white flex items-center justify-center font-extrabold text-[15px]">
             {ACCOUNT.name.slice(0, 1)}
-          </span>
+          </Link>
         </div>
       </div>
 
@@ -112,10 +112,12 @@ export default async function HomePage() {
                   <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">
                     Total balance
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky/20 text-sky-tint text-[11px] font-bold px-2.5 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-mid ring-4 ring-sky-mid/30" />
-                    Gasless
-                  </span>
+                  <Link
+                    href="/add"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-harbor text-[12px] font-extrabold px-3 py-1.5 shadow-sm hover:-translate-y-0.5 transition-transform"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add money
+                  </Link>
                 </div>
 
                 <div className="text-5xl font-extrabold tracking-tight numerals mb-2.5">
@@ -178,10 +180,10 @@ export default async function HomePage() {
           {/* Corridors */}
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[13px] font-bold uppercase tracking-widest text-slate">
-              Your corridors
+              Send abroad
             </h2>
             <Link href="/corridor" className="text-[13px] font-bold text-sky hover:text-sky-deep">
-              Rates
+              Today&apos;s rates
             </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-2.5 mb-8">
@@ -221,9 +223,9 @@ export default async function HomePage() {
                 <Plus className="w-[18px] h-[18px]" />
               </span>
               <span className="text-[13px] font-bold leading-tight">
-                New
+                Add a
                 <br />
-                corridor
+                country
               </span>
             </Link>
           </div>
