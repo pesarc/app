@@ -138,7 +138,7 @@ export default function YouPage() {
         <div className="border-t border-cream px-4 py-3.5">
           <div className="text-[15px] font-bold text-ink">Default currency</div>
           <div className="text-[12.5px] font-medium text-slate mb-3">
-            The currency you send in — set once, no picking every time.
+            The currency you send in, set once, no picking every time.
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {SEND_CURRENCIES.map((code: CurrencyCode) => {
@@ -248,10 +248,10 @@ function VerificationRow({
         <div className="text-[15px] font-bold text-ink">Identity verification</div>
         <div className="text-[12.5px] font-medium text-slate">
           {kyc === "verified"
-            ? "Verified — bank & mobile-money payouts unlocked."
+            ? "Verified: bank & mobile-money payouts unlocked."
             : kyc === "pending"
             ? "Reviewing your details…"
-            : "Verify once to receive fiat payouts to a bank or wallet."}
+            : "Verify once to cash out to your bank or mobile money."}
         </div>
       </div>
       {kyc === "verified" ? (

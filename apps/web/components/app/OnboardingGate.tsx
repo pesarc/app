@@ -59,7 +59,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
           <Option
             icon={PiggyBank}
             title="To earn on my money"
-            body="Provide liquidity and earn a yield in your own currency. Lands you straight in Earn."
+            body="Put your money to work and earn in your own currency. Lands you straight in Earn."
             cta="Continue as saver"
             onClick={() => choose("provider")}
           />

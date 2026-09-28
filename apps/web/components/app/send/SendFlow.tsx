@@ -527,7 +527,7 @@ function AmountStep({
       {/* Network + live balance. Switch network to see (and spend) that
           chain's on-chain balance, MetaMask-style. */}
       <div className="flex items-center justify-between mb-3">
-        <NetworkSwitcher />
+        {advanced ? <NetworkSwitcher /> : <span />}
         <span className="text-[13px] font-bold text-harbor">
           {live.loading ? (
             <span className="text-slate">Checking balance…</span>
@@ -592,7 +592,7 @@ function AmountStep({
             {recipient.name} receives
           </div>
           <div className="text-[34px] leading-none font-extrabold tracking-tight text-sky-tint numerals">
-            {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "—"}
+            {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "-"}
           </div>
           {savings > 0 && (
             <div className="inline-flex items-center gap-1.5 mt-3 rounded-full bg-sky/20 text-sky-tint text-xs font-bold px-3 py-1.5">

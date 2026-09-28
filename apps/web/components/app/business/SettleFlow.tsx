@@ -152,7 +152,7 @@ export default function SettleFlow() {
       const res = await fetch("/api/netting/settle", { method: "POST" });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Settlement failed.");
-      setNotice({ text: "Cycle settled — only net positions moved.", tx: data.tx });
+      setNotice({ text: "Cycle settled: only net positions moved.", tx: data.tx });
       await refresh();
     } catch (e) {
       setNotice({
@@ -182,20 +182,20 @@ export default function SettleFlow() {
     <Shell>
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <Stat label="Cycle" value={snap ? `#${snap.cycle}` : "—"} />
+        <Stat label="Cycle" value={snap ? `#${snap.cycle}` : "-"} />
         <Stat
           label="Gross obligations"
-          value={snap ? fmt(snap.gross) : "—"}
+          value={snap ? fmt(snap.gross) : "-"}
           sub="tUSD"
         />
         <Stat
           label="Net to move"
-          value={snap ? fmt(snap.netToMove) : "—"}
+          value={snap ? fmt(snap.netToMove) : "-"}
           sub="tUSD"
         />
         <Stat
           label="Netting efficiency"
-          value={efficiency !== null ? `${efficiency}%` : "—"}
+          value={efficiency !== null ? `${efficiency}%` : "-"}
           accent
         />
       </div>
@@ -336,7 +336,7 @@ export default function SettleFlow() {
             <SectionTitle icon={Shuffle} title="Open obligations" />
             {(snap?.obligations ?? []).length === 0 ? (
               <p className="text-sm text-slate">
-                None this cycle — record an invoice to see netting in action.
+                None this cycle. Record an invoice to see netting in action.
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -393,7 +393,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </h1>
         <p className="text-slate">
           Record invoices between members, then settle the whole web in one
-          cycle — only net positions move on-chain.
+          cycle, only net positions move on-chain.
         </p>
       </div>
       {children}
