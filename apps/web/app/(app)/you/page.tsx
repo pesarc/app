@@ -9,7 +9,6 @@ import Link from "next/link";
 import {
   Sprout,
   Building2,
-  MapPin,
   QrCode,
   ArrowDownLeft,
   Plus,
@@ -39,7 +38,6 @@ const MORE = [
   { label: "Add money", href: "/add", icon: Plus },
   { label: "Earn", href: "/earn", icon: Sprout },
   { label: "Business", href: "/business", icon: Building2 },
-  { label: "Local", href: "/corridor", icon: MapPin },
 ];
 
 const PERSONA_OPTS: { value: Persona; label: string }[] = [
