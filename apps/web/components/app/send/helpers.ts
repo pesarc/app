@@ -51,16 +51,28 @@ export function isEvmAddress(a: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(a.trim());
 }
 
-/** A recipient that is a raw on-chain wallet address (delivered in local currency). */
+/** True for a plausible Solana (base58, 32–44 chars) address. */
+export function isSolanaAddress(a: string): boolean {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
+}
+
+/** True for any supported wallet address (EVM or Solana). */
+export function isWalletAddress(a: string): boolean {
+  return isEvmAddress(a) || isSolanaAddress(a);
+}
+
+/** A recipient that is a raw on-chain wallet address. EVM goes through the local-
+ *  currency corridor; Solana receives USDC directly. */
 export function recipientFromAddress(addr: string): Recipient {
   const a = addr.trim();
+  const solana = isSolanaAddress(a) && !isEvmAddress(a);
   return {
     id: `wallet:${a.toLowerCase()}`,
     name: `${a.slice(0, 6)}…${a.slice(-4)}`,
     handle: a,
-    country: "On-chain wallet",
-    flag: "🔗",
-    receiveCurrency: "NGN",
+    country: solana ? "Solana wallet" : "On-chain wallet",
+    flag: solana ? "◎" : "🔗",
+    receiveCurrency: solana ? "USD" : "NGN",
     initialsColor: "#6b4ef0",
   };
 }

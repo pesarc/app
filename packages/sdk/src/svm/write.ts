@@ -13,6 +13,11 @@ import {
   TransactionInstruction,
   SystemProgram,
 } from "@solana/web3.js";
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
+} from "@solana/spl-token";
 import { svmConfig } from "./config";
 
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -134,17 +139,41 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
+/**
+ * Send SPL tokens to any Solana address, creating the recipient's associated
+ * token account if it doesn't exist yet. Gasless when a relayer fee payer is
+ * configured. Returns the signature.
+ */
+export async function svmTransfer(
+  signer: SolanaSigner,
+  p: { mint: string; to: string; amount: number; decimals: number },
+): Promise<string> {
+  const cfg = svmConfig();
+  const conn = new Connection(cfg.rpcUrl, "confirmed");
+  const owner = new PublicKey(signer.address);
+  const mint = new PublicKey(p.mint);
+  const dest = new PublicKey(p.to);
+  const payer = new PublicKey(cfg.feePayer || signer.address);
+  const srcAta = getAssociatedTokenAddressSync(mint, owner);
+  const destAta = getAssociatedTokenAddressSync(mint, dest);
+  const base = BigInt(Math.round(p.amount * 10 ** p.decimals));
+  return sendSigned(conn, signer, [
+    createAssociatedTokenAccountIdempotentInstruction(payer, destAta, dest, mint),
+    createTransferCheckedInstruction(srcAta, mint, destAta, owner, base, p.decimals),
+  ]);
+}
+
 async function sendSigned(
   conn: Connection,
   signer: SolanaSigner,
-  ix: TransactionInstruction,
+  ix: TransactionInstruction | TransactionInstruction[],
 ): Promise<string> {
   const cfg = svmConfig();
   const user = new PublicKey(signer.address);
   // Gasless: the relayer is the fee payer and co-signs + submits server-side, so
   // the user never needs SOL. Without a relayer configured, the user pays.
   const sponsored = Boolean(cfg.feePayer);
-  const tx = new Transaction().add(ix);
+  const tx = new Transaction().add(...(Array.isArray(ix) ? ix : [ix]));
   tx.feePayer = sponsored ? new PublicKey(cfg.feePayer) : user;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
 
