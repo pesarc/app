@@ -318,6 +318,17 @@ export function configuredChains(): EvmChainConfig[] {
   return allChains().filter((c) => Boolean(c.predictionMarket));
 }
 
+/**
+ * Chains to read balances on: any chain the app is wired to — has a prediction
+ * market, an intent matcher, or a configured token map. Broader than
+ * configuredChains so mainnet chains that only hold funds (e.g. Arc) are read too.
+ */
+export function balanceChains(): EvmChainConfig[] {
+  return allChains().filter(
+    (c) => Boolean(c.predictionMarket) || Boolean(c.intentMatcher) || Object.keys(c.tokens).length > 0,
+  );
+}
+
 // Runtime override so the app can switch its active EVM chain in-session (set by
 // the chain selector). Falls back to NEXT_PUBLIC_ACTIVE_CHAIN, then the first
 // configured chain.

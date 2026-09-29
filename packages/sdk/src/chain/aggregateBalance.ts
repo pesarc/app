@@ -1,14 +1,14 @@
 // Cumulative wallet balance across every supported chain, converted to one
-// denomination (the user's stablecoin currency). It reads the REAL stablecoins
-// from the stablecoin registry (USDC, USDT, PYUSD, EURC, cNGN, …) per chain and
-// network, not the app's internal settlement tokens. Per-token AMOUNTS are read
-// live on-chain; the cross-currency conversion into a single denomination uses
-// indicative FX (money.ts), so the total is an approximation of real holdings.
-// Fails soft: a chain or token that can't be read is skipped, never throws.
+// denomination (the user's stablecoin currency). It unions the REAL registry
+// stablecoins (USDC, USDT, PYUSD, EURC, cNGN, …) with the app's own settlement
+// tokens per chain (deduped by address), so both real holdings and test-token
+// balances show up. Per-token AMOUNTS are read live on-chain; the cross-currency
+// conversion into a single denomination uses indicative FX (money.ts), so the
+// total is an approximation. Fails soft: an unreadable token/chain is skipped.
 
 import { formatUnits } from "viem";
 import { erc20Abi } from "@pesarc/abi";
-import { configuredChains, publicClientFor } from "./registry";
+import { balanceChains, publicClientFor, type TokenSymbol } from "./registry";
 import { realStablecoinsForAppChain } from "./stablecoin-registry";
 import { midMarketRate, type CurrencyCode } from "../money";
 
@@ -35,33 +35,57 @@ export async function fetchAggregatedBalance(
   const holdings: TokenHolding[] = [];
 
   await Promise.all(
-    configuredChains().map(async (chain) => {
+    balanceChains().map(async (chain) => {
       const client = publicClientFor(chain);
-      const coins = realStablecoinsForAppChain(chain.key, chain.testnet);
+
+      // Union: real registry stablecoins + the app's settlement tokens, deduped
+      // by address. Registry entries carry a symbol; app tokens read it on-chain.
+      const seen = new Set<string>();
+      const toRead: { address: `0x${string}`; fiat: CurrencyCode; symbol?: string }[] = [];
+      for (const coin of realStablecoinsForAppChain(chain.key, chain.testnet)) {
+        const key = coin.address.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        toRead.push({ address: coin.address, fiat: coin.fiat, symbol: coin.symbol });
+      }
+      for (const [code, address] of Object.entries(chain.tokens) as [TokenSymbol, `0x${string}`][]) {
+        if (!address) continue;
+        const key = address.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        toRead.push({ address, fiat: code as CurrencyCode });
+      }
+
       await Promise.all(
-        coins.map(async (coin) => {
+        toRead.map(async (t) => {
           try {
-            const [bal, dec] = await Promise.all([
+            const [bal, dec, sym] = await Promise.all([
               client.readContract({
-                address: coin.address,
+                address: t.address,
                 abi: erc20Abi,
                 functionName: "balanceOf",
                 args: [owner],
               }) as Promise<bigint>,
               client
-                .readContract({ address: coin.address, abi: erc20Abi, functionName: "decimals" })
+                .readContract({ address: t.address, abi: erc20Abi, functionName: "decimals" })
                 .then((d) => Number(d))
                 .catch(() => 18),
+              t.symbol
+                ? Promise.resolve(t.symbol)
+                : client
+                    .readContract({ address: t.address, abi: erc20Abi, functionName: "symbol" })
+                    .then((s) => String(s))
+                    .catch(() => t.fiat),
             ]);
             const amount = Number(formatUnits(bal, dec));
             if (amount <= 0) return;
             const valueInDenom =
-              coin.fiat === denom ? amount : amount * midMarketRate(coin.fiat, denom);
+              t.fiat === denom ? amount : amount * midMarketRate(t.fiat, denom);
             holdings.push({
               chainKey: chain.key,
               chainLabel: chain.label,
-              fiat: coin.fiat,
-              symbol: coin.symbol,
+              fiat: t.fiat,
+              symbol: sym,
               amount,
               valueInDenom,
             });
