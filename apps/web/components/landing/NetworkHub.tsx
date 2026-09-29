@@ -12,25 +12,15 @@ import { motion } from "framer-motion";
 import { User, Bot, Landmark, Smartphone } from "@/components/icons";
 import type { IconType } from "react-icons";
 import { SiEthereum, SiSolana, SiPolygon, SiCoinbase, SiOptimism } from "react-icons/si";
+import { CHAIN_LOGO as LOGO, CLOUD } from "@/lib/chainLogos";
 
 const ACCENT = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// Cloudinary: real brand logos. Fill LOGO with public IDs and they win over the
-// react-icons / badge fallback below. Delivery needs only the (public) cloud name.
-const CLOUD = "noivtpg4";
+// Real brand logos come from the shared Cloudinary map (lib/chainLogos); when a
+// chain isn't in it, the react-icons / badge fallback below is used. This hub
+// renders logos inside an SVG, so it keeps its own (transform-less) delivery URL.
 const cld = (id?: string) => (id ? `https://res.cloudinary.com/${CLOUD}/image/upload/${id}` : "");
-const LOGO: Record<string, string> = {
-  Ethereum: "eth-diamond-_color-filled_cbdlt6",
-  Base: "Base_square_blue_dd1ktd",
-  Arc: "Arc_Icon_YellowGradient_avsvys",
-  Solana: "solanaLogoMark_jvqcyo",
-  Celo: "Celo_Symbol_RGB_ProsperityYellow_vvwx61",
-  Arbitrum: "1225_Arbitrum_Logomark_FullColor_ClearSpace_xlpcpl",
-  Optimism: "05dee11fbd0f605cc307d301daf68e2192297e50_k3gqrv",
-  Algorand: "algorand-logomark-blue-RGB_ckba3s",
-  Polygon: "polygon-icon-primary-purple_w6psna",
-};
 
 // Per-logo size tuning so wildly different source art reads at one optical
 // weight: the ETH diamond runs tall, Base is a heavy solid square, while the
