@@ -200,10 +200,10 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   if (live && onchain && onchain.length > 0) {
     return (
       <div className="space-y-2.5">
-        {onchain.map((a) => {
+        {onchain.map((a, i) => {
           const sent = a.kind === "sent";
           return (
-            <a key={a.id} href={explorerTxUrl(a.txHash)} target="_blank" rel="noreferrer" className="block">
+            <a key={`${a.id}-${i}`} href={explorerTxUrl(a.txHash)} target="_blank" rel="noreferrer" className="block">
               <Row
                 type={sent ? "send" : "receive"}
                 chain={chain}
@@ -234,11 +234,11 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
 
   return (
     <div className="space-y-2.5">
-      {fallback.map((a) => {
+      {fallback.map((a, i) => {
         const sent = a.kind === "sent";
         return (
           <Row
-            key={a.id}
+            key={`${a.id}-${i}`}
             type={a.type}
             chain={chain}
             title={a.counterparty}
