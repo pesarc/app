@@ -12,6 +12,7 @@ import {
   ExternalLink,
   ScanLine,
   Zap,
+  Paperclip,
 } from "@/components/icons";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { formatMoney, formatNumber, currencyName } from "@pesarc/sdk/money";
@@ -76,6 +77,41 @@ function parseScan(raw: string): Target | null {
   }
 }
 
+/**
+ * Decode a QR code from an uploaded image file (a screenshot or photo of a QR
+ * shared over WhatsApp/social). Draws it to a canvas and runs jsQR. Returns the
+ * raw payload string, or null if no QR was found.
+ */
+async function decodeQrFromImage(file: File): Promise<string | null> {
+  const jsQR = (await import("jsqr")).default;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("load failed"));
+      im.src = url;
+    });
+    // Cap the working size so a large photo stays fast.
+    const maxDim = 1400;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height) || 1);
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h);
+    return jsQR(data.data, w, h)?.data ?? null;
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function PayPage() {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
@@ -90,6 +126,8 @@ export default function PayPage() {
   const [amountStr, setAmountStr] = useState("");
   const [cameraError, setCameraError] = useState(false);
   const [manual, setManual] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [result, setResult] = useState<{ tx?: string; payoutTx?: string; received?: number }>();
 
   const amount = target?.amount ?? (parseFloat(amountStr) || 0);
@@ -101,6 +139,24 @@ export default function PayPage() {
     setStep("details");
     return true;
   }, []);
+
+  // Upload a QR image (screenshot/photo shared over social) instead of scanning
+  // live. Decodes it, then routes into the same confirm-before-pay flow.
+  const onUploadFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      setUploadError(null);
+      const raw = await decodeQrFromImage(file);
+      if (!raw) {
+        setUploadError("No QR code found in that image. Try a clearer screenshot.");
+        return;
+      }
+      if (!onScanned(raw)) {
+        setUploadError("That QR isn't a Pesarc payment code or a wallet address.");
+      }
+    },
+    [onScanned],
+  );
 
   // Deep link from a Receive link/QR: /pay?name=@alias&to=0x..&amount=..
   // Pre-fill the target and skip straight to the details step.
@@ -213,6 +269,27 @@ export default function PayPage() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Upload a QR image shared over WhatsApp/social */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              onUploadFile(e.target.files?.[0]);
+              e.target.value = ""; // allow re-selecting the same file
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-field border border-fog bg-snow px-4 py-3 text-sm font-medium text-ink shadow-card-flat hover:border-sky/50 transition"
+          >
+            <Paperclip className="w-4 h-4 text-slate" /> Upload a QR image
+          </button>
+          {uploadError && (
+            <p className="mt-2 text-sm text-alert font-medium text-center">{uploadError}</p>
+          )}
         </>
       )}
 
