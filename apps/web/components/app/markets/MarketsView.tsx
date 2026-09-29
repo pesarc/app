@@ -163,6 +163,11 @@ export default function MarketsView() {
               <Radio className="w-3 h-3" /> Live · all venues
             </span>
           )}
+          {!isLive && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] text-slate text-[11px] font-bold px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate" /> Indicative prices
+            </span>
+          )}
           <Link
             href="/markets/propose"
             className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-[13px] font-bold px-3.5 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
