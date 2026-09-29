@@ -1,0 +1,21 @@
+// Shared types for the Pesarc agent chat surface.
+
+import type { ParsedUpload } from "@pesarc/sdk/agent/files";
+
+export type Msg =
+  | { role: "user"; text: string; attachment?: string }
+  | {
+      role: "agent";
+      text: string;
+      matched?: boolean;
+      submitUrl?: string;
+      settlements?: { kind: string; url: string }[];
+      pending?: boolean;
+      marketsUrl?: string;
+      billsUrl?: string;
+      /** A drafted bulk action parsed from an uploaded file (read + draft only). */
+      upload?: ParsedUpload;
+    };
+
+// ---- Chat history (per-device, localStorage) ----------------------------
+export type Thread = { id: string; title: string; msgs: Msg[]; updatedAt: number };
