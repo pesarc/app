@@ -19,6 +19,13 @@ export default function BankAccountPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refetch = () =>
+    authedFetch("/api/bank")
+      .then((r) => r.json())
+      .then((j) => setAccount(j.account ?? null))
+      .catch(() => {});
 
   useEffect(() => {
     let active = true;
@@ -72,6 +79,37 @@ export default function BankAccountPanel() {
     return (
       <div className="flex items-center gap-2 text-sm text-slate py-4">
         <Loader2 className="w-4 h-4 animate-spin" /> Checking your bank account…
+      </div>
+    );
+  }
+
+  if (account && account.status === "pending") {
+    return (
+      <div className="rounded-2xl border border-fog bg-snow p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-8 h-8 rounded-full bg-sky-tint text-sky-deep flex items-center justify-center">
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </span>
+          <div>
+            <div className="text-[14px] font-bold text-ink">Setting up your account</div>
+            <div className="text-[12px] text-slate">{account.provider} is assigning your NUBAN.</div>
+          </div>
+        </div>
+        <p className="text-[12.5px] text-slate mb-3">
+          This usually takes a moment. Check back shortly.
+        </p>
+        <Button
+          block
+          onClick={async () => {
+            setRefreshing(true);
+            await refetch();
+            setRefreshing(false);
+          }}
+          disabled={refreshing}
+        >
+          {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Check status
+        </Button>
       </div>
     );
   }
