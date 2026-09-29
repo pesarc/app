@@ -36,7 +36,7 @@ const cardStyle = {
 const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: LineChart,
-    title: "Markets on everything Africa",
+    title: "Markets on everything that moves",
     body: "Elections, football, the naira, fuel prices, the world. Take a Yes or No, back it with your own money, and cash out when you are right.",
   },
   {
