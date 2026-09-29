@@ -1,54 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, LayoutGrid, Globe2, Sparkles, type LucideIcon } from "@/components/icons";
+import { ArrowUpRight } from "@/components/icons";
 import AgentPreview from "./AgentPreview";
 import LivePreview from "./LivePreview";
-import { NavPill, AccentButton, ACCENT } from "./ui";
-import { site } from "@pesarc/sdk/site";
-import { LogoMark } from "@/components/app/Logo";
+import { AccentButton, ACCENT } from "./ui";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const NAV_ICON: Record<string, LucideIcon> = {
-  Product: LayoutGrid,
-  Networks: Globe2,
-  Beta: Sparkles,
-};
 
 export default function Hero() {
   return (
     <section className="relative w-full min-h-screen overflow-hidden">
-      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 py-8 md:py-8 pointer-events-none">
-        {/* Header */}
-        <motion.header
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease }}
-          className="flex items-center justify-between pointer-events-auto"
-        >
-          <Link href="/" className="flex items-center gap-2.5">
-            <LogoMark size={34} className="rounded-xl" />
-            <span className="text-xl font-medium tracking-tight text-white">{site.name}</span>
-          </Link>
-
-          <nav className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2">
-              {site.nav.map((item) => (
-                <NavPill
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={NAV_ICON[item.label] ?? LayoutGrid}
-                />
-              ))}
-            </div>
-            <AccentButton href={`${site.appUrl}/home`} size="sm" icon={ArrowUpRight} className="uppercase tracking-wide">
-              Open app
-            </AccentButton>
-          </nav>
-        </motion.header>
-
+      <div className="relative z-10 flex flex-col min-h-screen px-6 md:px-12 pt-24 pb-8 md:pt-24 pointer-events-none">
         {/* Headline */}
         <div className="flex-1 flex items-center pt-10 sm:pt-8 lg:pt-0">
           <div className="w-full max-w-2xl pointer-events-none select-none">

@@ -7,14 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 import type { ParsedUpload } from "@pesarc/sdk/agent/files";
+import type { AgentDraft } from "@pesarc/sdk/agent/run";
 import type { Msg, Thread } from "./types";
-import {
-  GREETING,
-  MAX_THREADS,
-  loadThreads,
-  parseAmount,
-  saveThreads,
-} from "./helpers";
+import { GREETING, MAX_THREADS, loadThreads, saveThreads } from "./helpers";
 
 export function useAgentChat() {
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
@@ -104,6 +99,9 @@ export function useAgentChat() {
           body: JSON.stringify({ message: text }),
         });
         const data = await res.json();
+        // A money-moving action comes back as a `draft` to confirm; anything
+        // else (a created market, a paid-in-full-info bill, a question) renders
+        // as before.
         setMsgs((m) => [
           ...m,
           {
@@ -114,23 +112,10 @@ export function useAgentChat() {
             settlements: data.settlements,
             marketsUrl: data.marketsUrl,
             billsUrl: data.billsUrl,
-            pending:
-              data.ok &&
-              !data.matched &&
-              !data.needsInput &&
-              !data.createdMarket &&
-              !data.billPaid,
+            draft: data.draft,
+            draftState: data.draft ? "pending" : undefined,
           },
         ]);
-        // Reflect the spend against the on-chain session-key cap.
-        if (data.ok && !data.needsInput) {
-          const amt = parseAmount(text);
-          if (amt > 0) {
-            setBudget((b) =>
-              b ? { ...b, remaining: Math.max(0, b.remaining - amt) } : b,
-            );
-          }
-        }
       } catch {
         setMsgs((m) => [...m, { role: "agent", text: "I couldn't reach the network. Try again." }]);
       }
@@ -139,6 +124,53 @@ export function useAgentChat() {
     },
     [busy],
   );
+
+  // The user consented to a drafted action: execute it and show the receipt.
+  const confirm = useCallback(
+    async (index: number, draft: AgentDraft) => {
+      if (busy) return;
+      setMsgs((m) => m.map((x, i) => (i === index ? { ...x, draftState: "confirmed" } : x)));
+      setBusy(true);
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      try {
+        const res = await fetch("/api/agent/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft }),
+        });
+        const data = await res.json();
+        setMsgs((m) => [
+          ...m,
+          {
+            role: "agent",
+            text: data.reply ?? "Something went wrong.",
+            matched: data.matched,
+            submitUrl: data.submitUrl,
+            settlements: data.settlements,
+            billsUrl: data.billsUrl,
+            receipt: data.receipt,
+          },
+        ]);
+        if (data.ok) {
+          const amt = draft.type === "transfer" ? draft.amount : draft.amount ?? 0;
+          if (amt > 0) setBudget((b) => (b ? { ...b, remaining: Math.max(0, b.remaining - amt) } : b));
+        }
+      } catch {
+        setMsgs((m) => [...m, { role: "agent", text: "I couldn't complete that. Nothing was sent." }]);
+      }
+      setBusy(false);
+      setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    },
+    [busy],
+  );
+
+  // The user declined a drafted action: nothing is sent.
+  const decline = useCallback((index: number) => {
+    setMsgs((m) => {
+      const next = m.map((x, i) => (i === index ? { ...x, draftState: "cancelled" as const } : x));
+      return [...next, { role: "agent", text: "Okay, cancelled. Nothing was sent." }];
+    });
+  }, []);
 
   // Attach a file (CSV / ZIP / text). The agent READS it and DRAFTS a bulk
   // action; nothing is sent until the user confirms each row in Send.
@@ -185,6 +217,8 @@ export function useAgentChat() {
     openThread,
     deleteThread,
     send,
+    confirm,
+    decline,
     uploadFile,
   };
 }
