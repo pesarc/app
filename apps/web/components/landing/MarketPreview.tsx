@@ -1,9 +1,9 @@
 "use client";
 
-// Live-market card that cycles through sample Pesarc markets — African
-// elections, football, prices and world events — each with Yes/No odds and the
-// local currency it settles in. Crossfades in place (no width change), matching
-// the hero widget style.
+// Live-market card that cycles through sample Pesarc markets: elections,
+// sport, prices and world events from around the world, each with Yes/No odds
+// and the local currency it settles in. Crossfades in place (no width change),
+// matching the hero widget style.
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,10 +19,10 @@ type PreviewMarket = {
 
 const MARKETS: PreviewMarket[] = [
   { flag: "🇳🇬", category: "Football", question: "Super Eagles qualify for the 2026 World Cup?", yes: 64, ccy: "cNGN" },
-  { flag: "🇳🇬", category: "Politics", question: "CBN cuts the benchmark rate before year-end?", yes: 41, ccy: "cNGN" },
+  { flag: "🇺🇸", category: "Economy", question: "US Fed cuts rates before year-end?", yes: 41, ccy: "cGHS" },
   { flag: "🌍", category: "Crypto", question: "Bitcoin above $150,000 before 2027?", yes: 38, ccy: "cGHS" },
   { flag: "🇰🇪", category: "Prices", question: "Shilling stronger than 120 to the dollar by June?", yes: 29, ccy: "cKES" },
-  { flag: "🇬🇭", category: "Football", question: "African player tops the Premier League scorers?", yes: 55, ccy: "cGHS" },
+  { flag: "🇬🇧", category: "Football", question: "Premier League title decided on the final day?", yes: 55, ccy: "cGHS" },
 ];
 
 export default function MarketPreview() {
