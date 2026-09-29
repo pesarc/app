@@ -241,6 +241,48 @@ async function persist(account: string, a: LinkedBankAccount): Promise<boolean> 
   return writeToFile(account, a);
 }
 
+/**
+ * Resolve a pending Paystack account by its reconciliation ref (the customer
+ * email), setting it active with the assigned NUBAN. Called by the webhook.
+ */
+export async function resolveBankAccountByRef(
+  providerRef: string,
+  dva: { accountNumber: string; bankName: string; accountName: string },
+): Promise<boolean> {
+  if (hasNeon()) {
+    try {
+      const sql = getSql();
+      await ensureSchema(sql);
+      const res = await sql`
+        UPDATE bank_accounts
+        SET account_number = ${dva.accountNumber},
+            bank_name = ${dva.bankName},
+            account_name = ${dva.accountName},
+            status = 'active'
+        WHERE provider_ref = ${providerRef}
+      `;
+      return (res as { count?: number }).count !== 0;
+    } catch {
+      /* fall through to file */
+    }
+  }
+  try {
+    const all = await readAll();
+    const entry = Object.entries(all).find(([, r]) => r.providerRef === providerRef);
+    if (!entry) return false;
+    const [acct, rec] = entry;
+    return persist(acct, {
+      ...rec,
+      accountNumber: dva.accountNumber,
+      bankName: dva.bankName,
+      accountName: dva.accountName,
+      status: "active",
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function loadRaw(account: string): Promise<LinkedBankAccount | null> {
   if (hasNeon()) {
     try {
