@@ -10,7 +10,7 @@ import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import {
   detectPhone,
-  isEvmAddress,
+  isWalletAddress,
   recipientFromAddress,
   recipientFromBank,
   recipientFromPhone,
@@ -166,21 +166,21 @@ export function RecipientStep({
           <input
             value={walletAddr}
             onChange={(e) => setWalletAddr(e.target.value.trim())}
-            placeholder="0x… wallet address"
+            placeholder="0x… or Solana address"
             aria-label="Recipient wallet address"
             spellCheck={false}
             className="w-full bg-snow rounded-field border border-fog px-4 py-3.5 text-[15px] font-mono text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
           />
-          {walletAddr && !isEvmAddress(walletAddr) && (
-            <p className="text-[12px] text-alert mt-2">Enter a valid 0x wallet address (42 chars).</p>
+          {walletAddr && !isWalletAddress(walletAddr) && (
+            <p className="text-[12px] text-alert mt-2">Enter a valid EVM (0x…) or Solana address.</p>
           )}
           <Button
             size="lg"
             block
             className="mt-5"
-            disabled={!isEvmAddress(walletAddr)}
+            disabled={!isWalletAddress(walletAddr)}
             onClick={() =>
-              isEvmAddress(walletAddr) &&
+              isWalletAddress(walletAddr) &&
               onSelect(recipientFromAddress(walletAddr), { payout: "wallet", address: walletAddr })
             }
           >

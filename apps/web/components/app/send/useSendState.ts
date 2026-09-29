@@ -18,8 +18,11 @@ import { TEST_RECIPIENT, RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
 import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
 import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
+import { svmTransfer } from "@pesarc/sdk/svm/write";
+import { stablecoinAddress } from "@pesarc/sdk/chain/stablecoin-registry";
 import { type BankDestination } from "./BankDetails";
-import { detectPhone, recipientFromBank, recipientFromPhone } from "./helpers";
+import { detectPhone, isSolanaAddress, recipientFromBank, recipientFromPhone } from "./helpers";
 import type { Step, SendResult } from "./types";
 
 export function useSendState() {
@@ -27,6 +30,7 @@ export function useSendState() {
   const { sendCurrency } = usePrefs(); // default currency — no per-send picking
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
+  const solana = useSolanaSigner();
   // Solana selected → the EVM smart-wallet execution must not run; the flow
   // falls to its demo/simulated path (real execution stays on the EVM/Arc leg).
   const { isSvm } = useActiveNetwork();
@@ -121,13 +125,21 @@ export function useSendState() {
   // then goes to the peer's wallet for in-app payouts, or to the ramp
   // partner's escrow when the recipient chose a fiat payout (bank / mobile
   // money) — the fiat leg is orchestrated off-chain from there.
-  const executeReal = useCallback((): Promise<SendResult> => {
+  const executeReal = useCallback(async (): Promise<SendResult> => {
+    // Send to a Solana wallet: a direct SPL USDC transfer on devnet.
+    if (payout === "wallet" && recipientAddress && isSolanaAddress(recipientAddress) && solana) {
+      const mint = stablecoinAddress("USDC", "solana", "testnet");
+      if (!mint) throw new Error("USDC is not configured on Solana devnet.");
+      const sig = await svmTransfer(solana, { mint, to: recipientAddress, amount, decimals: 6 });
+      return { tx: sig, received: amount };
+    }
+    // Otherwise the EVM local-currency corridor (to a wallet, or the ramp escrow).
     const payoutTo =
       payout === "wallet"
         ? ((recipientAddress || TEST_RECIPIENT) as `0x${string}` | "")
         : RAMP_ESCROW;
     return executeCorridorSend(smart, amount, payoutTo);
-  }, [smart, amount, payout, recipientAddress]);
+  }, [smart, solana, amount, payout, recipientAddress]);
 
   const reset = () => {
     setStep("recipient");
