@@ -5,18 +5,11 @@ import {
   Home,
   BarChart3,
   Bot,
-  User,
-  ArrowUpRight,
-  QrCode,
-  ArrowDownLeft,
   Sprout,
   Building2,
-  MapPin,
-  Plus,
   LineChart,
   Code2,
   Receipt,
-  Settings2,
   RefreshCw,
 } from "@/components/icons";
 import { site } from "@pesarc/sdk/site";
@@ -39,24 +32,21 @@ import {
 
 type Item = { label: string; href: string; icon: React.ComponentType<{ className?: string }> };
 
+// Send / Receive / Pay / Add money live on Home (the primary actions), so the
+// sidebar stays focused: the three things you open a whole screen for.
 const MAIN: Item[] = [
   { label: "Home", href: "/home", icon: Home },
-  { label: "Markets", href: "/markets", icon: BarChart3 },
   { label: "Agent", href: "/agent", icon: Bot },
-  { label: "Send", href: "/send", icon: ArrowUpRight },
   { label: "Swap", href: "/swap", icon: RefreshCw },
 ];
 
 const MONEY: Item[] = [
-  { label: "Invest", href: "/invest", icon: LineChart },
   { label: "Earn", href: "/earn", icon: Sprout },
   { label: "Bills", href: "/bills", icon: Receipt },
-  { label: "Pay", href: "/pay", icon: QrCode },
-  { label: "Receive", href: "/receive", icon: ArrowDownLeft },
-  { label: "Add money", href: "/add", icon: Plus },
+  { label: "Markets", href: "/markets", icon: BarChart3 },
+  { label: "Invest", href: "/invest", icon: LineChart },
   { label: "Business", href: "/business", icon: Building2 },
   { label: "Developers", href: "/developers", icon: Code2 },
-  { label: "Local", href: "/corridor", icon: MapPin },
 ];
 
 /** Surfaces only shown to business accounts, never retail. */

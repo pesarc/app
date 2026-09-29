@@ -1,25 +1,14 @@
 "use client";
 
-// The Pesarc agent. Tell it what you need in plain language (send money, pay a
-// bill, top up airtime, spin up a market); it understands and settles in the
-// user's own currency. Provider-agnostic LLM brain lives in sdk/llm/extract.ts.
+// The Pesarc agent, kept deliberately simple: one clean column you can type or
+// speak into, watch it think, and confirm before anything is sent. Tell it what
+// you need in plain language (send money, pay a bill, top up airtime, spin up a
+// market); it drafts the action, asks for a yes, then shows a receipt.
 
-import { motion } from "framer-motion";
-import {
-  ArrowUp,
-  Bot,
-  ShieldCheck,
-  Mic,
-  Square,
-  Paperclip,
-} from "@/components/icons";
-import { Card } from "@/components/app/ui";
-import { currencyName } from "@pesarc/sdk/money";
+import { ArrowUp, Bot, Mic, Square, Paperclip, Plus } from "@/components/icons";
 import { EXAMPLES } from "./helpers";
 import { useAgentChat } from "./useAgentChat";
 import { MessageList } from "./MessageList";
-import { ChatHistory } from "./ChatHistory";
-import { AgentCapabilities } from "./AgentCapabilities";
 
 export default function AgentChat() {
   const {
@@ -27,87 +16,43 @@ export default function AgentChat() {
     input,
     setInput,
     busy,
-    budget,
-    threads,
-    activeId,
     endRef,
     fileRef,
     speech,
     newChat,
-    openThread,
-    deleteThread,
     send,
+    confirm,
+    decline,
     uploadFile,
   } = useAgentChat();
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 md:py-10">
-      <div className="mb-5">
-        <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky uppercase tracking-widest mb-1">
-          <Bot className="w-4 h-4" /> Pesarc agent
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 py-6 md:py-10 min-h-[calc(100vh-4rem)] flex flex-col">
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div>
+          <div className="inline-flex items-center gap-2 text-xs font-semibold text-sky uppercase tracking-widest mb-1">
+            <Bot className="w-4 h-4" /> Pesarc agent
+          </div>
+          <h1 className="text-[26px] font-extrabold tracking-tight text-harbor">
+            Just say what you need
+          </h1>
+          <p className="text-slate text-[15px] mt-0.5">
+            In your own words. I&apos;ll show my work and always ask before I send.
+          </p>
         </div>
-        <h1 className="text-[27px] font-extrabold tracking-tight text-harbor mb-1.5">
-          Just say what to send
-        </h1>
-        <p className="text-slate max-w-xl">
-          Tell it in plain language, or attach a CSV of recipients, and it drafts
-          the payout and settles peer-to-peer in your own currency.
-        </p>
+        {msgs.some((m) => m.role === "user") && (
+          <button
+            onClick={newChat}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-fog bg-snow px-3 py-2 text-[13px] font-bold text-slate hover:text-ink hover:border-slate/40 transition"
+          >
+            <Plus className="w-4 h-4" /> New
+          </button>
+        )}
       </div>
 
-      <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-6 lg:items-start">
-      <div className="space-y-4 mb-4 lg:mb-0 lg:sticky lg:top-20">
-      {budget && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="p-4 mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-harbor">
-                <ShieldCheck className="w-4 h-4 text-sky" /> Agent budget · today
-              </span>
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${
-                  budget.live ? "bg-sky-tint text-sky-deep" : "bg-black/[0.05] text-slate"
-                }`}
-              >
-                {budget.live ? "Live" : "Demo"}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-semibold numerals text-harbor">
-                {currencyName(budget.token)} {Math.round(budget.remaining).toLocaleString()}
-              </span>
-              <span className="text-xs text-slate">
-                of {currencyName(budget.token)} {budget.cap.toLocaleString()} cap
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-black/[0.06] overflow-hidden mt-2">
-              <motion.div
-                className="h-full bg-sky rounded-full"
-                initial={false}
-                animate={{
-                  width: `${Math.max(0, Math.min(100, (budget.remaining / budget.cap) * 100))}%`,
-                }}
-                transition={{ type: "spring", stiffness: 200, damping: 26 }}
-              />
-            </div>
-            <p className="text-[11px] text-slate mt-2">
-              The agent can only spend up to this limit, which you set.
-            </p>
-          </Card>
-        </motion.div>
-      )}
-      <ChatHistory
-        threads={threads}
-        activeId={activeId.current}
-        onNew={newChat}
-        onOpen={openThread}
-        onDelete={deleteThread}
-      />
-      <AgentCapabilities />
+      <div className="flex-1">
+        <MessageList msgs={msgs} busy={busy} endRef={endRef} onConfirm={confirm} onDecline={decline} />
       </div>
-
-      <div className="min-w-0">
-      <MessageList msgs={msgs} busy={busy} endRef={endRef} />
 
       {msgs.length <= 1 && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -187,8 +132,6 @@ export default function AgentChat() {
           <ArrowUp className="w-5 h-5" />
         </button>
       </form>
-      </div>
-      </div>
     </div>
   );
 }

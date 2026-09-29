@@ -2,15 +2,24 @@
 // bridge). Understand a plain-language message, act on it (create a market, pay
 // a bill, or submit + settle a cross-border intent), and return a plain result
 // object — no HTTP/framework types — so any channel can render or forward it.
+//
+// Money-moving actions (a transfer or a bill) support a two-phase flow so a
+// surface can ask for consent before anything is sent:
+//   • PREVIEW  runAgentTurn(msg, account, { preview: true })  -> parses + prices
+//     and returns a `draft` describing exactly what it WILL do. Nothing executes.
+//   • CONFIRM  runAgentExecute(draft, account)                -> performs it and
+//     returns a `receipt`.
+// Called without `preview` (the default, e.g. the WhatsApp bridge) it executes
+// directly, unchanged.
 
 import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
-import { getBillsAdapter, findOperator } from "../bills";
+import { getBillsAdapter, findOperator, type BillCategory, type MeterType } from "../bills";
 import { recordTransfer } from "../transfers";
 import { createCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
-import { activeChain } from "../chain/registry";
+import { activeChain, type EvmChainConfig } from "../chain/registry";
 import {
   evmAgentReady,
   evmAgentAddress,
@@ -20,6 +29,44 @@ import {
   tokenByCode,
   explorerTxUrl,
 } from "../chain/evm-settle";
+
+/** A drafted, priced action awaiting the user's consent. Opaque to the channel;
+ *  handed straight back to runAgentExecute to perform. */
+export type AgentDraft =
+  | {
+      type: "transfer";
+      fromCode: string;
+      toCode: string;
+      amount: number;
+      recipient?: string;
+      rate: number;
+      receiveAmount: number;
+      fromFlag: string;
+      toFlag: string;
+      chainLabel: string;
+    }
+  | {
+      type: "bill";
+      category: string;
+      operatorId: string;
+      customer: string;
+      amount?: number;
+      planId?: string;
+      meterType?: string;
+      operatorName: string;
+      label: string;
+    };
+
+/** A completed action, rendered as a receipt by the surface. */
+export type AgentReceipt = {
+  kind: "transfer" | "bill";
+  title: string;
+  status: "settled" | "pending" | "done";
+  lines: { label: string; value: string }[];
+  reference?: string;
+  proofUrl?: string;
+  settlements?: Array<{ kind: string; url: string }>;
+};
 
 export type AgentTurnResult = {
   ok: boolean;
@@ -37,6 +84,10 @@ export type AgentTurnResult = {
   submitTx?: string;
   submitUrl?: string;
   settlements?: Array<{ kind: string; url: string }>;
+  /** Preview: what the agent will do, awaiting consent. */
+  draft?: AgentDraft;
+  /** Confirm: the completed action. */
+  receipt?: AgentReceipt;
 };
 
 // Slippage the agent accepts vs the realized rate when it has one.
@@ -91,13 +142,17 @@ function ruleReply(message: string): AgentTurnResult {
 
 /**
  * Run a single agent turn for `message`, scoped to `account` (a verified user
- * id, or a channel handle like `whatsapp:+234…`).
+ * id, or a channel handle like `whatsapp:+234…`). With `opts.preview` it drafts
+ * money-moving actions instead of executing them (returns a `draft`).
  */
 export async function runAgentTurn(
   message: string,
   account: string,
+  opts: { preview?: boolean } = {},
 ): Promise<AgentTurnResult> {
-  // Create-a-market intent — works without the LLM.
+  const preview = opts.preview ?? false;
+
+  // Create-a-market intent — no money moves, so it never needs consent.
   const spec = parseCreateMarket(message);
   if (spec) {
     try {
@@ -161,60 +216,34 @@ export async function runAgentTurn(
         reply: `Sure, I can ${billVerb(bill.category)} — just tell me ${ask}.`,
       };
     }
-    try {
-      const opName = findOperator(bill.operatorId!)?.name ?? "provider";
-      const result = await getBillsAdapter().purchase({
-        category: bill.category,
-        operatorId: bill.operatorId!,
-        customer: bill.customer!,
-        amount: bill.category === "data" ? undefined : bill.amount,
-        planId: bill.planId,
-        meterType: bill.meterType,
-      });
-      const label =
-        bill.category === "airtime"
-          ? `${opName} airtime`
-          : bill.category === "data"
-            ? `${opName} data`
-            : `${opName} electricity`;
-      recordTransfer(
-        {
-          direction: "sent",
-          counterparty: label,
-          counterpartyHandle: bill.customer,
-          sendAmount: result.amount,
-          sendCurrency: "NGN",
-          receiveAmount: result.amount,
-          receiveCurrency: "NGN",
-          payout: bill.category,
-          reference: result.reference,
-        },
-        account,
-      ).catch(() => {});
-
-      const naira = `₦${result.amount.toLocaleString()}`;
-      const doneBody =
-        bill.category === "airtime"
-          ? `sent ${naira} ${opName} airtime to ${bill.customer}`
-          : bill.category === "data"
-            ? `bought ${result.units ?? "a"} ${opName} data bundle for ${bill.customer}`
-            : `paid ${naira} to ${opName} for meter ${bill.customer}${
-                result.units ? ` (${result.units})` : ""
-              }`;
-      const tokenLine = result.token ? ` Prepaid token: ${result.token}.` : "";
+    const operatorName = findOperator(bill.operatorId!)?.name ?? "provider";
+    const label =
+      bill.category === "airtime"
+        ? `${operatorName} airtime`
+        : bill.category === "data"
+          ? `${operatorName} data`
+          : `${operatorName} electricity`;
+    const draft: AgentDraft = {
+      type: "bill",
+      category: bill.category,
+      operatorId: bill.operatorId!,
+      customer: bill.customer!,
+      amount: bill.amount,
+      planId: bill.planId,
+      meterType: bill.meterType,
+      operatorName,
+      label,
+    };
+    if (preview) {
+      const amountLine = bill.category === "data" ? "" : `₦${(bill.amount ?? 0).toLocaleString()} of `;
       return {
         ok: true,
         matched: false,
-        billPaid: true,
-        billsUrl: "/bills",
-        reply: `Done — I ${doneBody}.${tokenLine} Reference ${result.reference}.`,
-      };
-    } catch {
-      return {
-        ok: false,
-        reply: "I couldn't complete that bill just now — try again in a moment.",
+        reply: `I'll buy ${amountLine}${label} for ${bill.customer}. Confirm to pay.`,
+        draft,
       };
     }
+    return execBill(draft, account);
   }
 
   // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is
@@ -254,38 +283,167 @@ export async function runAgentTurn(
 
   // 2. Price it from our own realized flow (no external feed).
   const rate = await realizedRateOn(chain, from.address, to.address);
-  const minOut = rate > 0 ? intent.amount * rate * (1 - TOLERANCE) : 1e-9;
+  const receiveAmount = rate > 0 ? intent.amount * rate : 0;
 
-  const recipient = (intent.recipient ?? evmAgentAddress(chain)) as `0x${string}`;
+  const draft: AgentDraft = {
+    type: "transfer",
+    fromCode: from.code,
+    toCode: to.code,
+    amount: intent.amount,
+    recipient: intent.recipient ?? undefined,
+    rate,
+    receiveAmount,
+    fromFlag: from.flag,
+    toFlag: to.flag,
+    chainLabel: chain.label,
+  };
+
+  if (preview) {
+    const recvLine = receiveAmount > 0 ? `; they receive about ${to.flag} ${fmt(receiveAmount)} ${to.code}` : "";
+    return {
+      ok: true,
+      understood: intent.summary,
+      reply: `I'll send ${from.flag} ${fmt(intent.amount)} ${from.code}${recvLine}, settled peer-to-peer on ${chain.label} in local currency. Confirm to send.`,
+      draft,
+    };
+  }
+  return execTransfer(chain, draft);
+}
+
+/** Execute a drafted, consented action and return its receipt. */
+export async function runAgentExecute(
+  draft: AgentDraft,
+  account: string,
+): Promise<AgentTurnResult> {
+  if (draft.type === "bill") return execBill(draft, account);
+  const chain = activeChain();
+  if (!evmAgentReady(chain)) {
+    return { ok: false, reply: "The agent isn't set up to settle on this network yet." };
+  }
+  return execTransfer(chain, draft);
+}
+
+// ---- execution helpers (shared by direct + confirmed paths) ----------------
+
+async function execBill(
+  draft: Extract<AgentDraft, { type: "bill" }>,
+  account: string,
+): Promise<AgentTurnResult> {
+  try {
+    const result = await getBillsAdapter().purchase({
+      category: draft.category as BillCategory,
+      operatorId: draft.operatorId,
+      customer: draft.customer,
+      amount: draft.category === "data" ? undefined : draft.amount,
+      planId: draft.planId,
+      meterType: draft.meterType as MeterType | undefined,
+    });
+    recordTransfer(
+      {
+        direction: "sent",
+        counterparty: draft.label,
+        counterpartyHandle: draft.customer,
+        sendAmount: result.amount,
+        sendCurrency: "NGN",
+        receiveAmount: result.amount,
+        receiveCurrency: "NGN",
+        payout: draft.category,
+        reference: result.reference,
+      },
+      account,
+    ).catch(() => {});
+
+    const naira = `₦${result.amount.toLocaleString()}`;
+    const doneBody =
+      draft.category === "airtime"
+        ? `sent ${naira} ${draft.operatorName} airtime to ${draft.customer}`
+        : draft.category === "data"
+          ? `bought ${result.units ?? "a"} ${draft.operatorName} data bundle for ${draft.customer}`
+          : `paid ${naira} to ${draft.operatorName} for meter ${draft.customer}${result.units ? ` (${result.units})` : ""}`;
+    const tokenLine = result.token ? ` Prepaid token: ${result.token}.` : "";
+
+    const lines: { label: string; value: string }[] = [
+      { label: draft.category === "electricity" ? "Meter" : "To", value: draft.customer },
+      { label: "Amount", value: naira },
+    ];
+    if (result.units) lines.push({ label: "You get", value: String(result.units) });
+    if (result.token) lines.push({ label: "Token", value: result.token });
+
+    return {
+      ok: true,
+      matched: false,
+      billPaid: true,
+      billsUrl: "/bills",
+      reply: `Done — I ${doneBody}.${tokenLine} Reference ${result.reference}.`,
+      receipt: {
+        kind: "bill",
+        title: draft.label,
+        status: "done",
+        lines,
+        reference: result.reference,
+      },
+    };
+  } catch {
+    return {
+      ok: false,
+      reply: "I couldn't complete that bill just now — try again in a moment.",
+    };
+  }
+}
+
+async function execTransfer(
+  chain: EvmChainConfig,
+  draft: Extract<AgentDraft, { type: "transfer" }>,
+): Promise<AgentTurnResult> {
+  const from = tokenByCode(chain, draft.fromCode);
+  const to = tokenByCode(chain, draft.toCode);
+  if (!from || !to) {
+    return { ok: false, reply: `I can't move ${draft.fromCode}→${draft.toCode} on ${chain.label}.` };
+  }
+  const rate = draft.rate > 0 ? draft.rate : await realizedRateOn(chain, from.address, to.address);
+  const minOut = rate > 0 ? draft.amount * rate * (1 - TOLERANCE) : 1e-9;
+  const recipient = (draft.recipient ?? evmAgentAddress(chain)) as `0x${string}`;
 
   try {
-    // 3. Create the intent on-chain.
     const submitTx = await submitIntentOn(chain, {
       tokenIn: from.address,
       tokenOut: to.address,
-      amountIn: intent.amount,
+      amountIn: draft.amount,
       minAmountOut: minOut,
       recipient,
       ref: `AGENT-${from.code}-${to.code}`,
     });
 
-    // 4. Try to settle it against opposing flow, now.
     const outcome = await runEvmSolver(chain);
     const didSettle = outcome.settled.length > 0;
 
     const reply = didSettle
-      ? `Done. I matched your ${fmt(intent.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on ${chain.label} in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
-      : `I've placed your ${fmt(intent.amount)} ${from.code}→${to.code} intent on ${chain.label}. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically.`;
+      ? `Done. I matched your ${fmt(draft.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on ${chain.label} in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
+      : `I've placed your ${fmt(draft.amount)} ${from.code}→${to.code} intent on ${chain.label}. There's no one going the other way right now, so it's waiting to be matched — the moment someone sends ${to.code}→${from.code}, it settles automatically.`;
+
+    const lines: { label: string; value: string }[] = [
+      { label: "You send", value: `${from.flag} ${fmt(draft.amount)} ${from.code}` },
+    ];
+    if (draft.receiveAmount > 0) lines.push({ label: "They receive", value: `${to.flag} ${fmt(draft.receiveAmount)} ${to.code}` });
+    lines.push({ label: "Network", value: chain.label });
 
     return {
       ok: true,
-      understood: intent.summary,
+      understood: `${from.code}→${to.code}`,
       matched: didSettle,
-      intent: { from: from.code, to: to.code, amount: intent.amount, recipient },
+      intent: { from: from.code, to: to.code, amount: draft.amount, recipient },
       submitTx,
       submitUrl: explorerTxUrl(chain, submitTx),
       settlements: outcome.settled.map((s) => ({ kind: s.kind, url: explorerTxUrl(chain, s.tx) })),
       reply,
+      receipt: {
+        kind: "transfer",
+        title: didSettle ? "Money sent" : "Placed, matching",
+        status: didSettle ? "settled" : "pending",
+        lines,
+        proofUrl: explorerTxUrl(chain, submitTx),
+        settlements: outcome.settled.map((s) => ({ kind: s.kind, url: explorerTxUrl(chain, s.tx) })),
+      },
     };
   } catch (e) {
     return {

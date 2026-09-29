@@ -33,6 +33,10 @@ export async function POST(request: Request) {
   }
 
   const account = await getAccount(request);
-  const { status, ...result } = await runAgentTurn(parsed.data.message, account);
+  // The in-app chat asks for consent: preview drafts a money-moving action
+  // instead of executing it. The confirmed draft is run via /api/agent/execute.
+  const { status, ...result } = await runAgentTurn(parsed.data.message, account, {
+    preview: true,
+  });
   return NextResponse.json(result, { status: status ?? 200 });
 }
