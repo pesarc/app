@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, ArrowDownLeft, QrCode, Plus, TrendingUp } from "@/components/icons";
+import { ArrowUpRight, ArrowDownLeft, QrCode, Plus } from "@/components/icons";
 import { NotificationsBell } from "@/components/app/NotificationsBell";
-import { ACCOUNT, ACTIVITY } from "@pesarc/sdk/account";
+import { ACCOUNT } from "@pesarc/sdk/account";
 import { listTransfers } from "@pesarc/sdk/transfers";
-import { formatMoney, formatNumber, midMarketRate, CURRENCIES } from "@pesarc/sdk/money";
+import { formatMoney } from "@pesarc/sdk/money";
 import type { CurrencyCode } from "@pesarc/sdk/money";
 import { LiveBalance } from "@/components/app/LiveBalance";
-import { ActivityFeed, type FallbackItem } from "@/components/app/ActivityFeed";
+import { LiveRate } from "@/components/app/LiveRate";
+import { ActivityFeed, type FallbackItem, type ActivityType } from "@/components/app/ActivityFeed";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
@@ -27,6 +28,18 @@ function timeAgo(iso: string): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   return d === 1 ? "Yesterday" : `${d}d ago`;
+}
+
+// Classify a transfer into an activity type for its leading icon, from the
+// payout method and direction.
+function activityType(payout: string, direction: "sent" | "received"): ActivityType {
+  const p = (payout || "").toLowerCase();
+  if (p.includes("swap")) return "swap";
+  if (p.includes("bill") || p.includes("airtime") || p.includes("data") || p.includes("electric")) return "bill";
+  if (p.includes("earn") || p.includes("deposit") || p.includes("save") || p.includes("stake")) return "earn";
+  if (p.includes("bank") || p.includes("mobile") || p.includes("cash")) return "bank";
+  if (p.includes("qr") || p.includes("pay") || p.includes("checkout")) return "pay";
+  return direction === "sent" ? "send" : "receive";
 }
 
 // Illustrative local-currency holdings shown as chips on the balance hero.
@@ -57,24 +70,16 @@ export default async function HomePage() {
     rows = [];
   }
 
-  const fallback: FallbackItem[] = (rows.length
-    ? rows.map((r) => ({
-        id: r.id,
-        kind: r.direction,
-        counterparty: r.counterparty,
-        amount: r.sendAmount,
-        currency: r.sendCurrency as CurrencyCode,
-        when: timeAgo(r.createdAt),
-        flag: r.flag ?? "🌍",
-      }))
-    : ACTIVITY
-  ).map((a) => ({
-    id: a.id,
-    kind: a.kind,
-    counterparty: a.counterparty,
-    amountLabel: formatMoney(a.amount, a.currency),
-    when: a.when,
-    flag: a.flag,
+  // Real transfers only, newest first. No mock data: an empty list renders the
+  // ActivityFeed's empty state.
+  const fallback: FallbackItem[] = rows.map((r) => ({
+    id: r.id,
+    kind: r.direction,
+    counterparty: r.counterparty,
+    amountLabel: formatMoney(r.sendAmount, r.sendCurrency as CurrencyCode),
+    when: timeAgo(r.createdAt),
+    flag: r.flag ?? "🌍",
+    type: activityType(r.payout, r.direction),
   }));
 
   return (
@@ -198,34 +203,25 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="flex gap-3 overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-2.5 mb-8">
-            {CORRIDORS.map((c) => {
-              const rate = midMarketRate(c.from, c.to);
-              return (
-                <div
-                  key={`${c.from}-${c.to}`}
-                  className="flex-none w-[168px] bg-snow border border-fog rounded-card p-4 shadow-card-flat"
-                >
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <span className="text-xl">{flagFor(c.from)}</span>
-                    <svg width="34" height="14" viewBox="0 0 34 14" fill="none">
-                      <path d="M2 11 C 10 1, 24 1, 32 11" stroke="#2e96ff" strokeWidth="1.6" strokeLinecap="round" />
-                      <circle cx="32" cy="11" r="2.4" fill="#2e96ff" />
-                    </svg>
-                    <span className="text-xl">{flagFor(c.to)}</span>
-                  </div>
-                  <div className="text-[13px] font-semibold text-slate mb-0.5">
-                    {c.from} → {c.to}
-                  </div>
-                  <div className="text-[19px] font-extrabold tracking-tight text-harbor numerals">
-                    {CURRENCIES[c.to].symbol}
-                    {formatNumber(rate, c.to)}
-                  </div>
-                  <div className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-sky-deep">
-                    <TrendingUp className="w-3 h-3" /> live
-                  </div>
+            {CORRIDORS.map((c) => (
+              <div
+                key={`${c.from}-${c.to}`}
+                className="flex-none w-[168px] bg-snow border border-fog rounded-card p-4 shadow-card-flat"
+              >
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span className="text-xl">{flagFor(c.from)}</span>
+                  <svg width="34" height="14" viewBox="0 0 34 14" fill="none">
+                    <path d="M2 11 C 10 1, 24 1, 32 11" stroke="#2e96ff" strokeWidth="1.6" strokeLinecap="round" />
+                    <circle cx="32" cy="11" r="2.4" fill="#2e96ff" />
+                  </svg>
+                  <span className="text-xl">{flagFor(c.to)}</span>
                 </div>
-              );
-            })}
+                <div className="text-[13px] font-semibold text-slate mb-0.5">
+                  {c.from} → {c.to}
+                </div>
+                <LiveRate from={c.from} to={c.to} />
+              </div>
+            ))}
             <Link
               href="/corridor"
               className="flex-none w-[118px] rounded-card border border-dashed border-sky-tint bg-sky-tint/25 p-4 flex flex-col items-start justify-center gap-2.5 text-sky-deep"
@@ -248,12 +244,6 @@ export default async function HomePage() {
             <h2 className="text-[13px] font-bold uppercase tracking-widest text-slate">
               Activity
             </h2>
-            <Link
-              href="/add"
-              className="inline-flex items-center gap-1 text-[13px] font-bold text-sky hover:text-sky-deep"
-            >
-              <Plus className="w-4 h-4" /> Add money
-            </Link>
           </div>
           <ActivityFeed fallback={fallback} />
         </div>
