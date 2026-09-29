@@ -254,7 +254,7 @@ function AdvancedList({ pools, onPick }: { pools: Pool[]; onPick: (p: Pool) => v
               <div className="text-2xl font-semibold text-sky numerals">
                 {poolApy(pool)}%
               </div>
-              <div className="text-[11px] text-slate">APY</div>
+              <div className="text-[11px] text-slate">APY · indicative</div>
             </div>
           </div>
 
@@ -279,9 +279,10 @@ function AdvancedList({ pools, onPick }: { pools: Pool[]; onPick: (p: Pool) => v
 
       <p className="text-xs text-slate leading-relaxed pt-1 px-1">
         <span className="font-medium text-ink">Live</span> corridors read their
-        pool size on-chain; others are launching soon and show target figures.
-        Variable APY. Corridor pools carry residual peg risk, backstopped by the
-        Safety Module up to its coverage. Withdrawals are never frozen.
+        pool size on-chain; others are launching soon and show target figures. APY
+        figures are indicative until a pool is live. Corridor pools carry residual
+        peg risk, backstopped by the Safety Module up to its coverage. Withdrawals
+        are never frozen.
       </p>
     </div>
   );
@@ -360,7 +361,7 @@ function DepositPanel({
           <div className="text-xl font-semibold text-sky numerals">
             {poolApy(pool)}%
           </div>
-          <div className="text-[11px] text-slate">APY</div>
+          <div className="text-[11px] text-slate">APY · indicative</div>
         </div>
       </Card>
 

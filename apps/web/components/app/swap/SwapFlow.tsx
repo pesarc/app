@@ -1,19 +1,21 @@
 "use client";
 
-// Swap: turn one of your currencies into another (Naira -> Cedis, etc.) at the
-// live rate, in a couple of taps. Same-user cross-currency swap on the rails you
-// already have (realized-rate oracle for the price, settlement network to move
-// it). Real-with-fallback: quotes and balances go live when a wallet is
-// connected; otherwise it runs the demo path so the flow always works.
+// Swap: turn one of your currencies into another (Naira -> Cedis, etc.). Same-user
+// cross-currency swap on the rails you already have. The price is the REAL
+// realized-rate oracle rate for the corridor when it is live on the active chain;
+// otherwise it shows the indicative mid-market rate, clearly tagged "indicative".
+// Balances go live when a wallet is connected; otherwise the demo path runs so the
+// flow is always complete.
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, Check, Loader2, RefreshCw } from "@/components/icons";
 import { Card, Button } from "@/components/app/ui";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { STABLECOINS, currencyOf } from "@pesarc/sdk/stablecoins";
-import { CURRENCIES, midMarketRate, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
+import { CURRENCIES, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import { useCorridorRate } from "@/components/app/useCorridorRate";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 const FEE = 0.004; // 0.4% swap fee, shown up front.
@@ -32,8 +34,8 @@ export default function SwapFlow() {
   const bal = useLiveBalance(fromCcy);
   const insufficient = bal.available && bal.amount !== undefined ? amount > bal.amount : false;
 
-  // Live rate for the pair (falls back to the indicative mid-market rate).
-  const rate = useMemo(() => midMarketRate(fromCcy, toCcy), [fromCcy, toCcy]);
+  // Real oracle rate for the pair when the corridor is live; indicative otherwise.
+  const { rate, live: rateLive } = useCorridorRate(fromCcy, toCcy);
   const receive = amount > 0 ? amount * rate * (1 - FEE) : 0;
   const sameCurrency = fromCcy === toCcy;
 
@@ -88,7 +90,7 @@ export default function SwapFlow() {
           <h1 className="text-[27px] font-extrabold tracking-tight text-harbor">Swap</h1>
           <NetworkSwitcher />
         </div>
-        <p className="text-slate">Turn one of your currencies into another at the live rate.</p>
+        <p className="text-slate">Turn one of your currencies into another at the corridor rate.</p>
       </div>
 
       {/* From */}
@@ -141,7 +143,7 @@ export default function SwapFlow() {
       {amount > 0 && !sameCurrency && (
         <div className="rounded-xl bg-black/[0.03] p-3.5 text-sm space-y-1.5 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-slate">Rate</span>
+            <span className="text-slate">Rate {rateLive ? <span className="text-sky-deep font-semibold">· live</span> : <span className="text-slate/70">· indicative</span>}</span>
             <span className="font-semibold text-ink numerals">
               1 {currencyName(fromCcy)} = {CURRENCIES[toCcy].symbol}
               {formatMoney(rate, toCcy).replace(CURRENCIES[toCcy].symbol, "")}
