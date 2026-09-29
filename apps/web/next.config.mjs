@@ -56,6 +56,13 @@ const nextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  // /corridor was the standalone manual local-currency settlement screen. Its
+  // job is now covered by /send (cross-border send), /swap (currency swap) and
+  // the agent, all of which sit on the same intent-matcher engine. Keep old
+  // links alive by sending them to /send instead of 404ing.
+  async redirects() {
+    return [{ source: "/corridor", destination: "/send", permanent: true }];
+  },
   webpack: (config) => {
     // Ignore optional Privy Solana deps we don't use — they only warn in dev but
     // hard-fail a production `next build`. memo: Privy's funding plugin, whose

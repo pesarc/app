@@ -198,7 +198,7 @@ export default async function HomePage() {
             <h2 className="text-[13px] font-bold uppercase tracking-widest text-slate">
               Send abroad
             </h2>
-            <Link href="/corridor" className="text-[13px] font-bold text-sky hover:text-sky-deep">
+            <Link href="/send" className="text-[13px] font-bold text-sky hover:text-sky-deep">
               Today&apos;s rates
             </Link>
           </div>
@@ -223,7 +223,7 @@ export default async function HomePage() {
               </div>
             ))}
             <Link
-              href="/corridor"
+              href="/send"
               className="flex-none w-[118px] rounded-card border border-dashed border-sky-tint bg-sky-tint/25 p-4 flex flex-col items-start justify-center gap-2.5 text-sky-deep"
             >
               <span className="w-[34px] h-[34px] rounded-full bg-snow flex items-center justify-center">
