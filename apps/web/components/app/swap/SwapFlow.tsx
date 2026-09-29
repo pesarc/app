@@ -15,7 +15,13 @@ import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import { STABLECOINS, currencyOf } from "@pesarc/sdk/stablecoins";
 import { CURRENCIES, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { tokenByCode } from "@pesarc/sdk/chain/evm-settle";
+import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { evmSwap } from "@pesarc/sdk/swap-write";
 import { useCorridorRate } from "@/components/app/useCorridorRate";
+import { ExternalLink } from "@/components/icons";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 const FEE = 0.004; // 0.4% swap fee, shown up front.
@@ -26,11 +32,15 @@ export default function SwapFlow() {
   const [amountStr, setAmountStr] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [error, setError] = useState("");
 
   const fromCcy = currencyOf(fromSym);
   const toCcy = currencyOf(toSym);
   const amount = Number(amountStr) || 0;
 
+  const { chain } = useActiveEvmChain();
+  const smart = useSmartWallet();
   const bal = useLiveBalance(fromCcy);
   const insufficient = bal.available && bal.amount !== undefined ? amount > bal.amount : false;
 
@@ -46,19 +56,44 @@ export default function SwapFlow() {
     setDone(false);
   };
 
+  // Real swap when the smart wallet + matcher are wired: approve + submitIntent
+  // as one gasless userOp from the USER's wallet; the solver settles it against
+  // opposing flow. No wallet -> demo path so the flow always completes.
+  const canExecute = smart.ready && Boolean(smart.address) && Boolean(chain.intentMatcher);
+
   const confirm = async () => {
     if (amount <= 0 || insufficient || sameCurrency || busy) return;
     setBusy(true);
-    // Real swap executes on the settlement network when a wallet is wired; the
-    // demo path settles instantly so the flow is always complete.
-    await new Promise((r) => setTimeout(r, 900));
+    setError("");
+    try {
+      const from = tokenByCode(chain, fromCcy);
+      const to = tokenByCode(chain, toCcy);
+      if (canExecute && from && to) {
+        const tx = await evmSwap(smart, {
+          intentMatcher: chain.intentMatcher as `0x${string}`,
+          tokenIn: from.address,
+          tokenOut: to.address,
+          amountIn: amount,
+          minAmountOut: receive,
+          recipient: smart.address as `0x${string}`,
+          ref: `SWAP-${fromCcy}-${toCcy}`,
+        });
+        setTxHash(tx ?? "");
+      } else {
+        await new Promise((r) => setTimeout(r, 900)); // demo path
+      }
+      setDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message.split("\n")[0] : "Swap failed. Try again.");
+    }
     setBusy(false);
-    setDone(true);
   };
 
   const reset = () => {
     setDone(false);
     setAmountStr("");
+    setTxHash("");
+    setError("");
   };
 
   if (done) {
@@ -68,13 +103,27 @@ export default function SwapFlow() {
           <span className="inline-flex w-14 h-14 rounded-full bg-sky-tint/60 items-center justify-center text-sky-deep mb-4">
             <Check className="w-7 h-7" />
           </span>
-          <h2 className="text-xl font-extrabold text-harbor">Swap complete</h2>
+          <h2 className="text-xl font-extrabold text-harbor">
+            {txHash ? "Swap submitted" : "Swap complete"}
+          </h2>
           <p className="text-slate mt-1.5 text-[15px]">
-            You swapped {CURRENCIES[fromCcy].symbol}
+            {txHash ? "Sending " : "You swapped "}
+            {CURRENCIES[fromCcy].symbol}
             {formatMoney(amount, fromCcy).replace(CURRENCIES[fromCcy].symbol, "")} into{" "}
             {CURRENCIES[toCcy].symbol}
-            {formatMoney(receive, toCcy).replace(CURRENCIES[toCcy].symbol, "")}.
+            {formatMoney(receive, toCcy).replace(CURRENCIES[toCcy].symbol, "")}
+            {txHash ? ". It settles peer-to-peer the moment it's matched." : "."}
           </p>
+          {txHash && (
+            <a
+              href={explorerTxUrl(txHash)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sky-deep font-semibold text-[13px] mt-3 hover:underline"
+            >
+              View transaction <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
           <Button block className="mt-6" onClick={reset}>
             Swap again
           </Button>
@@ -161,6 +210,8 @@ export default function SwapFlow() {
       {sameCurrency && (
         <p className="text-center text-[13px] text-slate mb-4">Pick two different currencies to swap.</p>
       )}
+
+      {error && <p className="text-center text-[13px] text-alert mb-3">{error}</p>}
 
       <motion.div whileTap={{ scale: 0.99 }}>
         <Button
