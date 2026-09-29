@@ -6,6 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { verifyApiKey } from "../apiKeys";
+import { ipAllowed } from "../apiAllowlist";
+import { clientIp } from "./guard";
 
 export type ApiKeyContext = { account: string; keyId: string; signingSecret: string };
 
@@ -29,6 +31,20 @@ export async function requireApiKey(
     return NextResponse.json(
       { error: { type: "authentication_error", message: "Invalid or revoked API key." } },
       { status: 401 },
+    );
+  }
+  // IP allowlist (opt-in): once the merchant adds any allowed IP, only those
+  // source IPs may use their keys. An empty allowlist allows all.
+  const ip = clientIp(request);
+  if (!(await ipAllowed(ctx.account, ip))) {
+    return NextResponse.json(
+      {
+        error: {
+          type: "authentication_error",
+          message: `Source IP ${ip} is not allowed for this account. Add it to your API IP allowlist.`,
+        },
+      },
+      { status: 403 },
     );
   }
   return ctx;

@@ -332,7 +332,15 @@ export function getActiveChainKey(): string | null {
   return runtimeChainKey;
 }
 
-/** The chain the app reads/writes by default (runtime override › env › first). */
+/**
+ * The chain the app reads/writes by default.
+ * Order: in-session override › NEXT_PUBLIC_ACTIVE_CHAIN › a testnet chain ›
+ * first configured. We prefer TESTNET by default so the app runs on testnet out
+ * of the box ("for now let's test on testnet"); mainnet chains stay selectable
+ * in the switcher. Pin a specific default with NEXT_PUBLIC_ACTIVE_CHAIN (e.g. a
+ * mainnet key for a demo), or flip the whole posture with
+ * NEXT_PUBLIC_PREFER_MAINNET=1.
+ */
 export function activeChain(): EvmChainConfig {
   const want = runtimeChainKey || process.env.NEXT_PUBLIC_ACTIVE_CHAIN;
   const configured = configuredChains();
@@ -340,6 +348,11 @@ export function activeChain(): EvmChainConfig {
     const hit =
       configured.find((c) => c.key === want) || allChains().find((c) => c.key === want);
     if (hit) return hit;
+  }
+  const preferMainnet = process.env.NEXT_PUBLIC_PREFER_MAINNET === "1";
+  if (!preferMainnet) {
+    const testnet = configured.find((c) => c.testnet);
+    if (testnet) return testnet;
   }
   return configured[0] ?? build(CATALOG[0]);
 }
