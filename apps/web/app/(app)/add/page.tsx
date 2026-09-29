@@ -13,8 +13,9 @@ import {
   Landmark,
   Loader2,
 } from "@/components/icons";
-import { Button, Card } from "@/components/app/ui";
+import { Button, Card, Segmented } from "@/components/app/ui";
 import FaucetCard from "@/components/app/FaucetCard";
+import BankAccountPanel from "@/components/app/bank/BankAccountPanel";
 import { CORRIDORS, SOLANA_CORRIDOR } from "@pesarc/sdk/chain/corridors";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
@@ -53,6 +54,7 @@ export default function AddMoneyPage() {
     },
   ];
 
+  const [method, setMethod] = useState<"bank" | "crypto">("bank");
   const [chainId, setChainId] = useState(corridors[0].id);
   const [txHash, setTxHash] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,11 +96,26 @@ export default function AddMoneyPage() {
       <h1 className="text-3xl font-semibold tracking-tight text-ink mb-1.5">
         Add money
       </h1>
-      <p className="text-slate mb-6">
-        Deposit native USDC from another chain — it arrives on the hub over
-        Circle CCTP V2 in under a minute.
+      <p className="text-slate mb-5">
+        Top up from your bank, or deposit crypto from another chain.
       </p>
 
+      <div className="mb-5">
+        <Segmented
+          value={method}
+          onChange={setMethod}
+          options={[
+            { value: "bank", label: "Bank transfer" },
+            { value: "crypto", label: "Crypto" },
+          ]}
+          aria-label="Deposit method"
+        />
+      </div>
+
+      {method === "bank" && <BankAccountPanel />}
+
+      {method === "crypto" && (
+        <>
       <FaucetCard />
 
       {/* Corridor picker */}
@@ -208,6 +225,8 @@ export default function AddMoneyPage() {
             <span className="text-alert">{result.error}</span>
           )}
         </Card>
+      )}
+        </>
       )}
     </div>
   );
