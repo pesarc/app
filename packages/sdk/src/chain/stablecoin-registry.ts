@@ -182,3 +182,25 @@ export function stablecoinAddress(
 ): string | undefined {
   return STABLECOIN_REGISTRY[symbol]?.chains[chainKey]?.[network];
 }
+
+/** Map an app EVM chain key (e.g. "arbitrum-sepolia") to a registry chain key. */
+export function registryChainKey(appChainKey: string): string {
+  if (appChainKey === "sepolia") return "ethereum"; // app's Ethereum Sepolia
+  return appChainKey.replace(/-(sepolia|testnet|amoy)$/, "");
+}
+
+/** Real EVM stablecoins for an app chain, by its key + testnet flag. */
+export function realStablecoinsForAppChain(
+  appChainKey: string,
+  testnet: boolean,
+): { symbol: string; fiat: CurrencyCode; address: `0x${string}`; note?: string }[] {
+  const network = testnet ? "testnet" : "mainnet";
+  return stablecoinsOnChain(registryChainKey(appChainKey), network)
+    .filter((s) => s.address.startsWith("0x")) // EVM only (skip Solana / Stellar)
+    .map((s) => ({
+      symbol: s.symbol,
+      fiat: s.meta.fiat,
+      address: s.address as `0x${string}`,
+      note: s.note,
+    }));
+}
