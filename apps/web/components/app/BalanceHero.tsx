@@ -85,7 +85,7 @@ export function BalanceHero() {
                 const url = chainLogoUrl(logoKey(h.chainLabel));
                 return (
                   <div
-                    key={`${h.chainKey}-${h.code}`}
+                    key={`${h.chainKey}-${h.symbol}`}
                     className="flex items-center gap-3 rounded-2xl bg-white/[0.06] px-3 py-2.5"
                   >
                     <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0">
