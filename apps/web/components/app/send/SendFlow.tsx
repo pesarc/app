@@ -23,6 +23,7 @@ export default function SendFlow() {
     setPayout,
     bankDest,
     setBankDest,
+    setRecipientAddress,
     txHash,
     setTxHash,
     payoutTxHash,
@@ -53,6 +54,7 @@ export default function SendFlow() {
               setRecipient(r);
               if (opts?.bankDest) setBankDest(opts.bankDest);
               if (opts?.payout) setPayout(opts.payout);
+              setRecipientAddress(opts?.address);
               setStep("amount");
             }}
           />

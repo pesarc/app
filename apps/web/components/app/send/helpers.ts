@@ -46,6 +46,25 @@ export function recipientFromBank(dest: BankDestination): Recipient {
   };
 }
 
+/** True for a well-formed EVM (0x + 40 hex) address. */
+export function isEvmAddress(a: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(a.trim());
+}
+
+/** A recipient that is a raw on-chain wallet address (delivered in local currency). */
+export function recipientFromAddress(addr: string): Recipient {
+  const a = addr.trim();
+  return {
+    id: `wallet:${a.toLowerCase()}`,
+    name: `${a.slice(0, 6)}…${a.slice(-4)}`,
+    handle: a,
+    country: "On-chain wallet",
+    flag: "🔗",
+    receiveCurrency: "NGN",
+    initialsColor: "#6b4ef0",
+  };
+}
+
 export function savedToRecipient(s: SavedRecipient): Recipient {
   return {
     id: "saved-" + s.id,

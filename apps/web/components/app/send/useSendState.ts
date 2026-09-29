@@ -35,6 +35,8 @@ export function useSendState() {
   const [amountStr, setAmountStr] = useState("");
   const [payout, setPayout] = useState<PayoutMethod>("bank");
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
+  // Destination wallet address for a "wallet" payout (send to any wallet).
+  const [recipientAddress, setRecipientAddress] = useState<string>();
   const [txHash, setTxHash] = useState<string>();
   const [payoutTxHash, setPayoutTxHash] = useState<string>();
   const [actualReceive, setActualReceive] = useState<number>();
@@ -122,10 +124,10 @@ export function useSendState() {
   const executeReal = useCallback((): Promise<SendResult> => {
     const payoutTo =
       payout === "wallet"
-        ? (TEST_RECIPIENT as `0x${string}` | "")
+        ? ((recipientAddress || TEST_RECIPIENT) as `0x${string}` | "")
         : RAMP_ESCROW;
     return executeCorridorSend(smart, amount, payoutTo);
-  }, [smart, amount, payout]);
+  }, [smart, amount, payout, recipientAddress]);
 
   const reset = () => {
     setStep("recipient");
@@ -133,6 +135,7 @@ export function useSendState() {
     setAmountStr("");
     setPayout("bank");
     setBankDest(null);
+    setRecipientAddress(undefined);
     setTxHash(undefined);
     setActualReceive(undefined);
   };
@@ -150,6 +153,8 @@ export function useSendState() {
     setPayout,
     bankDest,
     setBankDest,
+    recipientAddress,
+    setRecipientAddress,
     txHash,
     setTxHash,
     payoutTxHash,

@@ -8,16 +8,27 @@ import { authedFetch } from "@pesarc/sdk/api/client";
 import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import BankDetails, { type BankDestination } from "../BankDetails";
-import { detectPhone, recipientFromBank, recipientFromPhone, savedToRecipient } from "../helpers";
+import {
+  detectPhone,
+  isEvmAddress,
+  recipientFromAddress,
+  recipientFromBank,
+  recipientFromPhone,
+  savedToRecipient,
+} from "../helpers";
 
 export function RecipientStep({
   onSelect,
 }: {
-  onSelect: (r: Recipient, opts?: { bankDest?: BankDestination; payout?: PayoutMethod }) => void;
+  onSelect: (
+    r: Recipient,
+    opts?: { bankDest?: BankDestination; payout?: PayoutMethod; address?: string },
+  ) => void;
 }) {
-  const [mode, setMode] = useState<"people" | "bank">("people");
+  const [mode, setMode] = useState<"people" | "bank" | "wallet">("people");
   const [query, setQuery] = useState("");
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
+  const [walletAddr, setWalletAddr] = useState("");
   const [saved, setSaved] = useState<Recipient[]>([]);
 
   // Load the account's saved recipients (people you've sent to before).
@@ -54,22 +65,24 @@ export function RecipientStep({
         Who are you sending to?
       </h1>
       <p className="text-slate mb-5">
-        Send to a contact, a phone number, or a bank account.
+        Send to a contact, a phone number, a bank account, or a wallet address.
       </p>
 
       <div className="mb-5">
         <Segmented
           aria-label="Recipient type"
           value={mode}
-          onChange={(v) => setMode(v as "people" | "bank")}
+          size="sm"
+          onChange={(v) => setMode(v as "people" | "bank" | "wallet")}
           options={[
-            { value: "people", label: "Contact / phone" },
-            { value: "bank", label: "Bank account" },
+            { value: "people", label: "Contact" },
+            { value: "bank", label: "Bank" },
+            { value: "wallet", label: "Wallet" },
           ]}
         />
       </div>
 
-      {mode === "people" ? (
+      {mode === "people" && (
         <>
           <div className="relative mb-6">
             <Search className="w-4 h-4 text-slate absolute left-4 top-1/2 -translate-y-1/2" />
@@ -122,7 +135,9 @@ export function RecipientStep({
             </>
           )}
         </>
-      ) : (
+      )}
+
+      {mode === "bank" && (
         <>
           <p className="text-slate text-sm mb-3">
             Enter the account and we&apos;ll confirm the name before you send.
@@ -138,6 +153,38 @@ export function RecipientStep({
             }
           >
             {bankDest?.accountName ? `Send to ${bankDest.accountName}` : "Continue"}
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </>
+      )}
+
+      {mode === "wallet" && (
+        <>
+          <p className="text-slate text-sm mb-3">
+            Paste any wallet address. The funds settle on-chain straight to it.
+          </p>
+          <input
+            value={walletAddr}
+            onChange={(e) => setWalletAddr(e.target.value.trim())}
+            placeholder="0x… wallet address"
+            aria-label="Recipient wallet address"
+            spellCheck={false}
+            className="w-full bg-snow rounded-field border border-fog px-4 py-3.5 text-[15px] font-mono text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
+          />
+          {walletAddr && !isEvmAddress(walletAddr) && (
+            <p className="text-[12px] text-alert mt-2">Enter a valid 0x wallet address (42 chars).</p>
+          )}
+          <Button
+            size="lg"
+            block
+            className="mt-5"
+            disabled={!isEvmAddress(walletAddr)}
+            onClick={() =>
+              isEvmAddress(walletAddr) &&
+              onSelect(recipientFromAddress(walletAddr), { payout: "wallet", address: walletAddr })
+            }
+          >
+            Send to this wallet
             <ArrowRight className="w-4 h-4" />
           </Button>
         </>

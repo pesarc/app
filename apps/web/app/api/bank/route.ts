@@ -19,6 +19,8 @@ export async function GET(request: Request) {
 const linkSchema = z.object({
   bvn: z.string().trim().regex(/^\d{11}$/, "Enter a valid 11-digit BVN."),
   accountName: z.string().trim().min(1).max(64).optional(),
+  email: z.string().trim().email().max(120).optional(),
+  phone: z.string().trim().max(20).optional(),
 });
 
 /** Link/create a payout bank account for the caller (idempotent). */
