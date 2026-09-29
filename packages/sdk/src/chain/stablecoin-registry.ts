@@ -67,6 +67,10 @@ export const STABLECOIN_REGISTRY: Record<string, StablecoinEntry> = {
         mainnet: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         testnet: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", // Devnet
       },
+      arc: {
+        mainnet: "0x3600000000000000000000000000000000000000",
+        note: "Arc native USDC predeploy (gas token, ERC-20 interface)",
+      },
     },
   },
 
