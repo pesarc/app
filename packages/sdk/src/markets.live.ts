@@ -9,6 +9,9 @@ import { predictionMarketAbi } from "@pesarc/abi";
 
 export type LiveMarket = {
   id: number;
+  question?: string; // the on-chain question text (EVM; SVM omits)
+  collateral?: `0x${string}`; // collateral token address (EVM)
+  closeTime?: number; // unix seconds (EVM)
   poolYes: number; // whole collateral units
   poolNo: number;
   impliedYes: number; // 0..1
@@ -53,6 +56,9 @@ export async function fetchLiveMarkets(): Promise<LiveMarket[] | null> {
         ]);
         return {
           id,
+          question: m.question,
+          collateral: m.collateral,
+          closeTime: Number(m.closeTime),
           poolYes: Number(formatUnits(m.poolYes, COLLATERAL_DECIMALS)),
           poolNo: Number(formatUnits(m.poolNo, COLLATERAL_DECIMALS)),
           impliedYes: Number(formatUnits(implied, 18)),
