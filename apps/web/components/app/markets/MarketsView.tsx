@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio, Plus } from "@/components/icons";
-import { MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { MARKET_CATEGORIES, liveMarketToMarket, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
   fetchLiveMarketsFor,
@@ -19,7 +19,7 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
-import { overlay, type Selection as StakeSelection } from "./display";
+import { type Selection as StakeSelection } from "./display";
 import { Pagination, usePaged } from "@/components/app/Pagination";
 import ChainSelector from "@/components/app/ChainSelector";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
@@ -90,30 +90,55 @@ export default function MarketsView() {
   const isLive = venuesInScope.some((v) => (liveByVenue[v.kind]?.length ?? 0) > 0);
   const soleVenue = venuesInScope.length === 1 ? venuesInScope[0] : null;
 
-  const filtered = useMemo(
-    () => (cat === "all" ? catalog : catalog.filter((m) => m.kind === cat)),
-    [cat, catalog]
-  );
-
-  const cards = useMemo(
-    () =>
-      venuesInScope.flatMap((v) =>
-        filtered.map((m) => {
+  const cards = useMemo(() => {
+    type Card = {
+      key: string;
+      market: Market;
+      index: number;
+      venueKind: VenueKind;
+      venueLabel?: string;
+      live?: LiveMarket;
+      marketId: number;
+    };
+    const out: Card[] = [];
+    for (const v of venuesInScope) {
+      const label = venuesInScope.length > 1 ? v.label : undefined;
+      const lives = liveByVenue[v.kind];
+      if (lives && lives.length) {
+        // Live-first: real on-chain markets rendered directly (need question text).
+        for (const lm of lives) {
+          if (!lm.question) continue;
+          const market = liveMarketToMarket(lm);
+          if (cat !== "all" && market.kind !== cat) continue;
+          out.push({
+            key: `${v.kind}-live-${lm.id}`,
+            market,
+            index: lm.id,
+            venueKind: v.kind,
+            venueLabel: label,
+            live: lm,
+            marketId: lm.id,
+          });
+        }
+      } else {
+        // Admin/off-chain catalog fallback (empty until markets are proposed).
+        const filtered = cat === "all" ? catalog : catalog.filter((m) => m.kind === cat);
+        for (const m of filtered) {
           const index = catalog.indexOf(m);
-          const live = overlay(liveByVenue[v.kind] ?? null, index) ?? undefined;
-          return {
+          out.push({
             key: `${v.kind}-${m.id}`,
             market: m,
             index,
             venueKind: v.kind,
-            venueLabel: venuesInScope.length > 1 ? v.label : undefined,
-            live,
-            marketId: live?.id ?? index,
-          };
-        })
-      ),
-    [venuesInScope, filtered, liveByVenue, catalog]
-  );
+            venueLabel: label,
+            live: undefined,
+            marketId: index,
+          });
+        }
+      }
+    }
+    return out;
+  }, [venuesInScope, liveByVenue, catalog, cat]);
 
   const paged = usePaged(cards, PER_PAGE, `${cat}|${selected}`);
 
