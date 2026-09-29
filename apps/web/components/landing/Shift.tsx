@@ -204,7 +204,7 @@ function OneLayer() {
             <p className="max-w-lg text-base sm:text-lg font-light leading-relaxed text-white/60">
               Pesarc does not ask you to leave your money behind. It works with the
               banks and mobile money you already use, and quietly does the hard
-              part in the middle, so money sent from Lagos lands in Accra in
+              part in the middle, so money sent from London lands in Lagos in
               seconds, in the currency each person actually holds.
             </p>
           </div>

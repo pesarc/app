@@ -14,7 +14,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const mono = { fontFamily: "var(--font-mono, ui-monospace), monospace" } as const;
 
 const STATS = [
-  { big: "8.78%", cap: "avg remittance tax to Sub-Saharan Africa, what we replace with 0.5 to 1%" },
+  { big: "8.78%", cap: "the average cross-border remittance fee, what we replace with 0.5 to 1%" },
   { big: "$33T", cap: "stablecoin settlement in 2025, more than Visa and Mastercard combined" },
   { big: "3 to 1", cap: "consumers, LPs, businesses, three experiences on one engine" },
   { big: "2 VMs", cap: "EVM and SVM native, one build across every chain" },
@@ -35,8 +35,8 @@ const BANDS = [
   },
   {
     lbl: "Edge · markets",
-    title: "Predict Africa, and hedge the corridor you send on",
-    body: "A Polymarket for Africans on elections, football and prices, plus FX hedging on the corridors you already use. The same oracle resolves them and the same engine clears them.",
+    title: "Predict the events you care about, and hedge the corridor you send on",
+    body: "A prediction market on elections, sport and prices, worldwide, plus FX hedging on the corridors you already use. The same oracle resolves them and the same engine clears them.",
     tint: "rgba(245,196,81,0.9)",
   },
   {

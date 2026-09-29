@@ -1,8 +1,8 @@
 "use client";
 
-// Live-corridor card that cycles through real remittance routes — primarily
-// Global-South (African) corridors, plus a couple of Western origins — settled
-// in local currency. Crossfades in place (no width change).
+// Live-corridor card that cycles through real remittance routes: global
+// corridors spanning several regions, settled in local currency. Crossfades in
+// place (no width change).
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,10 +19,10 @@ type Corridor = {
 
 const CORRIDORS: Corridor[] = [
   { fromFlag: "🇬🇭", fromPlace: "Accra", fromAmount: "₵1,000", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦105k" },
+  { fromFlag: "🇦🇪", fromPlace: "Dubai", fromAmount: "$300", toFlag: "🇵🇭", toPlace: "Manila", toAmount: "₱17k" },
   { fromFlag: "🇰🇪", fromPlace: "Nairobi", fromAmount: "KSh 5,000", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵470" },
-  { fromFlag: "🇳🇬", fromPlace: "Lagos", fromAmount: "₦150k", toFlag: "🇿🇦", toPlace: "Johannesburg", toAmount: "R 1,700" },
   { fromFlag: "🇬🇧", fromPlace: "London", fromAmount: "£200", toFlag: "🇳🇬", toPlace: "Lagos", toAmount: "₦408k" },
-  { fromFlag: "🇪🇬", fromPlace: "Cairo", fromAmount: "ج.م 2,000", toFlag: "🇰🇪", toPlace: "Nairobi", toAmount: "KSh 5,300" },
+  { fromFlag: "🇸🇬", fromPlace: "Singapore", fromAmount: "S$500", toFlag: "🇮🇳", toPlace: "Mumbai", toAmount: "₹31k" },
   { fromFlag: "🇺🇸", fromPlace: "New York", fromAmount: "$300", toFlag: "🇬🇭", toPlace: "Accra", toAmount: "₵4,600" },
 ];
 
