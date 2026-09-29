@@ -52,12 +52,17 @@ export function requireOperator(request: Request): NextResponse | null {
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 
-function clientKey(request: Request, scope: string): string {
-  const ip =
+/** Best-effort source IP: first hop of x-forwarded-for, else x-real-ip. */
+export function clientIp(request: Request): string {
+  return (
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
-    "unknown";
-  return `${scope}:${ip}`;
+    "unknown"
+  );
+}
+
+function clientKey(request: Request, scope: string): string {
+  return `${scope}:${clientIp(request)}`;
 }
 
 /**

@@ -9,3 +9,10 @@ dist/
 !.env.example
 .DS_Store
 CLAUDE.md.vercel
+
+# Internal planning/strategy docs — keep local, never publish
+docs/
+
+# Internal engineering standards + local Claude config — keep local, never publish
+/CLAUDE.md
+.claude/

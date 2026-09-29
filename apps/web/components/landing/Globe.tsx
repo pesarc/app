@@ -9,136 +9,23 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type GlobeControls = {
-  /** How often payment pings fire (0..2). */
-  signalRate: number;
-  /** Arc altitude / reach (0.1..2). */
-  dotSize: number;
-  /** Auto-rotation speed (0..0.5). */
-  spin: number;
-  /** Atmosphere glow (0.1..1). */
-  glow: number;
-  /** Accent color (hex). */
-  color: string;
-};
+import { DEFAULT_CONTROLS, DEG, FLIGHT_MS, HUBS, LABEL_MS, RING_MS } from "./globe/data";
+import { hashStr, hexToRgb, lerp, slerp, toVec3 } from "./globe/helpers";
+import HoverTooltip from "./globe/HoverTooltip";
+import type {
+  Arc,
+  Country,
+  CountryStat,
+  GlobeControls,
+  HoverInfo,
+  Label,
+  Ring,
+  Vec3,
+} from "./globe/types";
+
+export type { GlobeControls } from "./globe/types";
 
 type Props = { controls?: GlobeControls };
-
-// Relief defaults — a calm sky-accented globe when no live tuner drives it.
-const DEFAULT_CONTROLS: GlobeControls = {
-  signalRate: 1.2,
-  dotSize: 1,
-  spin: 0.1,
-  glow: 0.9,
-  color: "#2e96ff",
-};
-
-type Country = { n: string; p: [number, number][][] };
-
-// Financial hubs across every continent — pings hop between these. Each carries
-// a short region + settlement stat so the globe can surface stylish region info
-// as an arc lands. Global-South corridors are weighted (Pesarc's home turf).
-type Hub = {
-  name: string;
-  region: string;
-  stat: string;
-  lat: number;
-  lng: number;
-  south?: boolean;
-};
-const HUBS: Hub[] = [
-  { name: "Lagos", region: "Nigeria", stat: "cNGN · ₦", lat: 6.5, lng: 3.4, south: true },
-  { name: "Nairobi", region: "Kenya", stat: "cKES · KSh", lat: -1.29, lng: 36.82, south: true },
-  { name: "Accra", region: "Ghana", stat: "cGHS · ₵", lat: 5.6, lng: -0.19, south: true },
-  { name: "Johannesburg", region: "South Africa", stat: "cZAR · R", lat: -26.2, lng: 28.04, south: true },
-  { name: "Cairo", region: "Egypt", stat: "cEGP · £", lat: 30.04, lng: 31.24, south: true },
-  { name: "Mumbai", region: "India", stat: "cINR · ₹", lat: 19.07, lng: 72.87, south: true },
-  { name: "São Paulo", region: "Brazil", stat: "cBRL · R$", lat: -23.55, lng: -46.63, south: true },
-  { name: "Manila", region: "Philippines", stat: "cPHP · ₱", lat: 14.6, lng: 120.98, south: true },
-  { name: "Dubai", region: "UAE", stat: "USDC · $", lat: 25.2, lng: 55.27, south: true },
-  { name: "London", region: "United Kingdom", stat: "USDC · £", lat: 51.5, lng: -0.12 },
-  { name: "Frankfurt", region: "Germany", stat: "USDC · €", lat: 50.11, lng: 8.68 },
-  { name: "New York", region: "United States", stat: "USDC · $", lat: 40.71, lng: -74.0 },
-  { name: "Singapore", region: "Singapore", stat: "USDC · $", lat: 1.35, lng: 103.82 },
-  { name: "Sydney", region: "Australia", stat: "USDC · $", lat: -33.87, lng: 151.21 },
-];
-
-const DEG = Math.PI / 180;
-const FLIGHT_MS = 1600;
-const RING_MS = 1400;
-const LABEL_MS = 2600;
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  const n = parseInt(
-    h.length === 3 ? h.split("").map((c) => c + c).join("") : h,
-    16
-  );
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0) / 4294967296;
-}
-
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-const trimZeros = (s: string) => s.replace(/\.?0+$/, "");
-function fmtPop(n?: number): string {
-  if (!n) return "-";
-  if (n >= 1e9) return trimZeros((n / 1e9).toFixed(2)) + "B";
-  if (n >= 1e6) return trimZeros((n / 1e6).toFixed(n >= 1e7 ? 0 : 1)) + "M";
-  if (n >= 1e3) return Math.round(n / 1e3) + "K";
-  return String(n);
-}
-function fmtUSD(n?: number): string {
-  if (!n) return "-";
-  if (n >= 1e12) return "$" + trimZeros((n / 1e12).toFixed(2)) + "T";
-  if (n >= 1e9) return "$" + Math.round(n / 1e9) + "B";
-  if (n >= 1e6) return "$" + Math.round(n / 1e6) + "M";
-  return "$" + n;
-}
-
-type Vec3 = [number, number, number];
-
-function toVec3(lat: number, lng: number): Vec3 {
-  const phi = lat * DEG;
-  const lam = lng * DEG;
-  return [
-    Math.cos(phi) * Math.cos(lam),
-    Math.sin(phi),
-    Math.cos(phi) * Math.sin(lam),
-  ];
-}
-
-// Spherical linear interpolation between two unit vectors.
-function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
-  let dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  dot = Math.min(1, Math.max(-1, dot));
-  const th = Math.acos(dot);
-  if (th < 1e-6) return a;
-  const s = Math.sin(th);
-  const w1 = Math.sin((1 - t) * th) / s;
-  const w2 = Math.sin(t * th) / s;
-  return [
-    w1 * a[0] + w2 * b[0],
-    w1 * a[1] + w2 * b[1],
-    w1 * a[2] + w2 * b[2],
-  ];
-}
-
-type CountryStat = { pop: number; gdp: number };
-type HoverInfo = { name: string; stat?: CountryStat; x: number; y: number };
-
-type Arc = { a: Vec3; b: Vec3; start: number };
-type Ring = { v: Vec3; start: number };
-// A landed ping surfaces a stylish region chip near the destination hub.
-type Label = { hub: Hub; v: Vec3; start: number };
 
 export default function Globe({ controls }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -670,24 +557,7 @@ export default function Globe({ controls }: Props) {
   return (
     <div className="absolute inset-0 z-[1]">
       <canvas ref={canvasRef} className="cursor-grab active:cursor-grabbing touch-none" />
-      {hover && (
-        <div
-          className="pointer-events-none absolute z-10"
-          style={{ left: hover.x, top: hover.y, transform: "translate(-50%, calc(-100% - 12px))" }}
-        >
-          <div className="rounded-xl bg-[#06162a]/90 border border-sky/40 px-3 py-2 shadow-pop min-w-[130px] whitespace-nowrap">
-            <div className="text-[12px] font-extrabold text-white leading-tight">{hover.name}</div>
-            <div className="mt-1 flex items-center gap-3 text-[10.5px] font-bold">
-              <span className="text-[#8fbcff]">
-                Pop <span className="text-white">{fmtPop(hover.stat?.pop)}</span>
-              </span>
-              <span className="text-[#8fbcff]">
-                GDP <span className="text-white">{fmtUSD(hover.stat?.gdp)}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      {hover && <HoverTooltip hover={hover} />}
     </div>
   );
 }
