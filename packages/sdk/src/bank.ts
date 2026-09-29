@@ -12,10 +12,13 @@ import { getSql } from "./db";
 import { DEMO_ACCOUNT } from "@pesarc/sdk/api/auth";
 
 export type LinkedBankAccount = {
-  accountNumber: string; // 10-digit NUBAN
+  accountNumber: string; // 10-digit NUBAN ("pending" until a provider assigns one)
   bankName: string;
   accountName: string;
   provider: string; // "stub" | "paystack" | "flutterwave"
+  status: "active" | "pending";
+  /** Provider handle used to reconcile an async assignment (Paystack: the email). */
+  providerRef?: string;
   createdAt: string;
 };
 
@@ -25,6 +28,83 @@ export function bankProvider(): "paystack" | "flutterwave" | null {
   if (process.env.FLUTTERWAVE_TEST_CLIENT_SECRET || process.env.FLUTTERWAVE_TEST_ENCRYPTION_KEY)
     return "flutterwave";
   return null;
+}
+
+// ---- Paystack Dedicated Virtual Account (test/live via PAYSTACK_SECRET_KEY) ----
+// The assign flow is async (Paystack provisions the NUBAN, then fires a webhook).
+// Webhooks can't reach localhost, so we reconcile on READ by looking the customer
+// up by email. The BVN is passed once to Paystack and never stored by us.
+
+const PAYSTACK = "https://api.paystack.co";
+const DVA_BANK = process.env.PAYSTACK_DVA_BANK || "test-bank";
+
+function paystackHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
+
+/** Deterministic Paystack customer email for an app account (reconciliation key). */
+function paystackEmail(account: string): string {
+  const slug = account.replace(/[^a-zA-Z0-9]/g, "").slice(-24).toLowerCase() || "user";
+  return `${slug}@wallet.pesarc.xyz`;
+}
+
+/** Kick off an async DVA assignment with BVN. Returns the reconciliation email. */
+async function paystackAssign(
+  account: string,
+  bvn: string,
+  accountName: string,
+): Promise<{ ok: boolean; email?: string; error?: string }> {
+  const email = paystackEmail(account);
+  const [first, ...rest] = (accountName || "Pesarc Wallet").split(" ");
+  try {
+    const res = await fetch(`${PAYSTACK}/dedicated_account/assign`, {
+      method: "POST",
+      headers: paystackHeaders(),
+      body: JSON.stringify({
+        email,
+        first_name: first || "Pesarc",
+        last_name: rest.join(" ") || "Wallet",
+        phone: "+2340000000000",
+        preferred_bank: DVA_BANK,
+        country: "NG",
+        bvn,
+      }),
+    });
+    const j = (await res.json()) as { status?: boolean; message?: string };
+    if (j.status) return { ok: true, email };
+    return { ok: false, error: j.message || "Paystack declined the request." };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Paystack request failed." };
+  }
+}
+
+/** Read the assigned DVA for a customer email, once Paystack has provisioned it. */
+async function paystackFetchDva(
+  email: string,
+): Promise<{ accountNumber: string; bankName: string; accountName: string } | null> {
+  try {
+    const res = await fetch(`${PAYSTACK}/customer/${encodeURIComponent(email)}`, {
+      headers: paystackHeaders(),
+    });
+    const j = (await res.json()) as {
+      status?: boolean;
+      data?: { dedicated_account?: { account_number?: string; account_name?: string; bank?: { name?: string } } };
+    };
+    const dva = j.data?.dedicated_account;
+    if (j.status && dva?.account_number) {
+      return {
+        accountNumber: dva.account_number,
+        bankName: dva.bank?.name || "Bank",
+        accountName: dva.account_name || "Pesarc Wallet",
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** A stable 10-digit test NUBAN derived from the account id (never from the BVN). */
@@ -46,20 +126,122 @@ type Sql = ReturnType<typeof getSql>;
 
 let schemaReady: Promise<void> | null = null;
 function ensureSchema(sql: Sql): Promise<void> {
-  schemaReady ??= sql`
-    CREATE TABLE IF NOT EXISTS bank_accounts (
-      account        text PRIMARY KEY,
-      account_number text NOT NULL,
-      bank_name      text NOT NULL,
-      account_name   text NOT NULL,
-      provider       text NOT NULL,
-      created_at     timestamptz NOT NULL DEFAULT now()
-    )
-  `.then(() => {});
+  schemaReady ??= (async () => {
+    await sql`
+      CREATE TABLE IF NOT EXISTS bank_accounts (
+        account        text PRIMARY KEY,
+        account_number text NOT NULL,
+        bank_name      text NOT NULL,
+        account_name   text NOT NULL,
+        provider       text NOT NULL,
+        status         text NOT NULL DEFAULT 'active',
+        provider_ref   text,
+        created_at     timestamptz NOT NULL DEFAULT now()
+      )
+    `;
+    await sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'`;
+    await sql`ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS provider_ref text`;
+  })();
   return schemaReady;
 }
 
 export async function getBankAccount(account = DEMO_ACCOUNT): Promise<LinkedBankAccount | null> {
+  const rec = await loadRaw(account);
+  if (!rec) return null;
+  return reconcile(account, rec);
+}
+
+/**
+ * If a Paystack account is still pending, ask Paystack whether the NUBAN has been
+ * provisioned yet (webhooks can't reach localhost, so we reconcile on read).
+ */
+async function reconcile(account: string, rec: LinkedBankAccount): Promise<LinkedBankAccount> {
+  if (rec.status !== "pending" || rec.provider !== "paystack" || !rec.providerRef) return rec;
+  const dva = await paystackFetchDva(rec.providerRef);
+  if (!dva) return rec;
+  const active: LinkedBankAccount = {
+    ...rec,
+    accountNumber: dva.accountNumber,
+    bankName: dva.bankName,
+    accountName: dva.accountName,
+    status: "active",
+  };
+  await persist(account, active);
+  return active;
+}
+
+/**
+ * Link/create a payout bank account for `account`. `opts.bvn` is validated for
+ * shape and discarded (passed once to the provider, never stored). Idempotent.
+ */
+export async function linkBankAccount(
+  account: string,
+  opts: { bvn: string; accountName?: string },
+): Promise<{ ok: boolean; account?: LinkedBankAccount; error?: string }> {
+  if (!isValidBvn(opts.bvn)) return { ok: false, error: "Enter a valid 11-digit BVN." };
+  const accountName = (opts.accountName || "Pesarc Wallet").slice(0, 64);
+
+  let linked: LinkedBankAccount;
+  if (bankProvider() === "paystack") {
+    const assigned = await paystackAssign(account, opts.bvn, accountName);
+    if (!assigned.ok) return { ok: false, error: assigned.error ?? "Could not link your account." };
+    linked = {
+      accountNumber: "pending",
+      bankName: "Assigning…",
+      accountName,
+      provider: "paystack",
+      status: "pending",
+      providerRef: assigned.email,
+      createdAt: new Date().toISOString(),
+    };
+  } else {
+    // Stub: deterministic test NUBAN, no provider call, BVN discarded.
+    linked = {
+      accountNumber: stubNuban(account),
+      bankName: "Wema Bank (test)",
+      accountName,
+      provider: "stub",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  if (!(await persist(account, linked))) {
+    return { ok: false, error: "Could not save account." };
+  }
+  // Paystack test mode often assigns immediately — reconcile once before replying.
+  const finalAccount = await reconcile(account, linked);
+  return { ok: true, account: finalAccount };
+}
+
+/** Upsert a bank account record (Neon, else file). */
+async function persist(account: string, a: LinkedBankAccount): Promise<boolean> {
+  if (hasNeon()) {
+    try {
+      const sql = getSql();
+      await ensureSchema(sql);
+      await sql`
+        INSERT INTO bank_accounts
+          (account, account_number, bank_name, account_name, provider, status, provider_ref)
+        VALUES
+          (${account}, ${a.accountNumber}, ${a.bankName}, ${a.accountName}, ${a.provider}, ${a.status}, ${a.providerRef ?? null})
+        ON CONFLICT (account) DO UPDATE SET
+          account_number = EXCLUDED.account_number,
+          bank_name = EXCLUDED.bank_name,
+          account_name = EXCLUDED.account_name,
+          provider = EXCLUDED.provider,
+          status = EXCLUDED.status,
+          provider_ref = EXCLUDED.provider_ref
+      `;
+      return true;
+    } catch {
+      /* fall through to file */
+    }
+  }
+  return writeToFile(account, a);
+}
+
+async function loadRaw(account: string): Promise<LinkedBankAccount | null> {
   if (hasNeon()) {
     try {
       const sql = getSql();
@@ -74,52 +256,14 @@ export async function getBankAccount(account = DEMO_ACCOUNT): Promise<LinkedBank
   return readFromFile(account);
 }
 
-/**
- * Link/create a payout bank account for `account`. `opts.bvn` is validated for
- * shape and discarded. Returns the linked account (idempotent per user).
- */
-export async function linkBankAccount(
-  account: string,
-  opts: { bvn: string; accountName?: string },
-): Promise<{ ok: boolean; account?: LinkedBankAccount; error?: string }> {
-  if (!isValidBvn(opts.bvn)) return { ok: false, error: "Enter a valid 11-digit BVN." };
-
-  const provider = bankProvider();
-  // TODO(provider): when a provider is configured, call its BVN-resolve +
-  // dedicated-virtual-account API here with the (transient) BVN instead of the
-  // stub below, and use the returned NUBAN/bank. The BVN is not persisted.
-  const linked: LinkedBankAccount = {
-    accountNumber: stubNuban(account),
-    bankName: "Wema Bank (test)",
-    accountName: (opts.accountName || "Pesarc Wallet").slice(0, 64),
-    provider: provider ?? "stub",
-    createdAt: new Date().toISOString(),
-  };
-
-  if (hasNeon()) {
-    try {
-      const sql = getSql();
-      await ensureSchema(sql);
-      await sql`
-        INSERT INTO bank_accounts (account, account_number, bank_name, account_name, provider)
-        VALUES (${account}, ${linked.accountNumber}, ${linked.bankName}, ${linked.accountName}, ${linked.provider})
-        ON CONFLICT (account) DO UPDATE SET account_name = EXCLUDED.account_name
-      `;
-      return { ok: true, account: linked };
-    } catch {
-      /* fall through to file */
-    }
-  }
-  const saved = await writeToFile(account, linked);
-  return saved ? { ok: true, account: linked } : { ok: false, error: "Could not save account." };
-}
-
 function mapRow(r: Record<string, unknown>): LinkedBankAccount {
   return {
     accountNumber: String(r.account_number),
     bankName: String(r.bank_name),
     accountName: String(r.account_name),
     provider: String(r.provider),
+    status: (r.status as "active" | "pending") ?? "active",
+    providerRef: r.provider_ref ? String(r.provider_ref) : undefined,
     createdAt:
       r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
   };
@@ -140,7 +284,9 @@ async function readAll(): Promise<Record<string, LinkedBankAccount>> {
 }
 
 async function readFromFile(account: string): Promise<LinkedBankAccount | null> {
-  return (await readAll())[account] ?? null;
+  const rec = (await readAll())[account];
+  if (!rec) return null;
+  return { ...rec, status: rec.status ?? "active" };
 }
 
 async function writeToFile(account: string, linked: LinkedBankAccount): Promise<boolean> {
