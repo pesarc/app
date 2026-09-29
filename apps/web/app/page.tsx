@@ -1,3 +1,4 @@
+import LandingNav from "@/components/landing/LandingNav";
 import Hero from "@/components/landing/Hero";
 import Shift from "@/components/landing/Shift";
 import NetworkHub from "@/components/landing/NetworkHub";
@@ -27,6 +28,9 @@ export default function Home() {
       />
       {/* Globe backdrop, visible faintly through every section */}
       <GlobeBackdrop />
+
+      {/* Fixed, self-hiding, translucent navbar (overlays every section) */}
+      <LandingNav />
 
       {/*
         pointer-events-none on the wrapper so hero clicks fall through to the
