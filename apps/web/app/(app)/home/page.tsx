@@ -6,10 +6,9 @@ import { ACCOUNT } from "@pesarc/sdk/account";
 import { listTransfers } from "@pesarc/sdk/transfers";
 import { formatMoney } from "@pesarc/sdk/money";
 import type { CurrencyCode } from "@pesarc/sdk/money";
-import { LiveBalance } from "@/components/app/LiveBalance";
+import { BalanceHero } from "@/components/app/BalanceHero";
 import SendAbroad from "@/components/app/SendAbroad";
 import { ActivityFeed, type FallbackItem, type ActivityType } from "@/components/app/ActivityFeed";
-import { LiveHoldings } from "@/components/app/LiveHoldings";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
@@ -123,11 +122,7 @@ export default async function HomePage() {
                   </Link>
                 </div>
 
-                <div className="text-5xl font-extrabold tracking-tight numerals mb-2.5">
-                  <LiveBalance fallback={formatMoney(0, ACCOUNT.currency)} />
-                </div>
-
-                <LiveHoldings />
+                <BalanceHero />
               </div>
             </div>
           </Reveal>
