@@ -69,7 +69,7 @@ const MOATS: Moat[] = [
     n: "05",
     art: "corridors",
     title: "We own the local-money rails",
-    body: "We run the naira, cedis and shillings pools ourselves, so the savings reach you instead of a middleman.",
+    body: "We run the local-currency pools ourselves, so the savings reach you instead of a middleman.",
     how: "Owned FX corridors",
   },
   {
