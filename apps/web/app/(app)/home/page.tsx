@@ -9,6 +9,7 @@ import type { CurrencyCode } from "@pesarc/sdk/money";
 import { LiveBalance } from "@/components/app/LiveBalance";
 import { LiveRate } from "@/components/app/LiveRate";
 import { ActivityFeed, type FallbackItem, type ActivityType } from "@/components/app/ActivityFeed";
+import { LiveHoldings } from "@/components/app/LiveHoldings";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
@@ -41,13 +42,6 @@ function activityType(payout: string, direction: "sent" | "received"): ActivityT
   if (p.includes("qr") || p.includes("pay") || p.includes("checkout")) return "pay";
   return direction === "sent" ? "send" : "receive";
 }
-
-// Illustrative local-currency holdings shown as chips on the balance hero.
-const HOLDINGS = [
-  { flag: "🇳🇬", code: "cNGN", amount: "₦1.24m" },
-  { flag: "🇰🇪", code: "cKES", amount: "KSh 98k" },
-  { flag: "🇬🇭", code: "cGHS", amount: "₵ 4.1k" },
-];
 
 // Live corridor lanes — the settlement network, made visible.
 const CORRIDORS: { from: CurrencyCode; to: CurrencyCode }[] = [
@@ -137,19 +131,10 @@ export default async function HomePage() {
                 </div>
 
                 <div className="text-5xl font-extrabold tracking-tight numerals mb-2.5">
-                  <LiveBalance fallback={formatMoney(ACCOUNT.balance, ACCOUNT.currency)} />
+                  <LiveBalance fallback={formatMoney(0, ACCOUNT.currency)} />
                 </div>
 
-                <div className="flex gap-2 mt-4">
-                  {HOLDINGS.map((h) => (
-                    <div key={h.code} className="flex-1 rounded-2xl bg-white/[0.08] px-3 py-2.5">
-                      <div className="text-[11px] font-semibold text-white/60 mb-0.5">
-                        {h.flag} {h.code}
-                      </div>
-                      <div className="text-[15px] font-bold numerals">{h.amount}</div>
-                    </div>
-                  ))}
-                </div>
+                <LiveHoldings />
               </div>
             </div>
           </Reveal>
