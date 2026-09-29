@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio, Plus } from "@/components/icons";
-import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
   fetchLiveMarketsFor,
@@ -49,9 +49,9 @@ export default function MarketsView() {
   const [selected, setSelected] = useState<Selection>(() => activeVenue().kind);
   const [liveByVenue, setLiveByVenue] = useState<Record<string, LiveMarket[] | null>>({});
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
-  // Catalog from the admin store (falls back to the static list), so
-  // admin-created markets show up on the board.
-  const [catalog, setCatalog] = useState<Market[]>(MARKETS);
+  // Catalog from the admin store only — no mock seed. Admin-created markets (and
+  // their on-chain live overlay) show up here; empty until real markets exist.
+  const [catalog, setCatalog] = useState<Market[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -260,9 +260,19 @@ export default function MarketsView() {
           </StaggerItem>
         ))}
         {cards.length === 0 && (
-          <p className="text-sm text-slate py-8 text-center lg:col-span-2">
-            No markets in this category yet.
-          </p>
+          <div className="py-12 text-center lg:col-span-2">
+            <div className="text-[15px] font-bold text-harbor">No live markets yet</div>
+            <p className="text-[13px] text-slate mt-1 max-w-[280px] mx-auto">
+              Markets appear here once they are live on-chain. Want one? Propose it
+              and we&apos;ll list it.
+            </p>
+            <Link
+              href="/markets/propose"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-[13px] font-bold px-4 py-2 mt-4 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+            >
+              <Plus className="w-4 h-4" /> Propose a market
+            </Link>
+          </div>
         )}
       </Stagger>
       <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />
