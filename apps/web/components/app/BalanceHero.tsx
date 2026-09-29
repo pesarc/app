@@ -10,12 +10,14 @@ import { useEffect, useState } from "react";
 import { ChevronDown } from "@/components/icons";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
 import {
   fetchAggregatedBalance,
   type AggregatedBalance,
 } from "@pesarc/sdk/chain/aggregateBalance";
+import { fetchSvmBalances } from "@pesarc/sdk/svm/balance";
 import { chainLogoUrl } from "@/lib/chainLogos";
 
 function logoKey(label: string): string {
@@ -37,11 +39,13 @@ const shortChain = (label: string) =>
 export function BalanceHero() {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
+  const solana = useSolanaSigner();
   const { sendCurrency } = usePrefs();
   const [data, setData] = useState<AggregatedBalance | null>(null);
   const [open, setOpen] = useState(false);
 
   const live = mode === "live" && authenticated && Boolean(smart.address);
+  const solAddr = solana?.address ?? null;
 
   useEffect(() => {
     if (!live || !smart.address) {
@@ -49,13 +53,22 @@ export function BalanceHero() {
       return;
     }
     let active = true;
-    fetchAggregatedBalance(smart.address as `0x${string}`, sendCurrency)
-      .then((r) => active && setData(r))
+    // EVM stablecoins across all chains + Solana devnet SPL stablecoins, merged.
+    Promise.all([
+      fetchAggregatedBalance(smart.address as `0x${string}`, sendCurrency),
+      solAddr ? fetchSvmBalances(solAddr, sendCurrency, "testnet") : Promise.resolve([]),
+    ])
+      .then(([evm, svm]) => {
+        if (!active) return;
+        const holdings = [...evm.holdings, ...svm].sort((a, b) => b.valueInDenom - a.valueInDenom);
+        const total = holdings.reduce((s, h) => s + h.valueInDenom, 0);
+        setData({ denom: sendCurrency, total, holdings });
+      })
       .catch(() => active && setData(null));
     return () => {
       active = false;
     };
-  }, [live, smart.address, sendCurrency]);
+  }, [live, smart.address, solAddr, sendCurrency]);
 
   const total = data?.total ?? 0;
   const holdings = data?.holdings ?? [];
