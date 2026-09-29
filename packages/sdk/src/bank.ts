@@ -56,8 +56,11 @@ async function paystackAssign(
   account: string,
   bvn: string,
   accountName: string,
+  contact?: { email?: string; phone?: string },
 ): Promise<{ ok: boolean; email?: string; error?: string }> {
-  const email = paystackEmail(account);
+  // Prefer the user's real email (Paystack keys the customer + the DVA on it);
+  // fall back to a deterministic address only when none was provided.
+  const email = contact?.email?.trim() || paystackEmail(account);
   const [first, ...rest] = (accountName || "Pesarc Wallet").split(" ");
   try {
     const res = await fetch(`${PAYSTACK}/dedicated_account/assign`, {
@@ -67,7 +70,7 @@ async function paystackAssign(
         email,
         first_name: first || "Pesarc",
         last_name: rest.join(" ") || "Wallet",
-        phone: "+2340000000000",
+        phone: contact?.phone?.trim() || "+2340000000000",
         preferred_bank: DVA_BANK,
         country: "NG",
         bvn,
@@ -176,14 +179,17 @@ async function reconcile(account: string, rec: LinkedBankAccount): Promise<Linke
  */
 export async function linkBankAccount(
   account: string,
-  opts: { bvn: string; accountName?: string },
+  opts: { bvn: string; accountName?: string; email?: string; phone?: string },
 ): Promise<{ ok: boolean; account?: LinkedBankAccount; error?: string }> {
   if (!isValidBvn(opts.bvn)) return { ok: false, error: "Enter a valid 11-digit BVN." };
   const accountName = (opts.accountName || "Pesarc Wallet").slice(0, 64);
 
   let linked: LinkedBankAccount;
   if (bankProvider() === "paystack") {
-    const assigned = await paystackAssign(account, opts.bvn, accountName);
+    const assigned = await paystackAssign(account, opts.bvn, accountName, {
+      email: opts.email,
+      phone: opts.phone,
+    });
     if (!assigned.ok) return { ok: false, error: assigned.error ?? "Could not link your account." };
     linked = {
       accountNumber: "pending",

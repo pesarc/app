@@ -16,6 +16,8 @@ export default function BankAccountPanel() {
   const [loading, setLoading] = useState(true);
   const [bvn, setBvn] = useState("");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -50,6 +52,8 @@ export default function BankAccountPanel() {
       const res = await authedPostJson("/api/bank", {
         bvn: bvn.trim(),
         accountName: name.trim() || undefined,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
       });
       const j = await res.json();
       if (j.ok && j.account) {
@@ -174,6 +178,24 @@ export default function BankAccountPanel() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Account name (optional)"
           aria-label="Account name"
+          className="w-full rounded-xl border border-fog bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-sky/50"
+        />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          inputMode="email"
+          placeholder="Email (for statements & receipts)"
+          aria-label="Email"
+          className="w-full rounded-xl border border-fog bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-sky/50"
+        />
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          type="tel"
+          inputMode="tel"
+          placeholder="Phone (optional)"
+          aria-label="Phone"
           className="w-full rounded-xl border border-fog bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-sky/50"
         />
       </div>
