@@ -21,6 +21,13 @@ function lines(draft: AgentDraft): { label: string; value: string }[] {
     out.push({ label: "Network", value: draft.chainLabel });
     return out;
   }
+  if (draft.type === "payout") {
+    return [
+      { label: "To", value: draft.beneficiary },
+      { label: "Amount", value: `₦${draft.amountNgn.toLocaleString()}` },
+      { label: "Method", value: draft.method === "bank" ? "Bank account" : "Mobile money" },
+    ];
+  }
   const out: { label: string; value: string }[] = [
     { label: draft.category === "electricity" ? "Meter" : "To", value: draft.customer },
   ];
@@ -41,7 +48,12 @@ export function ConsentCard({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const title = draft.type === "transfer" ? "Confirm this transfer" : `Confirm this ${draft.category}`;
+  const title =
+    draft.type === "transfer"
+      ? "Confirm this transfer"
+      : draft.type === "payout"
+        ? "Confirm this cash out"
+        : `Confirm this ${draft.category}`;
   return (
     <div className="mt-3 rounded-2xl border border-sky/30 bg-sky-tint/25 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky/20">
@@ -79,7 +91,11 @@ export function ConsentCard({
             className="flex-[1.4] inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky text-white px-3 py-2.5 text-sm font-extrabold hover:-translate-y-0.5 transition-transform disabled:opacity-40 disabled:translate-y-0"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {draft.type === "transfer" ? "Confirm & send" : "Confirm & pay"}
+            {draft.type === "transfer"
+              ? "Confirm & send"
+              : draft.type === "payout"
+                ? "Confirm & cash out"
+                : "Confirm & pay"}
           </button>
         </div>
       )}

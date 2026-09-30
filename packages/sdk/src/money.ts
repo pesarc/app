@@ -108,6 +108,12 @@ export const SEND_CURRENCIES: CurrencyCode[] = [...WESTERN_CURRENCIES, ...ASIAN_
 /** What lands locally (destination currencies). */
 export const RECEIVE_CURRENCIES: CurrencyCode[] = [...AFRICAN_CURRENCIES];
 
+/** The currencies we ACTUALLY settle in — each backed by a stablecoin in the
+ *  registry with a corridor rate. This is the true supported set the corridor
+ *  picker and the default-currency picker should offer, so users only ever see
+ *  currencies we can really price and settle. Keep in sync with STABLECOINS. */
+export const SUPPORTED_CURRENCIES: CurrencyCode[] = ["USD", "NGN", "KES", "GHS", "ZAR", "EGP"];
+
 /** Mid-market rate: 1 unit of [from] -> X units of [to] (cross via USD). */
 export function midMarketRate(from: CurrencyCode, to: CurrencyCode): number {
   const f = CURRENCIES[from]?.usdPer;

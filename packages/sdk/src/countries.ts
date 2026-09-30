@@ -2,7 +2,7 @@
 // onboarding sets the default send currency (later superseded by what the user
 // actually holds). Kept to markets we support plus the common sending countries.
 
-import type { CurrencyCode } from "./money";
+import { SUPPORTED_CURRENCIES, type CurrencyCode } from "./money";
 
 export type Country = { code: string; name: string; flag: string; currency: CurrencyCode };
 
@@ -23,6 +23,12 @@ export const COUNTRIES: Country[] = [
   { code: "CA", name: "Canada", flag: "🇨🇦", currency: "CAD" },
   { code: "AU", name: "Australia", flag: "🇦🇺", currency: "AUD" },
 ];
+
+/** Countries whose home currency we actually settle in — the set shown in the
+ *  onboarding picker so a user's default currency is always one we support. */
+export const SUPPORTED_COUNTRIES: Country[] = COUNTRIES.filter((c) =>
+  (SUPPORTED_CURRENCIES as string[]).includes(c.currency),
+);
 
 export function countryByCode(code: string): Country | undefined {
   return COUNTRIES.find((c) => c.code === code);

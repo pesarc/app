@@ -33,6 +33,13 @@ const draftSchema = z.discriminatedUnion("type", [
     operatorName: z.string().max(60),
     label: z.string().max(80),
   }),
+  z.object({
+    type: z.literal("payout"),
+    amountNgn: z.number().positive().max(1e9),
+    method: z.enum(["bank", "mobile_money"]),
+    beneficiary: z.string().max(120),
+    label: z.string().max(80),
+  }),
 ]);
 
 const schema = z.object({ draft: draftSchema });
