@@ -178,6 +178,9 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
   const [onchain, setOnchain] = useState<OnchainActivity[] | null>(null);
+  const [tokenF, setTokenF] = useState("all");
+  const [kindF, setKindF] = useState<"all" | "sent" | "received">("all");
+  const [visible, setVisible] = useState(5);
 
   const live = mode === "live" && authenticated && Boolean(smart.address);
 
@@ -187,7 +190,7 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
       return;
     }
     let active = true;
-    fetchOnchainActivity(smart.address as `0x${string}`)
+    fetchOnchainActivity(smart.address as `0x${string}`, 50)
       .then((items) => active && setOnchain(items))
       .catch(() => active && setOnchain(null));
     return () => {
@@ -198,9 +201,47 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   const chain = chainVisual(chainLabel());
 
   if (live && onchain && onchain.length > 0) {
+    const tokens = Array.from(new Set(onchain.map((a) => a.symbol)));
+    const filtered = onchain.filter(
+      (a) => (tokenF === "all" || a.symbol === tokenF) && (kindF === "all" || a.kind === kindF),
+    );
+    const shown = filtered.slice(0, visible);
+    const chip = (active: boolean) =>
+      `px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
+        active ? "bg-harbor text-white" : "bg-black/[0.05] text-slate hover:bg-black/[0.08]"
+      }`;
     return (
       <div className="space-y-2.5">
-        {onchain.map((a, i) => {
+        <div className="flex flex-wrap gap-1.5">
+          {(["all", "received", "sent"] as const).map((k) => (
+            <button
+              key={k}
+              className={chip(kindF === k)}
+              onClick={() => {
+                setKindF(k);
+                setVisible(5);
+              }}
+            >
+              {k === "all" ? "All" : k === "sent" ? "Sent" : "Received"}
+            </button>
+          ))}
+          {tokens.length > 1 && <span className="w-px self-stretch bg-fog mx-0.5" />}
+          {tokens.length > 1 &&
+            [["all", "All tokens"] as const, ...tokens.map((t) => [t, t] as const)].map(([v, label]) => (
+              <button
+                key={v}
+                className={chip(tokenF === v)}
+                onClick={() => {
+                  setTokenF(v);
+                  setVisible(5);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+        </div>
+
+        {shown.map((a, i) => {
           const sent = a.kind === "sent";
           return (
             <a key={`${a.id}-${i}`} href={explorerTxUrl(a.txHash)} target="_blank" rel="noreferrer" className="block">
@@ -226,6 +267,18 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
             </a>
           );
         })}
+
+        {filtered.length === 0 && (
+          <div className="text-[13px] text-slate px-1 py-2">Nothing matches these filters.</div>
+        )}
+        {filtered.length > visible && (
+          <button
+            onClick={() => setVisible((v) => v + 5)}
+            className="w-full rounded-[20px] border border-fog bg-snow py-2.5 text-[13px] font-bold text-sky-deep hover:bg-cream transition"
+          >
+            Show more
+          </button>
+        )}
       </div>
     );
   }
