@@ -20,6 +20,8 @@ export type OnchainActivity = {
   timestamp?: number;
   chainKey: string;
   chainLabel: string;
+  /** Whether the chain is a testnet (for the testnet/mainnet filter). */
+  testnet: boolean;
   explorer?: string;
 };
 
@@ -104,6 +106,7 @@ async function alchemyTransfers(
         timestamp: ts,
         chainKey: chain.key,
         chainLabel: chain.label,
+        testnet: chain.testnet,
         explorer: base ? `${base}/tx/${t.hash}` : undefined,
       });
     }
@@ -152,6 +155,7 @@ async function logsTransfers(
         timestamp: undefined,
         chainKey: chain.key,
         chainLabel: chain.label,
+        testnet: chain.testnet,
         explorer: base ? `${base}/tx/${log.transactionHash}` : undefined,
       });
       // stash the block on the item id for the timestamp pass
