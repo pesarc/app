@@ -4,10 +4,11 @@ import { createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { rateLimit } from "@pesarc/sdk/api/guard";
 import {
-  CCTP_MAINNET,
-  MESSAGE_TRANSMITTER_V2,
+  cctpChains,
   cctpChainByDomain,
-} from "@pesarc/sdk/chain/cctp/mainnet";
+  messageTransmitterV2,
+  irisBase,
+} from "@pesarc/sdk/chain/cctp/network";
 import { messageTransmitterV2Abi } from "@pesarc/sdk/chain/cctp/abi";
 import { viemChainFor } from "@pesarc/sdk/chain/cctp/bridge";
 
@@ -15,13 +16,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const IRIS = "https://iris-api.circle.com";
-
 const schema = z.object({
   srcDomain: z.number().int().nonnegative(),
   // EVM burn tx (0x…64) or a Solana signature (base58, ~88 chars).
   burnTx: z.string().regex(/^(0x[0-9a-fA-F]{64}|[1-9A-HJ-NP-Za-km-z]{64,90})$/),
   dstKey: z.string().min(1),
+  network: z.enum(["mainnet", "testnet"]).default("mainnet"),
 });
 
 // Finalize a CCTP V2 burn: fetch Circle's attestation for the burn tx, then call
@@ -45,13 +45,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { srcDomain, burnTx, dstKey } = parsed.data;
+  const { srcDomain, burnTx, dstKey, network } = parsed.data;
 
-  const dst = CCTP_MAINNET[dstKey];
+  const dst = cctpChains(network)[dstKey];
   if (!dst || dst.kind !== "evm") {
     return NextResponse.json({ ok: false, error: "Unsupported destination." }, { status: 400 });
   }
-  if (!cctpChainByDomain(srcDomain)) {
+  if (!cctpChainByDomain(srcDomain, network)) {
     return NextResponse.json({ ok: false, error: "Unknown source domain." }, { status: 400 });
   }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   let attestation: string | undefined;
   try {
     const res = await fetch(
-      `${IRIS}/v2/messages/${srcDomain}?transactionHash=${burnTx}`,
+      `${irisBase(network)}/v2/messages/${srcDomain}?transactionHash=${burnTx}`,
       { cache: "no-store" },
     );
     if (res.ok) {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     const pub = createPublicClient({ chain, transport });
 
     const mintTx = await wallet.writeContract({
-      address: MESSAGE_TRANSMITTER_V2,
+      address: messageTransmitterV2(network),
       abi: messageTransmitterV2Abi,
       functionName: "receiveMessage",
       args: [message as `0x${string}`, attestation as `0x${string}`],

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@pesarc/sdk/api/guard";
+import { irisBase } from "@pesarc/sdk/chain/cctp/network";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const IRIS = "https://iris-api.circle.com";
-
 const schema = z.object({
   src: z.number().int().nonnegative(),
   dst: z.number().int().nonnegative(),
+  network: z.enum(["mainnet", "testnet"]).default("mainnet"),
 });
 
 // Circle's CCTP V2 fee for a domain pair. Returns the Fast-transfer fee in bps
@@ -29,10 +29,12 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Invalid input." }, { status: 400 });
   }
-  const { src, dst } = parsed.data;
+  const { src, dst, network } = parsed.data;
 
   try {
-    const res = await fetch(`${IRIS}/v2/burn/USDC/fees/${src}/${dst}`, { cache: "no-store" });
+    const res = await fetch(`${irisBase(network)}/v2/burn/USDC/fees/${src}/${dst}`, {
+      cache: "no-store",
+    });
     if (!res.ok) return NextResponse.json({ ok: false, error: "Fee unavailable." });
     const arr = (await res.json()) as { finalityThreshold: number; minimumFee: number }[];
     const fast = arr.find((f) => f.finalityThreshold <= 1000);
