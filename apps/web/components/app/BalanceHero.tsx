@@ -49,9 +49,30 @@ export function BalanceHero() {
   const { sendCurrency } = usePrefs();
   const [data, setData] = useState<AggregatedBalance | null>(null);
   const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const live = mode === "live" && authenticated && Boolean(smart.address);
   const solAddr = solana?.address ?? null;
+
+  // Remember the user's hide-balance choice per device.
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem("pesarc.hideBalance") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  const toggleHidden = () => {
+    setHidden((h) => {
+      const next = !h;
+      try {
+        localStorage.setItem("pesarc.hideBalance", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!live || !smart.address) {
@@ -95,8 +116,17 @@ export function BalanceHero() {
 
   return (
     <div>
-      <div className="text-5xl font-extrabold tracking-tight numerals mb-2.5">
-        {formatMoney(total, sendCurrency)}
+      <div className="flex items-center gap-3 mb-2.5">
+        <div className="text-5xl font-extrabold tracking-tight numerals">
+          {hidden ? "••••••" : formatMoney(total, sendCurrency)}
+        </div>
+        <button
+          onClick={toggleHidden}
+          aria-label={hidden ? "Show balance" : "Hide balance"}
+          className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-white/60 hover:text-white border border-white/20 rounded-full px-2.5 py-1 transition-colors"
+        >
+          {hidden ? "Show" : "Hide"}
+        </button>
       </div>
 
       {holdings.length > 0 ? (
@@ -128,13 +158,13 @@ export function BalanceHero() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold text-white leading-tight">
-                        {h.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {hidden ? "••••" : h.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
                         <span className="text-white/70 font-semibold">{h.symbol}</span>
                       </div>
                       <div className="text-[11px] text-white/50">{shortChain(h.chainLabel)}</div>
                     </div>
                     <div className="text-[12px] font-semibold text-white/80 numerals shrink-0">
-                      ≈ {formatMoney(h.valueInDenom, sendCurrency)}
+                      ≈ {hidden ? "••••" : formatMoney(h.valueInDenom, sendCurrency)}
                     </div>
                   </div>
                 );
