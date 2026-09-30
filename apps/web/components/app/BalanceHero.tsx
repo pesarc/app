@@ -7,7 +7,7 @@
 // total uses indicative FX. No wallet -> a clean zero in the user's currency.
 
 import { useEffect, useState } from "react";
-import { ChevronDown } from "@/components/icons";
+import { ChevronDown, Eye, EyeOff } from "@/components/icons";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
@@ -123,9 +123,9 @@ export function BalanceHero() {
         <button
           onClick={toggleHidden}
           aria-label={hidden ? "Show balance" : "Hide balance"}
-          className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-white/60 hover:text-white border border-white/20 rounded-full px-2.5 py-1 transition-colors"
+          className="shrink-0 w-9 h-9 rounded-full text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
         >
-          {hidden ? "Show" : "Hide"}
+          {hidden ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
         </button>
       </div>
 

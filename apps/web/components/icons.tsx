@@ -98,6 +98,8 @@ import {
   Wifi01Icon,
   AttachmentIcon,
   ArrowDown01Icon,
+  ViewIcon,
+  ViewOffSlashIcon,
 } from "@hugeicons/core-free-icons";
 
 /** Lucide-compatible icon props. Kept minimal on purpose. */
@@ -172,6 +174,8 @@ export const Send = make(SentIcon);
 export const Share2 = make(Share01Icon);
 export const Shield = make(Shield01Icon);
 export const ShieldCheck = make(ShieldCheckIcon);
+export const Eye = make(ViewIcon);
+export const EyeOff = make(ViewOffSlashIcon);
 export const Smartphone = make(SmartphoneIcon);
 export const Sparkles = make(SparklesIcon);
 export const Sprout = make(Plant02Icon);

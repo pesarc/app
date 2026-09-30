@@ -109,46 +109,62 @@ export default function SendAbroad() {
           </div>
         ))}
 
-        {adding ? (
-          <div className="flex-none w-[190px] rounded-card border border-sky-tint bg-snow p-4 shadow-card-flat">
-            <div className="text-[12px] font-bold text-slate mb-2">Pin a corridor</div>
-            <div className="flex items-center gap-2 mb-2">
-              <CcySelect value={from} onChange={setFrom} options={opts} />
-              <span className="text-slate">→</span>
-              <CcySelect value={to} onChange={setTo} options={opts} />
+        <button
+          onClick={() => setAdding(true)}
+          className="flex-none w-[118px] rounded-card border border-dashed border-sky-tint bg-sky-tint/25 p-4 flex flex-col items-start justify-center gap-2.5 text-sky-deep hover:bg-sky-tint/40 transition-colors"
+        >
+          <span className="w-[34px] h-[34px] rounded-full bg-snow flex items-center justify-center">
+            <Plus className="w-[18px] h-[18px]" />
+          </span>
+          <span className="text-[13px] font-bold leading-tight text-left">
+            Add a
+            <br />
+            country
+          </span>
+        </button>
+      </div>
+
+      {/* Pin-a-corridor modal — rendered outside the scroll strip so the token
+          dropdowns aren't clipped and sit above everything. */}
+      {adding && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 py-6"
+          onClick={() => setAdding(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-card bg-snow p-5 shadow-pop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-[15px] font-extrabold text-harbor mb-4">Pin a corridor</div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1">
+                <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">From</div>
+                <CcySelect value={from} onChange={setFrom} options={opts} />
+              </div>
+              <span className="text-slate mt-5">→</span>
+              <div className="flex-1">
+                <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">To</div>
+                <CcySelect value={to} onChange={setTo} options={opts} />
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <button
                 onClick={add}
                 disabled={from === to}
-                className="flex-1 rounded-pill bg-sky text-white text-[12px] font-bold py-1.5 disabled:opacity-50"
+                className="flex-1 rounded-pill bg-sky text-white text-sm font-bold py-2.5 disabled:opacity-50"
               >
-                Add
+                Pin corridor
               </button>
               <button
                 onClick={() => setAdding(false)}
-                className="rounded-pill bg-black/[0.05] text-slate text-[12px] font-bold px-3 py-1.5"
+                className="rounded-pill bg-black/[0.05] text-slate text-sm font-bold px-5 py-2.5"
               >
                 Cancel
               </button>
             </div>
           </div>
-        ) : (
-          <button
-            onClick={() => setAdding(true)}
-            className="flex-none w-[118px] rounded-card border border-dashed border-sky-tint bg-sky-tint/25 p-4 flex flex-col items-start justify-center gap-2.5 text-sky-deep hover:bg-sky-tint/40 transition-colors"
-          >
-            <span className="w-[34px] h-[34px] rounded-full bg-snow flex items-center justify-center">
-              <Plus className="w-[18px] h-[18px]" />
-            </span>
-            <span className="text-[13px] font-bold leading-tight text-left">
-              Add a
-              <br />
-              country
-            </span>
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
