@@ -12,8 +12,14 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 type Result = {
   ok: boolean;
   error?: string;
-  minted?: { code: string; amount: string; tx: string }[];
-  gasDripTx?: string;
+  minted?: { chain: string; code: string; amount: string; tx: string; explorer: string }[];
+  gasDripTxs?: string[];
+};
+
+const CHAIN_LABEL: Record<string, string> = {
+  "arbitrum-sepolia": "Arbitrum Sepolia",
+  "base-sepolia": "Base Sepolia",
+  "arc-testnet": "Arc Testnet",
 };
 
 export default function FaucetCard() {
@@ -50,25 +56,29 @@ export default function FaucetCard() {
         <div className="flex-1 min-w-0">
           <div className="text-[15px] font-extrabold text-harbor">Get test funds</div>
           <p className="text-[13px] font-medium text-slate leading-snug mt-0.5">
-            Testnet only, mints cNGN, cGHS &amp; cKES to your wallet on Arbitrum Sepolia so you
-            can try sending and staking.
+            Testnet only, drips about $1 of cNGN, cGHS &amp; cKES to your wallet on every
+            supported testnet (Arbitrum, Base &amp; Arc) so you can try sending and staking.
           </p>
 
           {res?.ok ? (
             <div className="mt-3 rounded-2xl bg-sky-tint/40 px-4 py-3">
               <div className="inline-flex items-center gap-1.5 text-[13px] font-bold text-sky-deep">
-                <Check className="w-4 h-4" /> Funded: 500,000 of each stablecoin
+                <Check className="w-4 h-4" /> Funded: ~$1 of each coin
+                {res.minted?.length ? ` across ${new Set(res.minted.map((m) => m.chain)).size} testnets` : ""}
               </div>
-              {res.minted?.[0]?.tx && (
-                <a
-                  href={`https://sepolia.arbiscan.io/tx/${res.minted[0].tx}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-sky-deep hover:underline"
-                >
-                  View on-chain <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                {res.minted?.map((m) => (
+                  <a
+                    key={`${m.chain}-${m.code}-${m.tx}`}
+                    href={m.explorer}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-deep hover:underline"
+                  >
+                    {m.code} · {CHAIN_LABEL[m.chain] ?? m.chain} <ExternalLink className="w-3 h-3" />
+                  </a>
+                ))}
+              </div>
             </div>
           ) : res && !res.ok ? (
             <p className="mt-2 text-[12.5px] font-semibold text-alert">{res.error}</p>
