@@ -267,6 +267,28 @@ input[type="range"]:focus {
   animation: progressPulse 1.4s ease-in-out infinite;
 }
 
+/* Subtle enter animation for dropdown / popover menus. Enter only (menus unmount
+   on close), kept quick and gentle so it reads as polish, not motion. */
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-dropdown {
+  animation: dropdownIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-dropdown {
+    animation: none;
+  }
+}
+
 /* Hidden scrollbar (used in the landing agent preview's fixed-height chat). */
 .no-scrollbar {
   scrollbar-width: none;
@@ -274,4 +296,27 @@ input[type="range"]:focus {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Thin, unobtrusive scrollbars app-wide — barely there until you scroll, subtle
+   enough to read on both the light app and the dark hero/landing. Firefox reads
+   scrollbar-width/color; WebKit/Chromium reads the ::-webkit pseudo-elements. The
+   more specific .no-scrollbar above still wins where a scrollbar is fully hidden. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.32) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.28);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.5);
 }
