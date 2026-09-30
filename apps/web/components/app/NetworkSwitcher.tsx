@@ -64,7 +64,7 @@ export default function NetworkSwitcher({ className = "" }: { className?: string
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden />
           <div
             role="listbox"
-            className="absolute right-0 mt-2 z-20 w-60 rounded-2xl border border-fog bg-snow shadow-pop-sm p-1.5 max-h-72 overflow-auto"
+            className="animate-dropdown absolute right-0 mt-2 z-20 w-60 rounded-2xl border border-fog bg-snow shadow-pop-sm p-1.5 max-h-72 overflow-auto"
           >
             <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate">Network</p>
             {networks.map((c) => {

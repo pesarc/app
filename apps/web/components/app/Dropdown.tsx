@@ -90,7 +90,7 @@ export function Dropdown<T extends string>({
       {open && (
         <div
           role="listbox"
-          className={`absolute z-30 mt-1.5 max-h-64 overflow-auto rounded-xl border border-fog bg-snow shadow-pop-sm py-1 ${
+          className={`animate-dropdown absolute z-30 mt-1.5 max-h-64 overflow-auto rounded-xl border border-fog bg-snow shadow-pop-sm py-1 ${
             compact ? "right-0 min-w-[190px]" : "w-full"
           }`}
         >
