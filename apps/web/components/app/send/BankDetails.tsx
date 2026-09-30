@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, AlertCircle } from "@/components/icons";
-import { Select } from "@/components/app/ui";
+import { Dropdown } from "@/components/app/Dropdown";
 
 export type BankDestination = {
   bankCode: string;
@@ -95,14 +95,13 @@ export default function BankDetails({
         <label className="block text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">
           Bank
         </label>
-        <Select value={bankCode} onChange={(e) => setBankCode(e.target.value)}>
-          <option value="">Select bank</option>
-          {banks.map((b) => (
-            <option key={b.code} value={b.code}>
-              {b.name}
-            </option>
-          ))}
-        </Select>
+        <Dropdown
+          value={bankCode}
+          onChange={setBankCode}
+          ariaLabel="Bank"
+          placeholder="Select bank"
+          options={banks.map((b) => ({ value: b.code, label: b.name }))}
+        />
       </div>
 
       <div>
