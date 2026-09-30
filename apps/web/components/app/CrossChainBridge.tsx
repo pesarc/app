@@ -208,11 +208,19 @@ export default function CrossChainBridge() {
 
       // EVM -> Solana via LI.FI (their bridge handles the Solana leg). Mainnet only.
       if (viaLifi) {
-        const provider = eth();
-        if (!provider) throw new Error("Connect an EVM wallet with USDC (e.g. MetaMask).");
         const to = recipient.trim();
         if (!isSolAddr(to)) throw new Error("Enter the destination Solana address.");
-        const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
+        // In-app (AA) when the smart wallet is ready on the source chain.
+        const lifiAA = smart.ready && Boolean(smart.address) && activeEvm.chain.id === src.chainId;
+        let from: `0x${string}`;
+        let provider: any;
+        if (lifiAA) {
+          from = smart.address as `0x${string}`;
+        } else {
+          provider = eth();
+          if (!provider) throw new Error("Connect an EVM wallet with USDC (e.g. MetaMask).");
+          [from] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
+        }
 
         setPhase("switching");
         setNote("Finding the best route…");
@@ -222,47 +230,61 @@ export default function CrossChainBridge() {
           fromToken: src.usdc,
           toToken: SOLANA_USDC_MINT,
           fromAmount: amountIn.toString(),
-          fromAddress: account,
+          fromAddress: from,
           toAddress: to,
         });
-
-        const chain = viemChainFor(src);
-        const wallet = createWalletClient({ account, chain, transport: custom(provider) });
-        const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
-        try {
-          await wallet.switchChain({ id: src.chainId as number });
-        } catch (e: any) {
-          if (e?.code === 4902) await wallet.addChain({ chain });
-          await wallet.switchChain({ id: src.chainId as number });
-        }
-
         const spender = quote.transactionRequest.to;
-        const allowance = (await pub.readContract({
-          address: src.usdc as `0x${string}`,
-          abi: erc20ApproveAbi,
-          functionName: "allowance",
-          args: [account, spender],
-        })) as bigint;
-        if (allowance < amountIn) {
-          setPhase("approving");
-          setNote("Approve the transfer in your wallet…");
-          const aTx = await wallet.writeContract({
+        const lifiValue = quote.transactionRequest.value ? BigInt(quote.transactionRequest.value) : 0n;
+
+        let hash: `0x${string}`;
+        if (lifiAA) {
+          setPhase("burning");
+          setNote(`Signing in-app and moving ${amount} USDC to Solana…`);
+          const tx = await smart.sendCalls([
+            {
+              to: src.usdc as `0x${string}`,
+              data: encodeFunctionData({ abi: erc20ApproveAbi, functionName: "approve", args: [spender, amountIn] }),
+            },
+            { to: quote.transactionRequest.to, data: quote.transactionRequest.data, value: lifiValue },
+          ]);
+          if (!tx) throw new Error("The transfer didn't go through. Please try again.");
+          hash = tx as `0x${string}`;
+        } else {
+          const chain = viemChainFor(src);
+          const wallet = createWalletClient({ account: from, chain, transport: custom(provider) });
+          const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+          try {
+            await wallet.switchChain({ id: src.chainId as number });
+          } catch (e: any) {
+            if (e?.code === 4902) await wallet.addChain({ chain });
+            await wallet.switchChain({ id: src.chainId as number });
+          }
+          const allowance = (await pub.readContract({
             address: src.usdc as `0x${string}`,
             abi: erc20ApproveAbi,
-            functionName: "approve",
-            args: [spender, amountIn],
+            functionName: "allowance",
+            args: [from, spender],
+          })) as bigint;
+          if (allowance < amountIn) {
+            setPhase("approving");
+            setNote("Approve the transfer in your wallet…");
+            const aTx = await wallet.writeContract({
+              address: src.usdc as `0x${string}`,
+              abi: erc20ApproveAbi,
+              functionName: "approve",
+              args: [spender, amountIn],
+            });
+            await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
+          }
+          setPhase("burning");
+          setNote(`Moving ${amount} USDC to Solana…`);
+          hash = await wallet.sendTransaction({
+            to: quote.transactionRequest.to,
+            data: quote.transactionRequest.data,
+            value: lifiValue,
           });
-          await pub.waitForTransactionReceipt({ hash: aTx, timeout: 60_000 });
+          await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
         }
-
-        setPhase("burning");
-        setNote(`Moving ${amount} USDC to Solana…`);
-        const hash = await wallet.sendTransaction({
-          to: quote.transactionRequest.to,
-          data: quote.transactionRequest.data,
-          value: quote.transactionRequest.value ? BigInt(quote.transactionRequest.value) : 0n,
-        });
-        await pub.waitForTransactionReceipt({ hash, timeout: 60_000 });
         setBurnTx(hash);
 
         setPhase("attesting");
