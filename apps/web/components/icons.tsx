@@ -100,6 +100,7 @@ import {
   ArrowDown01Icon,
   ViewIcon,
   ViewOffSlashIcon,
+  FilterIcon,
 } from "@hugeicons/core-free-icons";
 
 /** Lucide-compatible icon props. Kept minimal on purpose. */
@@ -212,3 +213,4 @@ export const Terminal = make(TerminalIcon);
 export const Wifi = make(Wifi01Icon);
 export const Paperclip = make(AttachmentIcon);
 export const ArrowDown = make(ArrowDown01Icon);
+export const Filter = make(FilterIcon);

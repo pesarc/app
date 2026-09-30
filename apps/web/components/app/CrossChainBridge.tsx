@@ -19,7 +19,24 @@ import {
   hyperEndpoints,
 } from "@pesarc/sdk/chain/hyperbridge/registry";
 import { hyperSend } from "@pesarc/sdk/chain/hyperbridge/send";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
+
+// Hyperbridge chain id -> registry chain key, so picking a "From" can set the
+// active network — the embedded smart wallet signs on whichever chain is active.
+const HYPER_CHAIN_KEY: Record<number, string> = {
+  84532: "base-sepolia",
+  421614: "arbitrum-sepolia",
+  11155111: "sepolia",
+  11155420: "optimism-sepolia",
+  80002: "polygon-amoy",
+  8453: "base",
+  42161: "arbitrum",
+  10: "optimism",
+  137: "polygon",
+  1: "ethereum",
+};
 
 // USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
 // is live). One selector, the rail is picked for the user.
@@ -572,6 +589,19 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [errored, setErrored] = useState(false);
+  const smart = useSmartWallet();
+  const { chain: activeEvm, setChainKey } = useActiveEvmChain();
+
+  // Picking a source chain makes it the active network, so the embedded smart
+  // wallet signs the move there — in-app and gasless, no MetaMask.
+  const pickFrom = (v: string) => {
+    const id = Number(v);
+    setFromId(id);
+    const key = HYPER_CHAIN_KEY[id];
+    if (key) setChainKey(key);
+  };
+  // In-app (AA) is possible when the smart wallet is ready on the source chain.
+  const canAA = smart.ready && Boolean(smart.address) && activeEvm.chain.id === fromId;
 
   if (!live) {
     return (
@@ -601,15 +631,19 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
     if (amt <= 0 || same || busy) return;
     setBusy(true);
     setErrored(false);
-    setNote(`Sending ${amount} ${symbol}…`);
+    setNote(canAA ? `Signing in-app and sending ${amount} ${symbol}…` : `Sending ${amount} ${symbol}…`);
     try {
-      const tx = await hyperSend({
-        network: hyperNet,
-        symbol,
-        fromChainId: fromId,
-        toChainId: toId,
-        amount,
-      });
+      const tx = await hyperSend(
+        {
+          network: hyperNet,
+          symbol,
+          fromChainId: fromId,
+          toChainId: toId,
+          amount,
+          recipient: canAA ? (smart.address as `0x${string}`) : undefined,
+        },
+        canAA ? smart : undefined,
+      );
       setNote(`Sent from the source chain. It will arrive once Hyperbridge relays it. Tx ${tx.slice(0, 10)}…`);
     } catch (e: any) {
       setErrored(true);
@@ -624,7 +658,7 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <div className="text-xs font-bold text-slate mb-1">From</div>
-          <Dropdown ariaLabel="Source chain" value={String(fromId)} onChange={(v) => setFromId(Number(v))} options={chainOpts} />
+          <Dropdown ariaLabel="Source chain" value={String(fromId)} onChange={pickFrom} options={chainOpts} />
         </div>
         <div>
           <div className="text-xs font-bold text-slate mb-1">To</div>
@@ -648,7 +682,10 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
       </Button>
       {note && <p className={`text-sm ${errored ? "text-alert" : "text-slate"}`}>{note}</p>}
       <p className="text-[11px] text-slate/70">
-        Sends to your own address on the destination. Delivery is handled by Hyperbridge relayers
+        {canAA
+          ? "Signed in your Pesarc wallet, gasless — no pop-ups. "
+          : "You'll approve this in your connected wallet. "}
+        Sends to your own address on the destination; delivery is handled by Hyperbridge relayers
         after the source transaction confirms.
       </p>
     </Card>

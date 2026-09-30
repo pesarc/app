@@ -11,10 +11,13 @@ import {
   http,
   parseUnits,
   stringToHex,
+  encodeFunctionData,
   type Chain,
 } from "viem";
 import { baseSepolia, arbitrumSepolia } from "viem/chains";
 import { HYPER_TOKENS, type HyperNetwork } from "./registry";
+import type { Call } from "../../wallet/smart-wallet";
+import type { BatchSender } from "../../market-write";
 
 const CHAINS: Record<number, Chain> = {
   [baseSepolia.id]: baseSepolia,
@@ -71,13 +74,59 @@ export type HyperSendInput = {
 };
 
 /** Send a Hyperbridge cross-chain token. Returns the source-chain tx hash; the
- *  destination mint follows via Hyperbridge's relayers. */
-export async function hyperSend(input: HyperSendInput): Promise<`0x${string}`> {
+ *  destination mint follows via Hyperbridge's relayers.
+ *
+ *  When `sender` (the embedded smart wallet) is given, the approve + send run as
+ *  one gasless batched userOp signed IN-APP — no MetaMask popup. The smart wallet
+ *  must be on the source chain (the UI sets the active network to match). Without
+ *  a `sender`, it falls back to the injected wallet (MetaMask). */
+export async function hyperSend(input: HyperSendInput, sender?: BatchSender): Promise<`0x${string}`> {
   const token = HYPER_TOKENS[input.network][input.symbol];
   const src = token?.deployments[input.fromChainId];
   const chain = CHAINS[input.fromChainId];
   if (!src || !chain) throw new Error("This route isn't available yet.");
 
+  // The token that leaves the wallet: the underlying for a wrapped (home) send,
+  // the HFT itself for a remote send.
+  const debitToken = src.kind === "wrapped" ? (src.underlying as `0x${string}`) : src.address;
+  const pubRead = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+  const decimals = (await pubRead.readContract({
+    address: debitToken,
+    abi: erc20Abi,
+    functionName: "decimals",
+  })) as number;
+  const amount = parseUnits(input.amount, decimals);
+
+  // ---- In-app (Account Abstraction) path: gasless, no MetaMask. ----
+  if (sender) {
+    if (!input.recipient) throw new Error("Sign in with your wallet to move funds in-app.");
+    const params = {
+      dest: stringToHex(`EVM-${input.toChainId}`),
+      to: input.recipient,
+      amount,
+      timeout: 3600n,
+      relayerFee: 0n,
+      data: "0x" as `0x${string}`,
+    };
+    const calls: Call[] = [];
+    // Wrapped send pulls the underlying via transferFrom, so approve it first.
+    if (src.kind === "wrapped") {
+      calls.push({
+        to: debitToken,
+        data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [src.address, amount] }),
+      });
+    }
+    calls.push({
+      to: src.address,
+      data: encodeFunctionData({ abi: sendAbi, functionName: "send", args: [params] }),
+      value: 0n,
+    });
+    const tx = await sender.sendCalls(calls);
+    if (!tx) throw new Error("The transfer didn't go through. Please try again.");
+    return tx as `0x${string}`;
+  }
+
+  // ---- Injected wallet fallback (MetaMask etc.). ----
   const provider = eth();
   if (!provider) throw new Error("Connect a wallet that holds this token (e.g. MetaMask).");
   const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
@@ -93,17 +142,6 @@ export async function hyperSend(input: HyperSendInput): Promise<`0x${string}`> {
     } else throw e;
   }
 
-  // The token that leaves the wallet: the underlying for a wrapped (home) send,
-  // the HFT itself for a remote send.
-  const debitToken = src.kind === "wrapped" ? (src.underlying as `0x${string}`) : src.address;
-  const decimals = (await pub.readContract({
-    address: debitToken,
-    abi: erc20Abi,
-    functionName: "decimals",
-  })) as number;
-  const amount = parseUnits(input.amount, decimals);
-
-  // Wrapped send pulls the underlying via transferFrom, so approve it first.
   if (src.kind === "wrapped") {
     const allowance = (await pub.readContract({
       address: debitToken,
@@ -124,7 +162,7 @@ export async function hyperSend(input: HyperSendInput): Promise<`0x${string}`> {
 
   const params = {
     dest: stringToHex(`EVM-${input.toChainId}`),
-    to: (input.recipient ?? account) as `0x${string}`, // 20-byte address is valid `bytes`
+    to: (input.recipient ?? account) as `0x${string}`,
     amount,
     timeout: 3600n,
     relayerFee: 0n,
