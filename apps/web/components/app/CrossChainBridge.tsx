@@ -87,6 +87,42 @@ function eth(): any {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const BAL_ABI = [
+  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+] as const;
+
+/** The smart wallet's balance of `token` on an arbitrary source chain (not the
+ *  active chain), so cross-chain shows how much you actually hold on the FROM
+ *  chain. Works for testnet and mainnet — it reads that chain's own RPC. */
+function useTokenBalanceOn(
+  token: `0x${string}` | undefined,
+  src: { chainId: number | string } & Record<string, unknown>,
+  owner?: string,
+): { amount?: number; loading: boolean } {
+  const [state, setState] = useState<{ amount?: number; loading: boolean }>({ loading: false });
+  useEffect(() => {
+    if (!token || !owner) {
+      setState({ loading: false });
+      return;
+    }
+    let alive = true;
+    setState({ loading: true });
+    const chain = viemChainFor(src as never);
+    const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+    Promise.all([
+      pub.readContract({ address: token, abi: BAL_ABI, functionName: "balanceOf", args: [owner as `0x${string}`] }),
+      pub.readContract({ address: token, abi: BAL_ABI, functionName: "decimals" }).catch(() => 6),
+    ])
+      .then(([b, d]) => alive && setState({ amount: Number(b) / 10 ** Number(d), loading: false }))
+      .catch(() => alive && setState({ loading: false }));
+    return () => {
+      alive = false;
+    };
+  }, [token, owner, src.chainId]);
+  return state;
+}
+
 export default function CrossChainBridge() {
   // Testnet first: it's the safe default (mainnet moves real USDC) and matches how
   // the app is tested. Everything below re-derives from this one value.
@@ -134,6 +170,12 @@ export default function CrossChainBridge() {
     if (key) setChainKey(key);
   };
   const amountIn = amount ? parseUsdc(amount) : 0n;
+  // Real balance of the selected coin on the FROM chain (USDC on the CCTP rail).
+  const srcBal = useTokenBalanceOn(
+    coin === "USDC" ? (src.usdc as `0x${string}`) : undefined,
+    src as never,
+    smart.address,
+  );
   // EVM->Solana can't use native CCTP here (no on-Solana mint) — route via LI.FI.
   const viaLifi = !isTestnet && src.kind === "evm" && dst.kind === "solana";
 
@@ -548,7 +590,7 @@ export default function CrossChainBridge() {
           )}
 
           <label className="text-xs font-bold text-slate">
-            Amount (USDC)
+            Amount ({coin})
             <input
               inputMode="decimal"
               placeholder="0.00"
@@ -557,6 +599,27 @@ export default function CrossChainBridge() {
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               disabled={busy}
             />
+            <div className="mt-1 flex items-center justify-between text-[11px] font-normal">
+              <span className="text-slate">
+                {!smart.address
+                  ? "Sign in to see your balance"
+                  : srcBal.loading
+                    ? "Checking balance…"
+                    : srcBal.amount !== undefined
+                      ? `Balance ${srcBal.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${coin} on ${src.label}`
+                      : ""}
+              </span>
+              {srcBal.amount ? (
+                <button
+                  type="button"
+                  className="font-bold text-sky"
+                  onClick={() => setAmount(String(srcBal.amount))}
+                  disabled={busy}
+                >
+                  Max
+                </button>
+              ) : null}
+            </div>
           </label>
 
           <label className="text-xs font-bold text-slate">
