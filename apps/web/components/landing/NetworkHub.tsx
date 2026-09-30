@@ -12,26 +12,15 @@ import { motion } from "framer-motion";
 import { User, Bot, Landmark, Smartphone } from "@/components/icons";
 import type { IconType } from "react-icons";
 import { SiEthereum, SiSolana, SiPolygon, SiCoinbase, SiOptimism } from "react-icons/si";
-import { CHAIN_LOGO as LOGO, CLOUD } from "@/lib/chainLogos";
+import { CHAIN_LOGO as LOGO, chainLogoUrl } from "@/lib/chainLogos";
 
 const ACCENT = "#3AA0FF";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // Real brand logos come from the shared Cloudinary map (lib/chainLogos); when a
-// chain isn't in it, the react-icons / badge fallback below is used. This hub
-// renders logos inside an SVG, so it keeps its own (transform-less) delivery URL.
-const cld = (id?: string) => (id ? `https://res.cloudinary.com/${CLOUD}/image/upload/${id}` : "");
-
-// Per-logo size tuning so wildly different source art reads at one optical
-// weight: the ETH diamond runs tall, Base is a heavy solid square, while the
-// Arbitrum and Algorand marks read small. 1 = no change.
-const LOGO_SCALE: Record<string, number> = {
-  Ethereum: 0.76,
-  Base: 0.9,
-  Optimism: 1.12,
-  Arbitrum: 1.6,
-  Algorand: 1.62,
-};
+// chain isn't in it, the react-icons / badge fallback below is used.
+// chainLogoUrl trims each mark's built-in padding (Cloudinary e_trim), so a
+// single size renders them all at one optical weight — no per-logo fudging.
 
 type Brand = { color: string; Icon?: IconType; mono?: string; lucide?: "bank" | "phone" };
 const BRANDS: Record<string, Brand> = {
@@ -57,10 +46,18 @@ const HUB_LEFT = ["Ethereum", "Base", "Arc", "Solana", "Celo"];
 const HUB_RIGHT = ["Bank transfer", "Mobile Money"];
 
 function Mark({ name, size = 20 }: { name: string; size?: number }) {
-  const url = cld(LOGO[name]);
-  const s = Math.round(size * (LOGO_SCALE[name] ?? 1));
+  const url = chainLogoUrl(name);
+  // Fixed SQUARE box (explicit CSS w/h, not just attrs, so a CSS reset can't
+  // force height:auto) + object-contain letterboxes every mark identically.
   // eslint-disable-next-line @next/next/no-img-element -- small brand logo; next/image can't render inside SVG
-  if (url) return <img src={url} alt={name} width={s} height={s} style={{ objectFit: "contain" }} />;
+  if (url)
+    return (
+      <img
+        src={url}
+        alt={name}
+        style={{ width: size, height: size, objectFit: "contain", display: "block" }}
+      />
+    );
   const b = BRANDS[name] ?? { color: ACCENT };
   if (b.Icon) return <b.Icon size={size} color={b.color} />;
   if (b.lucide === "bank") return <Landmark size={size - 2} color={b.color} />;
