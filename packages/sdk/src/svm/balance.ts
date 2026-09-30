@@ -28,6 +28,7 @@ function knownMints(network: "mainnet" | "testnet"): Record<string, { symbol: st
 export type SvmHolding = {
   chainKey: string;
   chainLabel: string;
+  testnet: boolean;
   fiat: CurrencyCode;
   symbol: string;
   amount: number;
@@ -69,6 +70,7 @@ export async function fetchSvmBalances(
       out.push({
         chainKey: `solana-${network}`,
         chainLabel: label,
+        testnet: network === "testnet",
         fiat: meta.fiat,
         symbol: meta.symbol,
         amount,

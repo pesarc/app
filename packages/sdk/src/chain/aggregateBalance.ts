@@ -15,6 +15,7 @@ import { midMarketRate, type CurrencyCode } from "../money";
 export type TokenHolding = {
   chainKey: string;
   chainLabel: string;
+  testnet: boolean; // true for testnet chains (for the mainnet/testnet filter)
   fiat: CurrencyCode; // the fiat the stablecoin tracks
   symbol: string; // real stablecoin symbol (USDC, cNGN, …)
   amount: number; // human amount, in the token's own currency
@@ -84,6 +85,7 @@ export async function fetchAggregatedBalance(
             holdings.push({
               chainKey: chain.key,
               chainLabel: chain.label,
+              testnet: chain.testnet,
               fiat: t.fiat,
               symbol: sym,
               amount,
