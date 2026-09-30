@@ -37,6 +37,8 @@ export function BalanceHero() {
   const [data, setData] = useState<AggregatedBalance | null>(null);
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [chainFilter, setChainFilter] = useState<string>("all");
+  const [tokenFilter, setTokenFilter] = useState<string>("all");
 
   const live = mode === "live" && authenticated && Boolean(smart.address);
   const solAddr = solana?.address ?? null;
@@ -130,7 +132,53 @@ export function BalanceHero() {
 
           {open && (
             <div className="mt-3 space-y-2">
-              {holdings.map((h) => {
+              {/* Filter by chain + token. Chips only show when there's more than
+                  one option, so a single-chain wallet stays clean. */}
+              {(() => {
+                const chainOpts = Array.from(
+                  new Map(holdings.map((h) => [h.chainKey, shortChain(h.chainLabel)])).entries(),
+                );
+                const tokenOpts = Array.from(new Set(holdings.map((h) => h.symbol)));
+                const chip = (active: boolean) =>
+                  `px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
+                    active ? "bg-white text-harbor" : "bg-white/10 text-white/70 hover:bg-white/20"
+                  }`;
+                return (
+                  <>
+                    {chainOpts.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5 pb-1">
+                        <button className={chip(chainFilter === "all")} onClick={() => setChainFilter("all")}>
+                          All chains
+                        </button>
+                        {chainOpts.map(([key, label]) => (
+                          <button key={key} className={chip(chainFilter === key)} onClick={() => setChainFilter(key)}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {tokenOpts.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5 pb-1">
+                        <button className={chip(tokenFilter === "all")} onClick={() => setTokenFilter("all")}>
+                          All tokens
+                        </button>
+                        {tokenOpts.map((sym) => (
+                          <button key={sym} className={chip(tokenFilter === sym)} onClick={() => setTokenFilter(sym)}>
+                            {sym}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+              {holdings
+                .filter(
+                  (h) =>
+                    (chainFilter === "all" || h.chainKey === chainFilter) &&
+                    (tokenFilter === "all" || h.symbol === tokenFilter),
+                )
+                .map((h) => {
                 const url = chainLogoUrlForLabel(h.chainLabel);
                 return (
                   <div
