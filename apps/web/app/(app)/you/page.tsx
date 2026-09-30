@@ -21,7 +21,10 @@ import {
   Settings2,
   Globe,
   ExternalLink,
+  Landmark,
+  Wallet,
 } from "@/components/icons";
+import { countryByCode, BVN_COUNTRIES } from "@pesarc/sdk/countries";
 import { site } from "@pesarc/sdk/site";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePersona, type Persona } from "@pesarc/sdk/persona";
@@ -50,7 +53,9 @@ const PERSONA_OPTS: { value: Persona; label: string }[] = [
 export default function YouPage() {
   const { mode, setMode } = useUIMode();
   const { persona, setPersona } = usePersona();
-  const { sendCurrency, setSendCurrency, kyc, setKyc } = usePrefs();
+  const { sendCurrency, setSendCurrency, kyc, setKyc, country } = usePrefs();
+  const homeCountry = country ? countryByCode(country) : undefined;
+  const needsBvn = country ? BVN_COUNTRIES.has(country) : false;
   const { mode: walletMode, authenticated, address, alias, login, logout } = useWallet();
 
   const signedIn = walletMode === "mock" || authenticated;
@@ -79,9 +84,45 @@ export default function YouPage() {
         </div>
       </div>
 
-      {/* Identity verification (KYC) */}
+      {/* KYC — only what the jurisdiction requires: wallets none, bank via BVN */}
       <Section title="Verification">
-        <VerificationRow kyc={kyc} setKyc={setKyc} />
+        <KycInfoRow
+          icon={Wallet}
+          title="Wallet payouts"
+          detail="No verification needed — you hold your own funds."
+          ok
+        />
+        {needsBvn ? (
+          kyc === "verified" ? (
+            <KycInfoRow
+              icon={Landmark}
+              title="Bank payouts"
+              detail={`BVN linked for ${homeCountry?.name ?? "Nigeria"} bank payouts.`}
+              ok
+            />
+          ) : (
+            <KycInfoRow
+              icon={Landmark}
+              title="Bank payouts"
+              detail={`Requires your BVN (${homeCountry?.name ?? "Nigeria"}). Add a bank account to link it.`}
+              action={
+                <Link
+                  href="/add"
+                  className="inline-flex items-center gap-1 rounded-pill bg-sky text-white text-sm font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+                >
+                  Add BVN
+                </Link>
+              }
+            />
+          )
+        ) : (
+          <KycInfoRow
+            icon={Landmark}
+            title="Bank payouts"
+            detail={`No extra verification for ${homeCountry?.name ?? "your country"}.`}
+            ok
+          />
+        )}
       </Section>
 
       {/* Preferences */}
@@ -213,63 +254,38 @@ export default function YouPage() {
   );
 }
 
-function VerificationRow({
-  kyc,
-  setKyc,
+function KycInfoRow({
+  icon: Icon,
+  title,
+  detail,
+  ok,
+  action,
 }: {
-  kyc: "unverified" | "pending" | "verified";
-  setKyc: (s: "unverified" | "pending" | "verified") => void;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  detail: string;
+  ok?: boolean;
+  action?: React.ReactNode;
 }) {
-  const [starting, setStarting] = useState(false);
-
-  // Demo verification: pending → verified after a short review. A real KYC
-  // provider (Persona/Sumsub) would drive this from a verified webhook.
-  const start = () => {
-    setStarting(true);
-    setKyc("pending");
-    setTimeout(() => {
-      setKyc("verified");
-      setStarting(false);
-    }, 2500);
-  };
-
   return (
-    <div className="flex items-center gap-3.5 px-4 py-4">
+    <div className="flex items-center gap-3.5 px-4 py-4 border-b border-fog last:border-b-0">
       <span
         className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${
-          kyc === "verified" ? "bg-sky-tint/60 text-sky-deep" : "bg-cream text-harbor"
+          ok ? "bg-sky-tint/60 text-sky-deep" : "bg-cream text-harbor"
         }`}
       >
-        {kyc === "verified" ? <BadgeCheck className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+        <Icon className="w-5 h-5" />
       </span>
       <div className="flex-1 min-w-0">
-        <div className="text-[15px] font-bold text-ink">Identity verification</div>
-        <div className="text-[12.5px] font-medium text-slate">
-          {kyc === "verified"
-            ? "Verified: bank & mobile-money payouts unlocked."
-            : kyc === "pending"
-            ? "Reviewing your details…"
-            : "Verify once to cash out to your bank or mobile money."}
-        </div>
+        <div className="text-[15px] font-bold text-ink">{title}</div>
+        <div className="text-[12.5px] font-medium text-slate">{detail}</div>
       </div>
-      {kyc === "verified" ? (
+      {ok ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-sky-tint/60 text-sky-deep text-[11px] font-extrabold px-2.5 py-1">
-          <BadgeCheck className="w-3.5 h-3.5" /> Verified
+          <BadgeCheck className="w-3.5 h-3.5" /> OK
         </span>
       ) : (
-        <button
-          onClick={start}
-          disabled={kyc === "pending" || starting}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-sm font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform disabled:opacity-60 disabled:translate-y-0"
-        >
-          {kyc === "pending" ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Reviewing
-            </>
-          ) : (
-            "Verify"
-          )}
-        </button>
+        action
       )}
     </div>
   );
