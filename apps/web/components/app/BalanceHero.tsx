@@ -14,7 +14,7 @@ import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { getActiveChainKey } from "@pesarc/sdk/chain/registry";
 import { usePrefs } from "@pesarc/sdk/prefs";
-import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
+import { formatMoney, formatMoneyCompact, formatAmountCompact, CURRENCIES } from "@pesarc/sdk/money";
 import {
   fetchAggregatedBalance,
   type AggregatedBalance,
@@ -105,7 +105,7 @@ export function BalanceHero() {
     <div>
       <div className="flex items-center gap-3 mb-2.5">
         <div className="text-5xl font-extrabold tracking-tight numerals">
-          {hidden ? "••••••" : formatMoney(total, sendCurrency)}
+          {hidden ? "••••••" : formatMoneyCompact(total, sendCurrency)}
         </div>
         <button
           onClick={toggleHidden}
@@ -145,13 +145,13 @@ export function BalanceHero() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-bold text-white leading-tight">
-                        {hidden ? "••••" : h.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+                        {hidden ? "••••" : formatAmountCompact(h.amount)}{" "}
                         <span className="text-white/70 font-semibold">{h.symbol}</span>
                       </div>
                       <div className="text-[11px] text-white/50">{shortChain(h.chainLabel)}</div>
                     </div>
                     <div className="text-[12px] font-semibold text-white/80 numerals shrink-0">
-                      ≈ {hidden ? "••••" : formatMoney(h.valueInDenom, sendCurrency)}
+                      ≈ {hidden ? "••••" : formatMoneyCompact(h.valueInDenom, sendCurrency)}
                     </div>
                   </div>
                 );

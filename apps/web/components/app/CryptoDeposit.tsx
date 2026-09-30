@@ -10,12 +10,14 @@ import { Copy, Check } from "@/components/icons";
 import { Card } from "@/components/app/ui";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
-import { chainLabel } from "@pesarc/sdk/chain/chains";
+import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import { AddressText } from "@/components/app/AddressText";
+import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 export default function CryptoDeposit() {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
+  const { active } = useActiveNetwork();
   const address = mode === "live" && authenticated ? smart.address : undefined;
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);
@@ -53,8 +55,11 @@ export default function CryptoDeposit() {
 
   return (
     <Card className="p-5 text-center">
-      <div className="text-[13px] font-bold text-slate uppercase tracking-widest mb-3">
-        Deposit on {chainLabel()}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="text-[13px] font-bold text-slate uppercase tracking-widest">
+          Deposit on {active.label}
+        </div>
+        <NetworkSwitcher />
       </div>
       {qr && (
         // eslint-disable-next-line @next/next/no-img-element -- generated data-URL QR
@@ -74,8 +79,8 @@ export default function CryptoDeposit() {
         )}
       </button>
       <p className="text-[12.5px] text-slate mt-3">
-        Send any supported stablecoin to this address. Your balance updates automatically once it
-        arrives.
+        Send any supported stablecoin on {active.label} to this address (EVM networks share it).
+        Your balance updates automatically once it arrives.
       </p>
     </Card>
   );
