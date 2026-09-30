@@ -8,7 +8,7 @@
 // Amoy" can be dry-run with faucet USDC. Solana (LI.FI) and Algorand (Wormhole)
 // rails are mainnet-only; on testnet the picker is EVM CCTP corridors only.
 import { useEffect, useMemo, useState } from "react";
-import { createWalletClient, createPublicClient, custom, http } from "viem";
+import { createWalletClient, createPublicClient, custom, http, encodeFunctionData } from "viem";
 import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
 import { chainLogoUrlForLabel } from "@/lib/chainLogos";
@@ -104,6 +104,8 @@ export default function CrossChainBridge() {
   const dstChains = srcChains;
 
   const solanaSigner = useSolanaSigner();
+  const smart = useSmartWallet();
+  const { chain: activeEvm, setChainKey } = useActiveEvmChain();
   const [srcKey, setSrcKey] = useState("base");
   const [dstKey, setDstKey] = useState("arc");
   const [amount, setAmount] = useState("");
@@ -122,6 +124,15 @@ export default function CrossChainBridge() {
   const chains = cctpChains(network);
   const src = chains[srcKey] ?? evmChains[0];
   const dst = chains[dstKey] ?? evmChains[1] ?? evmChains[0];
+
+  // Picking a source chain makes it the active network, so the embedded smart
+  // wallet signs the burn there in-app (no MetaMask).
+  const pickSrc = (v: string) => {
+    setSrcKey(v);
+    const c = chains[v];
+    const key = c?.chainId ? HYPER_CHAIN_KEY[c.chainId] : undefined;
+    if (key) setChainKey(key);
+  };
   const amountIn = amount ? parseUsdc(amount) : 0n;
   // EVM->Solana can't use native CCTP here (no on-Solana mint) — route via LI.FI.
   const viaLifi = !isTestnet && src.kind === "evm" && dst.kind === "solana";
@@ -294,6 +305,34 @@ export default function CrossChainBridge() {
           maxFee,
           minFinalityThreshold: finality,
         });
+      } else if (smart.ready && smart.address && activeEvm.chain.id === src.chainId) {
+        // EVM source, in-app (AA): approve + burn as one gasless batched userOp
+        // signed by the embedded smart wallet — no MetaMask. Sends to self on the
+        // destination unless a recipient is given.
+        const to = (recipient.trim() || smart.address) as `0x${string}`;
+        if (!/^0x[0-9a-fA-F]{40}$/.test(to)) throw new Error("Recipient is not a valid address.");
+        setPhase("burning");
+        setNote(`Signing in-app and sending ${amount} USDC from ${src.label}…`);
+        const burnTxAA = await smart.sendCalls([
+          {
+            to: src.usdc as `0x${string}`,
+            data: encodeFunctionData({
+              abi: erc20ApproveAbi,
+              functionName: "approve",
+              args: [tokenMessengerV2(network), amountIn],
+            }),
+          },
+          {
+            to: tokenMessengerV2(network),
+            data: encodeFunctionData({
+              abi: tokenMessengerV2Abi,
+              functionName: "depositForBurn",
+              args: [amountIn, dst.domain, toBytes32(to), src.usdc as `0x${string}`, ZERO32, maxFee, finality],
+            }),
+          },
+        ]);
+        if (!burnTxAA) throw new Error("The transfer didn't go through. Please try again.");
+        bTx = burnTxAA;
       } else {
         // EVM source: injected wallet approves + burns.
         const provider = eth();
@@ -424,7 +463,7 @@ export default function CrossChainBridge() {
                 <Dropdown
                   ariaLabel="Source chain"
                   value={srcKey}
-                  onChange={setSrcKey}
+                  onChange={pickSrc}
                   options={srcChains.map((c) => ({
                     value: c.key,
                     label: c.label,
