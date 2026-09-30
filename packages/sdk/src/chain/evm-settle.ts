@@ -25,14 +25,32 @@ import {
   publicClientFor,
   type EvmChainConfig,
 } from "./registry";
+import { realStablecoinsForAppChain } from "./stablecoin-registry";
 
 const FLAGS: Record<string, string> = { NGN: "🇳🇬", GHS: "🇬🇭", KES: "🇰🇪", USD: "💵" };
 
+// Distinct USD/EUR stablecoins that resolve to their own token (from the
+// registry), not the chain's generic USD settlement token.
+const REGISTRY_SYMBOLS = new Set(["USDT", "PYUSD", "EURC"]);
+
 export type AgentToken = { code: string; address: `0x${string}`; flag: string };
 
-/** Resolve a token the agent can move on this chain, by currency code. */
+/**
+ * Resolve a token to move on this chain, by currency ("NGN","USD") OR stablecoin
+ * symbol ("cNGN","USDC","USDT","PYUSD"). cNGN/USDC map to the app's settlement
+ * tokens; USDT/PYUSD/EURC resolve to their own token from the stablecoin registry
+ * where deployed on the chain.
+ */
 export function tokenByCode(chain: EvmChainConfig, code: string): AgentToken | undefined {
-  const key = code.toUpperCase() as keyof typeof chain.tokens;
+  const upper = code.trim().toUpperCase();
+  if (REGISTRY_SYMBOLS.has(upper)) {
+    const s = realStablecoinsForAppChain(chain.key, chain.testnet).find((x) => x.symbol === upper);
+    return s ? { code: upper, address: s.address, flag: "💵" } : undefined;
+  }
+  // Symbol -> app currency key: USDC->USD, cNGN->NGN, bare NGN/USD unchanged.
+  const key = (
+    upper === "USDC" ? "USD" : upper.startsWith("C") && upper.length === 4 ? upper.slice(1) : upper
+  ) as keyof typeof chain.tokens;
   const address = chain.tokens[key];
   if (!address) return undefined;
   return { code: key, address, flag: FLAGS[key] ?? "🌍" };

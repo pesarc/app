@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio, Plus } from "@/components/icons";
-import { MARKETS, MARKET_CATEGORIES, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { MARKET_CATEGORIES, liveMarketToMarket, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
   fetchLiveMarketsFor,
@@ -19,7 +19,7 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import MarketCard from "./MarketCard";
 import StakeSheet from "./StakeSheet";
-import { overlay, type Selection as StakeSelection } from "./display";
+import { type Selection as StakeSelection } from "./display";
 import { Pagination, usePaged } from "@/components/app/Pagination";
 import ChainSelector from "@/components/app/ChainSelector";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
@@ -49,9 +49,9 @@ export default function MarketsView() {
   const [selected, setSelected] = useState<Selection>(() => activeVenue().kind);
   const [liveByVenue, setLiveByVenue] = useState<Record<string, LiveMarket[] | null>>({});
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
-  // Catalog from the admin store (falls back to the static list), so
-  // admin-created markets show up on the board.
-  const [catalog, setCatalog] = useState<Market[]>(MARKETS);
+  // Catalog from the admin store only — no mock seed. Admin-created markets (and
+  // their on-chain live overlay) show up here; empty until real markets exist.
+  const [catalog, setCatalog] = useState<Market[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -90,30 +90,55 @@ export default function MarketsView() {
   const isLive = venuesInScope.some((v) => (liveByVenue[v.kind]?.length ?? 0) > 0);
   const soleVenue = venuesInScope.length === 1 ? venuesInScope[0] : null;
 
-  const filtered = useMemo(
-    () => (cat === "all" ? catalog : catalog.filter((m) => m.kind === cat)),
-    [cat, catalog]
-  );
-
-  const cards = useMemo(
-    () =>
-      venuesInScope.flatMap((v) =>
-        filtered.map((m) => {
+  const cards = useMemo(() => {
+    type Card = {
+      key: string;
+      market: Market;
+      index: number;
+      venueKind: VenueKind;
+      venueLabel?: string;
+      live?: LiveMarket;
+      marketId: number;
+    };
+    const out: Card[] = [];
+    for (const v of venuesInScope) {
+      const label = venuesInScope.length > 1 ? v.label : undefined;
+      const lives = liveByVenue[v.kind];
+      if (lives && lives.length) {
+        // Live-first: real on-chain markets rendered directly (need question text).
+        for (const lm of lives) {
+          if (!lm.question) continue;
+          const market = liveMarketToMarket(lm);
+          if (cat !== "all" && market.kind !== cat) continue;
+          out.push({
+            key: `${v.kind}-live-${lm.id}`,
+            market,
+            index: lm.id,
+            venueKind: v.kind,
+            venueLabel: label,
+            live: lm,
+            marketId: lm.id,
+          });
+        }
+      } else {
+        // Admin/off-chain catalog fallback (empty until markets are proposed).
+        const filtered = cat === "all" ? catalog : catalog.filter((m) => m.kind === cat);
+        for (const m of filtered) {
           const index = catalog.indexOf(m);
-          const live = overlay(liveByVenue[v.kind] ?? null, index) ?? undefined;
-          return {
+          out.push({
             key: `${v.kind}-${m.id}`,
             market: m,
             index,
             venueKind: v.kind,
-            venueLabel: venuesInScope.length > 1 ? v.label : undefined,
-            live,
-            marketId: live?.id ?? index,
-          };
-        })
-      ),
-    [venuesInScope, filtered, liveByVenue, catalog]
-  );
+            venueLabel: label,
+            live: undefined,
+            marketId: index,
+          });
+        }
+      }
+    }
+    return out;
+  }, [venuesInScope, liveByVenue, catalog, cat]);
 
   const paged = usePaged(cards, PER_PAGE, `${cat}|${selected}`);
 
@@ -161,6 +186,11 @@ export default function MarketsView() {
           {isLive && !soleVenue && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-tint/50 text-sky-deep text-[11px] font-extrabold px-2.5 py-1">
               <Radio className="w-3 h-3" /> Live · all venues
+            </span>
+          )}
+          {!isLive && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] text-slate text-[11px] font-bold px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate" /> Indicative prices
             </span>
           )}
           <Link
@@ -255,9 +285,19 @@ export default function MarketsView() {
           </StaggerItem>
         ))}
         {cards.length === 0 && (
-          <p className="text-sm text-slate py-8 text-center lg:col-span-2">
-            No markets in this category yet.
-          </p>
+          <div className="py-12 text-center lg:col-span-2">
+            <div className="text-[15px] font-bold text-harbor">No live markets yet</div>
+            <p className="text-[13px] text-slate mt-1 max-w-[280px] mx-auto">
+              Markets appear here once they are live on-chain. Want one? Propose it
+              and we&apos;ll list it.
+            </p>
+            <Link
+              href="/markets/propose"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-sky text-white text-[13px] font-bold px-4 py-2 mt-4 shadow-pop-sm hover:-translate-y-0.5 transition-transform"
+            >
+              <Plus className="w-4 h-4" /> Propose a market
+            </Link>
+          </div>
         )}
       </Stagger>
       <Pagination page={paged.page} pageCount={paged.pageCount} onChange={paged.setPage} />

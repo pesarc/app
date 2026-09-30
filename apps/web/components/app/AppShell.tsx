@@ -3,7 +3,7 @@
 // Responsive app shell.
 //  • Large screens: a collapsible shadcn sidebar rail (icon-collapse, ⌘/Ctrl-B,
 //    state persisted in a cookie) + a slim top bar with the collapse trigger.
-//  • Mobile: a floating bottom tab bar (Home · Markets · raised Send · Agent ·
+//  • Mobile: a floating bottom tab bar (Home · Agent · raised Send · Markets ·
 //    You) — five thumb targets, no hamburger.
 
 import { useEffect, useState } from "react";
@@ -49,10 +49,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 /* ---------------- Mobile bottom nav ---------------- */
 
+// Order matters: the first two sit left of the raised Send button, the last two
+// on its right. Agent is the second thumb target on mobile (ahead of Markets).
 const TABS = [
   { label: "Home", href: "/home", icon: Home },
-  { label: "Markets", href: "/markets", icon: BarChart3 },
   { label: "Agent", href: "/agent", icon: Bot },
+  { label: "Markets", href: "/markets", icon: BarChart3 },
   { label: "You", href: "/you", icon: User },
 ];
 
@@ -61,7 +63,7 @@ function BottomNav({ pathname }: { pathname: string }) {
     <nav className="md:hidden fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]">
       <div className="mx-4 mb-4 h-[66px] rounded-pill bg-snow border border-fog shadow-[rgba(0,0,0,0.06)_0px_4px_0px_0px] flex items-center justify-around px-2">
         <TabItem item={TABS[0]} active={isActive(pathname, "/home")} />
-        <TabItem item={TABS[1]} active={isActive(pathname, "/markets")} />
+        <TabItem item={TABS[1]} active={isActive(pathname, "/agent")} />
 
         <Link href="/send" aria-label="Send" className="flex flex-col items-center">
           <span className="w-[46px] h-[46px] -mt-6 rounded-full bg-sky text-white flex items-center justify-center shadow-[rgba(154,207,246,0.6)_0px_4px_0px_0px] active:translate-y-0.5 transition-transform">
@@ -69,7 +71,7 @@ function BottomNav({ pathname }: { pathname: string }) {
           </span>
         </Link>
 
-        <TabItem item={TABS[2]} active={isActive(pathname, "/agent")} />
+        <TabItem item={TABS[2]} active={isActive(pathname, "/markets")} />
         <TabItem item={TABS[3]} active={isActive(pathname, "/you")} />
       </div>
     </nav>

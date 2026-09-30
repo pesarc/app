@@ -8,6 +8,9 @@
 // currency sliding, settled from Pesarc's own realized FX rate. No dollar in
 // the path, no external feed to deny or compel.
 
+import { activeChain } from "./chain/registry";
+import type { LiveMarket } from "./markets.live";
+
 export type MarketKind = "fx" | "macro" | "sports" | "politics";
 
 /** How a market resolves — pinned at creation, mirrors PredictionMarket.Source. */
@@ -149,3 +152,62 @@ export const MARKET_CATEGORIES: { value: MarketKind | "all"; label: string }[] =
   { value: "macro", label: "Prices" },
   { value: "fx", label: "Currency" },
 ];
+
+const COLLATERAL_BY_CODE: Record<string, "cNGN" | "cKES" | "cGHS"> = {
+  NGN: "cNGN",
+  KES: "cKES",
+  GHS: "cGHS",
+};
+const COLLATERAL_FLAG: Record<string, string> = { cNGN: "🇳🇬", cKES: "🇰🇪", cGHS: "🇬🇭" };
+
+/** Best-effort market category from the question text (on-chain markets carry no kind). */
+function inferKind(question: string): MarketKind {
+  const s = question.toLowerCase();
+  if (/\b[a-z]{3}\s*\/\s*[a-z]{3}\b|exchange rate|\bfx\b|naira|cedi|shilling|dollar/.test(s)) return "fx";
+  if (/elect|president|vote|poll|senate|govern/.test(s)) return "politics";
+  if (/win|final|match|cup|afcon|league|score|beat|title/.test(s)) return "sports";
+  return "macro";
+}
+
+/**
+ * Build a display Market from a real on-chain LiveMarket, so genuinely on-chain
+ * markets render on the board without any static catalog. The collateral symbol
+ * is reverse-looked-up from the active chain's token map.
+ */
+export function liveMarketToMarket(lm: LiveMarket): Market {
+  let sym: "cNGN" | "cKES" | "cGHS" = "cNGN";
+  try {
+    const col = lm.collateral?.toLowerCase();
+    if (col) {
+      for (const [code, addr] of Object.entries(activeChain().tokens)) {
+        if (addr && (addr as string).toLowerCase() === col) {
+          sym = COLLATERAL_BY_CODE[code] ?? "cNGN";
+          break;
+        }
+      }
+    }
+  } catch {
+    /* default cNGN */
+  }
+  const close = lm.closeTime
+    ? new Date(lm.closeTime * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "—";
+  const question = lm.question ?? "";
+  const kind = inferKind(question);
+  return {
+    id: `onchain-${lm.id}`,
+    kind,
+    question,
+    collateral: sym,
+    flag: COLLATERAL_FLAG[sym] ?? "🌍",
+    poolYes: lm.poolYes,
+    poolNo: lm.poolNo,
+    closes: close,
+    resolves: close,
+    resolver: { kind: "attested", attestor: "Bonded attestor · dispute window" },
+    hedge: kind === "fx" || kind === "macro",
+    type: "binary",
+    status: "live",
+    onChainId: lm.id,
+  };
+}

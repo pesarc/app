@@ -23,6 +23,7 @@ import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { fetchOnchainActivity, type OnchainActivity } from "@pesarc/sdk/chain/history";
 import { explorerTxUrl, chainLabel } from "@pesarc/sdk/chain/chains";
+import { chainLogoUrl } from "@/lib/chainLogos";
 
 export type ActivityType = "send" | "receive" | "bank" | "bill" | "earn" | "swap" | "pay";
 
@@ -63,19 +64,48 @@ function shortNetwork(label: string): string {
   return label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
 }
 
-/** A chain's badge colour + 2-letter tag, from its label. Order matters. */
-function chainVisual(label: string): { color: string; tag: string; name: string } {
+/** A chain's badge colour + canonical logo key, from its label. Order matters.
+ *  `logoKey` maps to a real brand logo in lib/chainLogos (Cloudinary). */
+function chainVisual(label: string): { color: string; logoKey: string; name: string } {
   const l = label.toLowerCase();
   const name = shortNetwork(label);
-  if (l.includes("arbitrum")) return { color: "#12AAFF", tag: "AR", name };
-  if (l.includes("base")) return { color: "#0052FF", tag: "BS", name };
-  if (l.includes("optimism") || /\bop\b/.test(l)) return { color: "#FF0420", tag: "OP", name };
-  if (l.includes("polygon")) return { color: "#8247E5", tag: "PG", name };
-  if (l.includes("celo")) return { color: "#EAB308", tag: "CE", name };
-  if (l.includes("arc")) return { color: "#00C2A8", tag: "AC", name };
-  if (l.includes("solana")) return { color: "#9945FF", tag: "SO", name };
-  if (l.includes("ethereum") || l.includes("sepolia")) return { color: "#627EEA", tag: "ET", name };
-  return { color: "#2e96ff", tag: (name.slice(0, 2) || "··").toUpperCase(), name };
+  if (l.includes("arbitrum")) return { color: "#12AAFF", logoKey: "Arbitrum", name };
+  if (l.includes("base")) return { color: "#0052FF", logoKey: "Base", name };
+  if (l.includes("optimism") || /\bop\b/.test(l)) return { color: "#FF0420", logoKey: "Optimism", name };
+  if (l.includes("polygon")) return { color: "#8247E5", logoKey: "Polygon", name };
+  if (l.includes("celo")) return { color: "#EAB308", logoKey: "Celo", name };
+  if (l.includes("arc")) return { color: "#00C2A8", logoKey: "Arc", name };
+  if (l.includes("solana")) return { color: "#9945FF", logoKey: "Solana", name };
+  if (l.includes("ethereum") || l.includes("sepolia")) return { color: "#627EEA", logoKey: "Ethereum", name };
+  return { color: "#2e96ff", logoKey: "", name };
+}
+
+/** The chain badge: a real brand logo on white, falling back to a solid colour
+ *  dot (never a text abbreviation) when a logo is missing or fails to load. */
+function ChainBadge({ chain }: { chain: { color: string; logoKey: string; name: string } }) {
+  const url = chainLogoUrl(chain.logoKey);
+  const [broken, setBroken] = useState(false);
+  const showLogo = Boolean(url) && !broken;
+  return (
+    <span
+      className="absolute -right-1.5 -bottom-1.5 h-[19px] w-[19px] rounded-full flex items-center justify-center overflow-hidden ring-2 ring-snow"
+      style={{ backgroundColor: showLogo ? "#fff" : chain.color }}
+      title={`Settled on ${chain.name}`}
+      aria-label={`Settled on ${chain.name}`}
+    >
+      {showLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tiny corner brand logo
+        <img
+          src={url}
+          alt={chain.name}
+          width={15}
+          height={15}
+          style={{ objectFit: "contain" }}
+          onError={() => setBroken(true)}
+        />
+      ) : null}
+    </span>
+  );
 }
 
 function timeAgo(unixSeconds?: number): string {
@@ -99,7 +129,7 @@ function Row({
   positive,
 }: {
   type: ActivityType;
-  chain: { color: string; tag: string; name: string };
+  chain: { color: string; logoKey: string; name: string };
   title: string;
   sub: React.ReactNode;
   amount: React.ReactNode;
@@ -116,14 +146,7 @@ function Row({
         >
           <Icon className="w-[19px] h-[19px]" strokeWidth={2} />
         </div>
-        <span
-          className="absolute -right-1.5 -bottom-1.5 h-[18px] min-w-[18px] px-1 rounded-full flex items-center justify-center text-[9px] font-extrabold text-white ring-2 ring-snow"
-          style={{ backgroundColor: chain.color }}
-          title={`Settled on ${chain.name}`}
-          aria-label={`Settled on ${chain.name}`}
-        >
-          {chain.tag}
-        </span>
+        <ChainBadge chain={chain} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[15px] font-bold text-ink truncate">{title}</div>
@@ -177,10 +200,10 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
   if (live && onchain && onchain.length > 0) {
     return (
       <div className="space-y-2.5">
-        {onchain.map((a) => {
+        {onchain.map((a, i) => {
           const sent = a.kind === "sent";
           return (
-            <a key={a.id} href={explorerTxUrl(a.txHash)} target="_blank" rel="noreferrer" className="block">
+            <a key={`${a.id}-${i}`} href={explorerTxUrl(a.txHash)} target="_blank" rel="noreferrer" className="block">
               <Row
                 type={sent ? "send" : "receive"}
                 chain={chain}
@@ -211,11 +234,11 @@ export function ActivityFeed({ fallback }: { fallback: FallbackItem[] }) {
 
   return (
     <div className="space-y-2.5">
-      {fallback.map((a) => {
+      {fallback.map((a, i) => {
         const sent = a.kind === "sent";
         return (
           <Row
-            key={a.id}
+            key={`${a.id}-${i}`}
             type={a.type}
             chain={chain}
             title={a.counterparty}

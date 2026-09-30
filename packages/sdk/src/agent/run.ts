@@ -14,6 +14,9 @@
 
 import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
+import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
+import { fetchAggregatedBalance } from "../chain/aggregateBalance";
+import { fetchOnchainActivity } from "../chain/history";
 import { getBillsAdapter, findOperator, type BillCategory, type MeterType } from "../bills";
 import { recordTransfer } from "../transfers";
 import { createCatalog } from "../catalog";
@@ -244,6 +247,58 @@ export async function runAgentTurn(
       };
     }
     return execBill(draft, account);
+  }
+
+  // Read-only: check on-chain balances for the user's own wallet, or a given 0x
+  // address. No money moves, so no consent — the agent just reports what it reads.
+  const balAsk = parseBalanceIntent(message);
+  if (balAsk) {
+    const owner = (balAsk.address ?? account) as `0x${string}`;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) {
+      return { ok: true, needsInput: true, reply: "Tell me the wallet address (0x…) you'd like me to check." };
+    }
+    try {
+      const { total, holdings } = await fetchAggregatedBalance(owner, "USD");
+      if (!holdings.length) {
+        return {
+          ok: true,
+          matched: false,
+          reply: balAsk.address
+            ? "That wallet holds no stablecoins I can see across the chains I read."
+            : "You don't hold any stablecoins yet on the chains I read. Add money to get started.",
+        };
+      }
+      const top = holdings
+        .slice(0, 6)
+        .map((h) => `${fmt(h.amount)} ${h.symbol} on ${h.chainLabel.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || h.chainLabel}`)
+        .join("; ");
+      const who = balAsk.address ? "That wallet holds" : "You hold";
+      return { ok: true, matched: false, reply: `${who} about $${fmt(total)} across chains: ${top}.` };
+    } catch {
+      return { ok: false, reply: "I couldn't read that balance on-chain just now. Try again shortly." };
+    }
+  }
+
+  // Read-only: recent on-chain activity for the user's wallet, or a given address.
+  const actAsk = parseActivityIntent(message);
+  if (actAsk) {
+    const owner = (actAsk.address ?? account) as `0x${string}`;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) {
+      return { ok: true, needsInput: true, reply: "Tell me the wallet address (0x…) whose activity you'd like to see." };
+    }
+    try {
+      const items = await fetchOnchainActivity(owner, 6);
+      if (!items.length) {
+        return { ok: true, matched: false, reply: "No recent on-chain activity for that wallet yet." };
+      }
+      const lines = items
+        .map((a) => `${a.kind === "sent" ? "sent" : "received"} ${fmt(a.amount)} ${a.symbol} ${a.kind === "sent" ? "to" : "from"} ${a.counterparty}`)
+        .join("; ");
+      const who = actAsk.address ? "That wallet recently" : "You recently";
+      return { ok: true, matched: false, reply: `${who}: ${lines}.` };
+    } catch {
+      return { ok: false, reply: "I couldn't read that wallet's activity just now. Try again shortly." };
+    }
   }
 
   // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is

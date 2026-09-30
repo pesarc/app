@@ -8,17 +8,44 @@ import { authedFetch } from "@pesarc/sdk/api/client";
 import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import BankDetails, { type BankDestination } from "../BankDetails";
-import { detectPhone, recipientFromBank, recipientFromPhone, savedToRecipient } from "../helpers";
+import {
+  addressRail,
+  detectPhone,
+  isEvmContract,
+  isWalletAddress,
+  recipientFromAddress,
+  recipientFromBank,
+  recipientFromPhone,
+  savedToRecipient,
+} from "../helpers";
 
 export function RecipientStep({
   onSelect,
 }: {
-  onSelect: (r: Recipient, opts?: { bankDest?: BankDestination; payout?: PayoutMethod }) => void;
+  onSelect: (
+    r: Recipient,
+    opts?: { bankDest?: BankDestination; payout?: PayoutMethod; address?: string },
+  ) => void;
 }) {
-  const [mode, setMode] = useState<"people" | "bank">("people");
+  const [mode, setMode] = useState<"people" | "bank" | "wallet">("people");
   const [query, setQuery] = useState("");
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
+  const [walletAddr, setWalletAddr] = useState("");
+  const [isContract, setIsContract] = useState(false);
   const [saved, setSaved] = useState<Recipient[]>([]);
+
+  const rail = addressRail(walletAddr);
+
+  // Warn if an EVM address is a smart contract (people usually send to wallets).
+  useEffect(() => {
+    setIsContract(false);
+    if (rail !== "evm") return;
+    let alive = true;
+    isEvmContract(walletAddr).then((c) => alive && setIsContract(c));
+    return () => {
+      alive = false;
+    };
+  }, [walletAddr, rail]);
 
   // Load the account's saved recipients (people you've sent to before).
   useEffect(() => {
@@ -54,22 +81,24 @@ export function RecipientStep({
         Who are you sending to?
       </h1>
       <p className="text-slate mb-5">
-        Send to a contact, a phone number, or a bank account.
+        Send to a contact, a phone number, a bank account, or a wallet address.
       </p>
 
       <div className="mb-5">
         <Segmented
           aria-label="Recipient type"
           value={mode}
-          onChange={(v) => setMode(v as "people" | "bank")}
+          size="sm"
+          onChange={(v) => setMode(v as "people" | "bank" | "wallet")}
           options={[
-            { value: "people", label: "Contact / phone" },
-            { value: "bank", label: "Bank account" },
+            { value: "people", label: "Contact" },
+            { value: "bank", label: "Bank" },
+            { value: "wallet", label: "Wallet" },
           ]}
         />
       </div>
 
-      {mode === "people" ? (
+      {mode === "people" && (
         <>
           <div className="relative mb-6">
             <Search className="w-4 h-4 text-slate absolute left-4 top-1/2 -translate-y-1/2" />
@@ -122,7 +151,9 @@ export function RecipientStep({
             </>
           )}
         </>
-      ) : (
+      )}
+
+      {mode === "bank" && (
         <>
           <p className="text-slate text-sm mb-3">
             Enter the account and we&apos;ll confirm the name before you send.
@@ -138,6 +169,53 @@ export function RecipientStep({
             }
           >
             {bankDest?.accountName ? `Send to ${bankDest.accountName}` : "Continue"}
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </>
+      )}
+
+      {mode === "wallet" && (
+        <>
+          <p className="text-slate text-sm mb-3">
+            Paste any wallet address. The funds settle on-chain straight to it.
+          </p>
+          <input
+            value={walletAddr}
+            onChange={(e) => setWalletAddr(e.target.value.trim())}
+            placeholder="0x… or Solana address"
+            aria-label="Recipient wallet address"
+            spellCheck={false}
+            className="w-full bg-snow rounded-field border border-fog px-4 py-3.5 text-[15px] font-mono text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
+          />
+          {/* Detected rail + validity */}
+          {walletAddr && rail === "evm" && (
+            <p className="text-[12px] text-slate mt-2">Detected: EVM wallet</p>
+          )}
+          {walletAddr && rail === "solana" && (
+            <p className="text-[12px] text-slate mt-2">Detected: Solana wallet (receives USDC)</p>
+          )}
+          {walletAddr && rail === "algorand" && (
+            <p className="text-[12px] text-alert mt-2">Algorand detected — Algorand sends are coming soon.</p>
+          )}
+          {walletAddr && rail === null && (
+            <p className="text-[12px] text-alert mt-2">Enter a valid EVM (0x…) or Solana address.</p>
+          )}
+          {isContract && (
+            <p className="text-[12px] font-semibold text-[#a97b12] mt-2">
+              ⚠︎ This address is a smart contract, not a wallet. Double-check before sending.
+            </p>
+          )}
+          <Button
+            size="lg"
+            block
+            className="mt-5"
+            disabled={!isWalletAddress(walletAddr)}
+            onClick={() =>
+              isWalletAddress(walletAddr) &&
+              onSelect(recipientFromAddress(walletAddr), { payout: "wallet", address: walletAddr })
+            }
+          >
+            Send to this wallet
             <ArrowRight className="w-4 h-4" />
           </Button>
         </>

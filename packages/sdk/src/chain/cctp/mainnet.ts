@@ -16,6 +16,9 @@ export const MESSAGE_TRANSMITTER_V2 = "0x81D40F21F12A8F0E3252Bccb954D722d4c464B6
 
 export type CctpChainKind = "evm" | "solana";
 
+/** Shared shape for a CCTP chain entry on either network (mainnet or testnet). */
+export type CctpChain = CctpMainnetChain;
+
 export type CctpMainnetChain = {
   /** CCTP domain — the id used in burn/mint, NOT the EVM chain id. */
   domain: number;

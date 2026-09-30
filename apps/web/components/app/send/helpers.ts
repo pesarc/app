@@ -46,6 +46,64 @@ export function recipientFromBank(dest: BankDestination): Recipient {
   };
 }
 
+/** True for a well-formed EVM (0x + 40 hex) address. */
+export function isEvmAddress(a: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(a.trim());
+}
+
+/** True for a plausible Solana (base58, 32–44 chars) address. */
+export function isSolanaAddress(a: string): boolean {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
+}
+
+/** True for a plausible Algorand (base32, 58 chars) address. */
+export function isAlgorandAddress(a: string): boolean {
+  return /^[A-Z2-7]{58}$/.test(a.trim());
+}
+
+/** The rail an address belongs to, by format. */
+export function addressRail(a: string): "evm" | "solana" | "algorand" | null {
+  const s = a.trim();
+  if (isEvmAddress(s)) return "evm";
+  if (isAlgorandAddress(s)) return "algorand";
+  if (isSolanaAddress(s)) return "solana";
+  return null;
+}
+
+/** True for a wallet address we can actually send on today (EVM or Solana). */
+export function isWalletAddress(a: string): boolean {
+  return isEvmAddress(a) || isSolanaAddress(a);
+}
+
+/** True when the EVM address has bytecode (i.e. it's a contract, not a wallet). */
+export async function isEvmContract(address: string): Promise<boolean> {
+  try {
+    const { activeChain, publicClientFor } = await import("@pesarc/sdk/chain/registry");
+    const code = await publicClientFor(activeChain()).getBytecode({
+      address: address as `0x${string}`,
+    });
+    return Boolean(code && code !== "0x");
+  } catch {
+    return false;
+  }
+}
+
+/** A recipient that is a raw on-chain wallet address. EVM goes through the local-
+ *  currency corridor; Solana receives USDC directly. */
+export function recipientFromAddress(addr: string): Recipient {
+  const a = addr.trim();
+  const solana = isSolanaAddress(a) && !isEvmAddress(a);
+  return {
+    id: `wallet:${a.toLowerCase()}`,
+    name: `${a.slice(0, 6)}…${a.slice(-4)}`,
+    handle: a,
+    country: solana ? "Solana wallet" : "On-chain wallet",
+    flag: solana ? "◎" : "🔗",
+    receiveCurrency: solana ? "USD" : "NGN",
+    initialsColor: "#6b4ef0",
+  };
+}
+
 export function savedToRecipient(s: SavedRecipient): Recipient {
   return {
     id: "saved-" + s.id,
