@@ -10,6 +10,7 @@ import type { Msg } from "./types";
 import { UploadPreview } from "./UploadPreview";
 import { ConsentCard } from "./ConsentCard";
 import { Receipt } from "./Receipt";
+import { RichText } from "./RichText";
 
 const THINKING_STEPS = [
   "Reading your request",
@@ -82,7 +83,7 @@ export function MessageList({
           >
             <div className="max-w-[90%] w-full sm:w-auto">
               <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-ink">
-                {m.text}
+                <RichText text={m.text} />
 
                 {m.draft && (
                   <ConsentCard
@@ -148,6 +149,14 @@ export function MessageList({
                     className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-sky text-white text-xs font-bold px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
                   >
                     <Check className="w-3.5 h-3.5" /> Open Bills
+                  </Link>
+                )}
+                {m.crossChainUrl && (
+                  <Link
+                    href={m.crossChainUrl}
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-sky text-white text-xs font-bold px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Open Cross-chain
                   </Link>
                 )}
                 {m.upload && <UploadPreview upload={m.upload} />}
