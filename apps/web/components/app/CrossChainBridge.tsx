@@ -9,7 +9,8 @@
 // rails are mainnet-only; on testnet the picker is EVM CCTP corridors only.
 import { useEffect, useMemo, useState } from "react";
 import { createWalletClient, createPublicClient, custom, http } from "viem";
-import { Button, Card, Select, Segmented } from "@/components/app/ui";
+import { Button, Card, Segmented } from "@/components/app/ui";
+import { Dropdown } from "@/components/app/Dropdown";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
 import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi";
 import {
@@ -374,32 +375,28 @@ export default function CrossChainBridge() {
       {mode === "usdc" && (
         <Card className="mt-4 flex flex-col gap-4 p-4">
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs font-bold text-slate">
-              From
-              <Select
-                className="mt-1"
-                value={srcKey}
-                onChange={(e) => setSrcKey(e.target.value)}
-                disabled={busy}
-              >
-                {srcChains.map((c) => (
-                  <option key={c.key} value={c.key}>{c.label}</option>
-                ))}
-              </Select>
-            </label>
-            <label className="text-xs font-bold text-slate">
-              To
-              <Select
-                className="mt-1"
-                value={dstKey}
-                onChange={(e) => setDstKey(e.target.value)}
-                disabled={busy}
-              >
-                {dstChains.map((c) => (
-                  <option key={c.key} value={c.key}>{c.label}</option>
-                ))}
-              </Select>
-            </label>
+            <div>
+              <div className="text-xs font-bold text-slate mb-1">From</div>
+              <div className={busy ? "pointer-events-none opacity-60" : ""}>
+                <Dropdown
+                  ariaLabel="Source chain"
+                  value={srcKey}
+                  onChange={setSrcKey}
+                  options={srcChains.map((c) => ({ value: c.key, label: c.label }))}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate mb-1">To</div>
+              <div className={busy ? "pointer-events-none opacity-60" : ""}>
+                <Dropdown
+                  ariaLabel="Destination chain"
+                  value={dstKey}
+                  onChange={setDstKey}
+                  options={dstChains.map((c) => ({ value: c.key, label: c.label }))}
+                />
+              </div>
+            </div>
           </div>
 
           {!viaLifi && (
