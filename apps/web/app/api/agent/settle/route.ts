@@ -13,6 +13,9 @@ const schema = z.object({
   // The signed-in user's wallet, so the agent already knows "my" balance/activity
   // and never asks for an address it should already have.
   wallet: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
+  // The chain the user is on (their wallet's active EVM chain), so the agent
+  // settles there instead of a single global default.
+  chain: z.string().max(40).optional(),
 });
 
 /**
@@ -43,6 +46,7 @@ export async function POST(request: Request) {
   const { status, ...result } = await runAgentTurn(parsed.data.message, account, {
     preview: true,
     wallet: parsed.data.wallet,
+    chainKey: parsed.data.chain,
   });
   return NextResponse.json(result, { status: status ?? 200 });
 }

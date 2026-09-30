@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 import type { ParsedUpload } from "@pesarc/sdk/agent/files";
@@ -31,6 +32,7 @@ function parseSse(frame: string): { event: string; data: unknown } | null {
 
 export function useAgentChat() {
   const smart = useSmartWallet();
+  const { chainKey } = useActiveEvmChain();
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,7 +123,7 @@ export function useAgentChat() {
         const res = await fetch("/api/agent/settle", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, wallet: smart.address }),
+          body: JSON.stringify({ message: text, wallet: smart.address, chain: chainKey }),
         });
         const data = await res.json();
         // A money-moving action comes back as a `draft` to confirm; anything
@@ -148,7 +150,7 @@ export function useAgentChat() {
       setBusy(false);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     },
-    [busy, smart.address],
+    [busy, smart.address, chainKey],
   );
 
   // The user consented to a drafted action: execute it and show the receipt.
