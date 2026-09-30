@@ -212,7 +212,9 @@ export function useAgentChat() {
             receipt: data.receipt,
           },
         ]);
-        if (data.ok) {
+        // Decrement the send budget for money that leaves to a third party.
+        // Earn stays in the user's own savings, so it doesn't count against it.
+        if (data.ok && draft.type !== "earn") {
           const amt = draft.type === "payout" ? draft.amountNgn : draft.amount ?? 0;
           if (amt > 0) setBudget((b) => (b ? { ...b, remaining: Math.max(0, b.remaining - amt) } : b));
         }

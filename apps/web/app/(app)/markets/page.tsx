@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import MarketsView from "@/components/app/markets/MarketsView";
 
 export const metadata: Metadata = {
@@ -8,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function MarketsPage() {
-  return <MarketsView />;
+  // MarketsView reads ?stake=/&side= via useSearchParams, which needs Suspense.
+  return (
+    <Suspense fallback={null}>
+      <MarketsView />
+    </Suspense>
+  );
 }

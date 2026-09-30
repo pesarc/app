@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Shield, Radio, Plus } from "@/components/icons";
-import { MARKET_CATEGORIES, liveMarketToMarket, type Market, type MarketKind } from "@pesarc/sdk/markets";
+import { MARKET_CATEGORIES, isMulti, liveMarketToMarket, type Market, type MarketKind } from "@pesarc/sdk/markets";
 import { toMarket } from "@pesarc/sdk/catalog-map";
 import {
   fetchLiveMarketsFor,
@@ -141,6 +142,30 @@ export default function MarketsView() {
   }, [venuesInScope, liveByVenue, catalog, cat]);
 
   const paged = usePaged(cards, PER_PAGE, `${cat}|${selected}`);
+
+  // Agent hand-off: /markets?stake=<marketId>&side=<yes|no> opens the stake sheet
+  // for that market, prefilled to the chosen side, so the user just signs.
+  const params = useSearchParams();
+  const stakeId = params.get("stake");
+  const stakeSide: StakeSelection = { kind: "binary", side: params.get("side") === "no" ? "no" : "yes" };
+  const autoStaked = useRef(false);
+  useEffect(() => {
+    if (stakeId && cat !== "all") setCat("all");
+  }, [stakeId, cat]);
+  useEffect(() => {
+    if (!stakeId || autoStaked.current) return;
+    const card = cards.find((c) => c.market.id === stakeId);
+    if (!card || isMulti(card.market)) return;
+    autoStaked.current = true;
+    setTicket({
+      market: card.market,
+      live: card.live,
+      selection: stakeSide,
+      venueKind: card.venueKind,
+      marketId: card.marketId,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stakeId, cards]);
 
   async function handleClaim(venueKind: VenueKind, marketId: number, key: string) {
     setClaimingKey(key);
