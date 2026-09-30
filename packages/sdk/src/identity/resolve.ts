@@ -10,10 +10,21 @@ const EVM = /^0x[0-9a-fA-F]{40}$/;
 const SOLANA = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/; // base58, no 0OIl
 const NUBAN = /^\d{10}$/;
 
-/** Normalize a phone to a compact E.164-ish form: a leading + and digits only. */
-export function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[^\d]/g, "");
-  return digits ? `+${digits}` : "";
+/**
+ * Normalize a phone to E.164 so the local and international forms of the same
+ * number map to one identity. Nigeria-first default: a local number like
+ * "08031234567" drops the trunk 0 and gains the country code -> "+2348031234567".
+ * A number typed with "+" or a "00" prefix is treated as already international.
+ */
+export function normalizePhone(raw: string, defaultCc = "234"): string {
+  const isIntl = raw.trim().startsWith("+");
+  let d = raw.replace(/[^\d]/g, "");
+  if (!d) return "";
+  if (isIntl) return `+${d}`;
+  if (d.startsWith("00")) return `+${d.slice(2)}`; // 00 = international access prefix
+  if (d.startsWith("0")) d = d.slice(1); // drop the local trunk 0
+  if (!d.startsWith(defaultCc)) d = defaultCc + d; // add the country code if missing
+  return `+${d}`;
 }
 
 /** What kind of handle is this? */
