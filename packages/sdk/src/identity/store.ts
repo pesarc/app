@@ -16,18 +16,24 @@ let schemaReady: Promise<void> | null = null;
 function ensureSchema(sql: Sql): Promise<void> {
   schemaReady ??= sql`
     CREATE TABLE IF NOT EXISTS identities (
-      id         text PRIMARY KEY,
-      phone      text UNIQUE,
-      username   text UNIQUE,
-      nuban      text UNIQUE,
-      bank_code  text,
-      provider   text,
-      kyc        text NOT NULL DEFAULT 'none',
-      addresses  jsonb NOT NULL DEFAULT '[]'::jsonb,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
+      id           text PRIMARY KEY,
+      phone        text UNIQUE,
+      username     text UNIQUE,
+      nuban        text UNIQUE,
+      bank_code    text,
+      provider     text,
+      kyc          text NOT NULL DEFAULT 'none',
+      addresses    jsonb NOT NULL DEFAULT '[]'::jsonb,
+      pii          jsonb NOT NULL DEFAULT '{}'::jsonb,
+      attestations jsonb NOT NULL DEFAULT '[]'::jsonb,
+      created_at   timestamptz NOT NULL DEFAULT now(),
+      updated_at   timestamptz NOT NULL DEFAULT now()
     )
-  `.then(() => undefined);
+  `
+    // Add the privacy columns to a table created before they existed.
+    .then(() => sql`ALTER TABLE identities ADD COLUMN IF NOT EXISTS pii jsonb NOT NULL DEFAULT '{}'::jsonb`)
+    .then(() => sql`ALTER TABLE identities ADD COLUMN IF NOT EXISTS attestations jsonb NOT NULL DEFAULT '[]'::jsonb`)
+    .then(() => undefined);
   return schemaReady;
 }
 
@@ -40,6 +46,8 @@ function rowToIdentity(r: any): Identity {
     addresses: (r.addresses ?? []) as ChainAddress[],
     bank: r.nuban ? { number: r.nuban, bankCode: r.bank_code ?? undefined, provider: r.provider ?? undefined } : undefined,
     kyc: r.kyc ?? "none",
+    pii: r.pii && Object.keys(r.pii).length ? r.pii : undefined,
+    attestations: r.attestations && r.attestations.length ? r.attestations : undefined,
     createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   };
@@ -136,11 +144,21 @@ export async function upsertIdentity(
     if (!addresses.some((x) => x.chain === a.chain && x.address.toLowerCase() === a.address.toLowerCase()))
       addresses.push(a);
   }
+  // Merge PII fields; append attestations, deduped by signature.
+  const pii = { ...(existing.pii ?? {}), ...(patch.pii ?? {}) };
+  const seenSig = new Set<string>();
+  const attestations = [...(existing.attestations ?? []), ...(patch.attestations ?? [])].filter((a) => {
+    if (seenSig.has(a.signature)) return false;
+    seenSig.add(a.signature);
+    return true;
+  });
   const next: Identity = {
     ...existing,
     ...patch,
     id,
     addresses,
+    pii: Object.keys(pii).length ? pii : undefined,
+    attestations: attestations.length ? attestations : undefined,
     kyc: patch.kyc ?? existing.kyc,
     createdAt: existing.createdAt,
     updatedAt: now,
@@ -151,14 +169,16 @@ export async function upsertIdentity(
       const sql = getSql();
       await ensureSchema(sql);
       await sql`
-        INSERT INTO identities (id, phone, username, nuban, bank_code, provider, kyc, addresses, created_at, updated_at)
+        INSERT INTO identities (id, phone, username, nuban, bank_code, provider, kyc, addresses, pii, attestations, created_at, updated_at)
         VALUES (${id}, ${next.phone ?? null}, ${next.username ?? null}, ${next.bank?.number ?? null},
                 ${next.bank?.bankCode ?? null}, ${next.bank?.provider ?? null}, ${next.kyc},
-                ${JSON.stringify(next.addresses)}::jsonb, ${next.createdAt}, ${now})
+                ${JSON.stringify(next.addresses)}::jsonb, ${JSON.stringify(next.pii ?? {})}::jsonb,
+                ${JSON.stringify(next.attestations ?? [])}::jsonb, ${next.createdAt}, ${now})
         ON CONFLICT (id) DO UPDATE SET
           phone = EXCLUDED.phone, username = EXCLUDED.username, nuban = EXCLUDED.nuban,
           bank_code = EXCLUDED.bank_code, provider = EXCLUDED.provider, kyc = EXCLUDED.kyc,
-          addresses = EXCLUDED.addresses, updated_at = ${now}
+          addresses = EXCLUDED.addresses, pii = EXCLUDED.pii, attestations = EXCLUDED.attestations,
+          updated_at = ${now}
       `;
       return next;
     } catch {

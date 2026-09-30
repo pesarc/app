@@ -20,6 +20,9 @@ import { defaultStablecoin, currencyOf } from "@pesarc/sdk/stablecoins";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { corridorVaultFor, evmVaultDeposit, evmVaultWithdraw } from "@pesarc/sdk/chain/vault-write";
 import { Button, Card } from "@/components/app/ui";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
@@ -51,8 +54,18 @@ function useLivePools(): Pool[] {
 export default function EarnFlow() {
   const { isAdvanced } = useUIMode();
   const pools = useLivePools();
+  const smart = useSmartWallet();
+  const { chain } = useActiveEvmChain();
   const [positions, setPositions] = useState<Position[]>([]);
   const [depositPool, setDepositPool] = useState<Pool | null>(null);
+
+  // On-chain Earn: when a CorridorVault is deployed for the active chain and the
+  // smart wallet is ready, deposits/withdrawals go through the real ERC-4626
+  // vault (gasless). The server ledger mirrors it for display. Chains without a
+  // vault stay ledger-only (unchanged).
+  const vault = corridorVaultFor(chain.key);
+  const usdc = (chain.tokens as Record<string, `0x${string}`>)?.USD;
+  const onChainEarn = Boolean(vault && usdc && smart.ready && smart.address);
 
   // Positions are durable server-side records now — load the account's own.
   useEffect(() => {
@@ -70,26 +83,40 @@ export default function EarnFlow() {
     };
   }, []);
 
-  const deposit = (poolId: string, principal: number) => {
+  const deposit = async (poolId: string, principal: number) => {
     setDepositPool(null);
+    // Real on-chain deposit first when a vault is live; only record it on success.
+    if (onChainEarn) {
+      try {
+        const hash = await evmVaultDeposit(smart, { vault: vault!, asset: usdc!, amount: principal });
+        if (!hash) return;
+      } catch {
+        return;
+      }
+    }
     setPositions((prev) => {
       const existing = prev.find((p) => p.poolId === poolId);
       if (existing) {
-        return prev.map((p) =>
-          p.poolId === poolId ? { ...p, principal: p.principal + principal } : p
-        );
+        return prev.map((p) => (p.poolId === poolId ? { ...p, principal: p.principal + principal } : p));
       }
       return [...prev, { poolId, principal }];
     });
-    // Persist (best-effort); the optimistic update already reflects it.
+    // Mirror to the ledger for display (best-effort).
     authedPostJson("/api/earn", { poolId, amount: principal }).catch(() => {});
   };
 
-  const withdraw = (poolId: string) => {
+  const withdraw = async (poolId: string) => {
+    const pos = positions.find((p) => p.poolId === poolId);
+    if (onChainEarn && pos && pos.principal > 0) {
+      try {
+        const hash = await evmVaultWithdraw(smart, { vault: vault!, amount: pos.principal });
+        if (!hash) return;
+      } catch {
+        return;
+      }
+    }
     setPositions((prev) => prev.filter((p) => p.poolId !== poolId));
-    authedFetch(`/api/earn?poolId=${encodeURIComponent(poolId)}`, { method: "DELETE" }).catch(
-      () => {},
-    );
+    authedFetch(`/api/earn?poolId=${encodeURIComponent(poolId)}`, { method: "DELETE" }).catch(() => {});
   };
 
   if (depositPool) {

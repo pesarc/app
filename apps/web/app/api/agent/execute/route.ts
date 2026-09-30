@@ -21,6 +21,7 @@ const draftSchema = z.discriminatedUnion("type", [
     fromFlag: z.string().max(8),
     toFlag: z.string().max(8),
     chainLabel: z.string().max(60),
+    chainKey: z.string().max(40),
   }),
   z.object({
     type: z.literal("bill"),

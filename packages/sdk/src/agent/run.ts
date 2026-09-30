@@ -33,7 +33,7 @@ import { recordTransfer } from "../transfers";
 import { createCatalog, listCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
-import { activeChain, type EvmChainConfig } from "../chain/registry";
+import { activeChain, chainByKey, type EvmChainConfig } from "../chain/registry";
 import {
   evmAgentReady,
   evmAgentAddress,
@@ -58,6 +58,8 @@ export type AgentDraft =
       fromFlag: string;
       toFlag: string;
       chainLabel: string;
+      /** The chain this settles on, so execute runs on the same chain as preview. */
+      chainKey: string;
     }
   | {
       type: "bill";
@@ -240,7 +242,7 @@ function ruleReply(message: string): AgentTurnResult {
 export async function runAgentTurn(
   message: string,
   account: string,
-  opts: { preview?: boolean; wallet?: string } = {},
+  opts: { preview?: boolean; wallet?: string; chainKey?: string } = {},
 ): Promise<AgentTurnResult> {
   const preview = opts.preview ?? false;
   // The signed-in user's wallet, so "my balance / activity" needs no address.
@@ -617,10 +619,11 @@ export async function runAgentTurn(
     };
   }
 
-  // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is
-  // active (Arc by default), signed by that chain's agent key. Without an agent
-  // key or the LLM we still understand and reply (demo mode).
-  const chain = activeChain();
+  // On-chain settlement — the web2 -> web3 bridge. Runs on the chain the user is
+  // on (opts.chainKey, from their wallet), falling back to the default active
+  // chain. Signed by that chain's agent key. Without a wired chain + agent key +
+  // the LLM we still understand and reply (demo mode).
+  const chain = (opts.chainKey && chainByKey(opts.chainKey)) || activeChain();
   if (!evmAgentReady(chain) || !llmConfigured()) {
     return ruleReply(message);
   }
@@ -667,6 +670,7 @@ export async function runAgentTurn(
     fromFlag: from.flag,
     toFlag: to.flag,
     chainLabel: chain.label,
+    chainKey: chain.key,
   };
 
   if (preview) {
@@ -691,7 +695,8 @@ export async function runAgentExecute(
   if (draft.type === "bill") return execBill(draft, account, onProgress);
   if (draft.type === "payout") return execPayout(draft, account, onProgress);
   if (draft.type === "earn") return execEarn(draft, account, onProgress);
-  const chain = activeChain();
+  // Execute on the same chain the draft was priced on.
+  const chain = (draft.chainKey && chainByKey(draft.chainKey)) || activeChain();
   if (!evmAgentReady(chain)) {
     return { ok: false, reply: "The agent isn't set up to settle on this network yet." };
   }
