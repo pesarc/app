@@ -13,6 +13,7 @@ import {
 } from "react";
 import { ACCOUNT } from "./account";
 import { SEND_CURRENCIES, type CurrencyCode } from "./money";
+import { countryByCode } from "./countries";
 
 /** Identity verification (KYC) status. In demo mode this is a local,
  *  swap-in-a-provider stand-in; a real KYC provider (Persona/Sumsub/etc.) would
@@ -23,18 +24,26 @@ type Ctx = {
   /** The currency the user sends in by default. */
   sendCurrency: CurrencyCode;
   setSendCurrency: (c: CurrencyCode) => void;
+  /** The user's country (ISO-2), chosen at onboarding. null until chosen. */
+  country: string | null;
+  setCountry: (code: string) => void;
   /** Identity verification status (KYC). */
   kyc: KycStatus;
   setKyc: (s: KycStatus) => void;
+  /** True once persisted prefs have loaded (avoids onboarding flashes). */
+  ready: boolean;
 };
 
 const PrefsContext = createContext<Ctx | null>(null);
 const KEY = "pesarc.send-currency";
 const KYC_KEY = "pesarc.kyc";
+const COUNTRY_KEY = "pesarc.country";
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const [sendCurrency, setState] = useState<CurrencyCode>(ACCOUNT.currency);
+  const [country, setCountryState] = useState<string | null>(null);
   const [kyc, setKycState] = useState<KycStatus>("unverified");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -42,11 +51,14 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       if (saved && (SEND_CURRENCIES as string[]).includes(saved)) {
         setState(saved as CurrencyCode);
       }
+      const c = window.localStorage.getItem(COUNTRY_KEY);
+      if (c) setCountryState(c);
       const k = window.localStorage.getItem(KYC_KEY);
       if (k === "verified" || k === "pending" || k === "unverified") setKycState(k);
     } catch {
       /* ignore */
     }
+    setReady(true);
   }, []);
 
   const setSendCurrency = useCallback((c: CurrencyCode) => {
@@ -58,6 +70,19 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Picking a country also sets the default send currency (the user can still
+  // change it, and held balances supersede it elsewhere).
+  const setCountry = useCallback((code: string) => {
+    setCountryState(code);
+    try {
+      window.localStorage.setItem(COUNTRY_KEY, code);
+    } catch {
+      /* ignore */
+    }
+    const cur = countryByCode(code)?.currency;
+    if (cur && (SEND_CURRENCIES as string[]).includes(cur)) setSendCurrency(cur);
+  }, [setSendCurrency]);
+
   const setKyc = useCallback((s: KycStatus) => {
     setKycState(s);
     try {
@@ -68,7 +93,9 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <PrefsContext.Provider value={{ sendCurrency, setSendCurrency, kyc, setKyc }}>
+    <PrefsContext.Provider
+      value={{ sendCurrency, setSendCurrency, country, setCountry, kyc, setKyc, ready }}
+    >
       {children}
     </PrefsContext.Provider>
   );
