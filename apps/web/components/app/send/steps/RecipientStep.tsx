@@ -9,7 +9,9 @@ import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import {
+  addressRail,
   detectPhone,
+  isEvmContract,
   isWalletAddress,
   recipientFromAddress,
   recipientFromBank,
@@ -29,7 +31,21 @@ export function RecipientStep({
   const [query, setQuery] = useState("");
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
   const [walletAddr, setWalletAddr] = useState("");
+  const [isContract, setIsContract] = useState(false);
   const [saved, setSaved] = useState<Recipient[]>([]);
+
+  const rail = addressRail(walletAddr);
+
+  // Warn if an EVM address is a smart contract (people usually send to wallets).
+  useEffect(() => {
+    setIsContract(false);
+    if (rail !== "evm") return;
+    let alive = true;
+    isEvmContract(walletAddr).then((c) => alive && setIsContract(c));
+    return () => {
+      alive = false;
+    };
+  }, [walletAddr, rail]);
 
   // Load the account's saved recipients (people you've sent to before).
   useEffect(() => {
@@ -171,8 +187,23 @@ export function RecipientStep({
             spellCheck={false}
             className="w-full bg-snow rounded-field border border-fog px-4 py-3.5 text-[15px] font-mono text-ink placeholder:text-slate/70 shadow-card-flat focus:outline-none focus:border-sky/50 focus:ring-2 focus:ring-sky/15 transition"
           />
-          {walletAddr && !isWalletAddress(walletAddr) && (
+          {/* Detected rail + validity */}
+          {walletAddr && rail === "evm" && (
+            <p className="text-[12px] text-slate mt-2">Detected: EVM wallet</p>
+          )}
+          {walletAddr && rail === "solana" && (
+            <p className="text-[12px] text-slate mt-2">Detected: Solana wallet (receives USDC)</p>
+          )}
+          {walletAddr && rail === "algorand" && (
+            <p className="text-[12px] text-alert mt-2">Algorand detected — Algorand sends are coming soon.</p>
+          )}
+          {walletAddr && rail === null && (
             <p className="text-[12px] text-alert mt-2">Enter a valid EVM (0x…) or Solana address.</p>
+          )}
+          {isContract && (
+            <p className="text-[12px] font-semibold text-[#a97b12] mt-2">
+              ⚠︎ This address is a smart contract, not a wallet. Double-check before sending.
+            </p>
           )}
           <Button
             size="lg"
