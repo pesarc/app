@@ -84,6 +84,10 @@ export const STABLECOIN_REGISTRY: Record<string, StablecoinEntry> = {
         mainnet: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
         note: "USDT0 (LayerZero OFT form on Arbitrum)",
       },
+      arc: {
+        testnet: "0x3B7d2282B37f2caa3956707426b0417fCFBEA664",
+        note: "Arc-testnet mock (Pesarc), oracle rates seeded at USD parity",
+      },
     },
   },
 
@@ -93,6 +97,10 @@ export const STABLECOIN_REGISTRY: Record<string, StablecoinEntry> = {
       ethereum: { mainnet: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8" },
       arbitrum: { mainnet: "0x46850aD61C2B7d64d08c9C754F45254596696984" },
       solana: { mainnet: "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo" },
+      arc: {
+        testnet: "0x85cf7250Bca99e6c5bbd4dB8020F38CD28B8b35A",
+        note: "Arc-testnet mock (Pesarc), oracle rates seeded at USD parity",
+      },
     },
   },
 

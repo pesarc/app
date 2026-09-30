@@ -66,8 +66,8 @@ export default function SwapFlow() {
     setBusy(true);
     setError("");
     try {
-      const from = tokenByCode(chain, fromCcy);
-      const to = tokenByCode(chain, toCcy);
+      const from = tokenByCode(chain, fromSym);
+      const to = tokenByCode(chain, toSym);
       if (canExecute && from && to) {
         const tx = await evmSwap(smart, {
           intentMatcher: chain.intentMatcher as `0x${string}`,

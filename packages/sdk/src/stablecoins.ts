@@ -17,6 +17,8 @@ export type Stablecoin = {
 
 export const STABLECOINS: Stablecoin[] = [
   { symbol: "USDC", currency: "USD", name: "USD Coin", flag: "🇺🇸" },
+  { symbol: "USDT", currency: "USD", name: "Tether USD", flag: "🇺🇸" },
+  { symbol: "PYUSD", currency: "USD", name: "PayPal USD", flag: "🇺🇸" },
   { symbol: "cNGN", currency: "NGN", name: "Naira stablecoin", flag: "🇳🇬" },
   { symbol: "cKES", currency: "KES", name: "Shilling stablecoin", flag: "🇰🇪" },
   { symbol: "cGHS", currency: "GHS", name: "Cedi stablecoin", flag: "🇬🇭" },
