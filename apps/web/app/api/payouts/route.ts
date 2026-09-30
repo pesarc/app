@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createPayout, getPayout } from "@pesarc/sdk/payouts";
+import { createPayout, getPayout, listPayouts } from "@pesarc/sdk/payouts";
 import { getAccount } from "@pesarc/sdk/api/auth";
 import { rateLimit } from "@pesarc/sdk/api/guard";
 
@@ -49,11 +49,14 @@ export async function GET(request: Request) {
   const limited = rateLimit(request, "payouts-read", 60, 60_000);
   if (limited) return limited;
 
+  const account = await getAccount(request);
   const ref = new URL(request.url).searchParams.get("ref");
+  // No ref -> list the caller's payouts (for the activity feed's bank filter).
   if (!ref) {
-    return NextResponse.json({ ok: false, error: "Missing ref." }, { status: 400 });
+    const payouts = await listPayouts(account, 30);
+    return NextResponse.json({ ok: true, payouts });
   }
-  const payout = await getPayout(ref, await getAccount(request));
+  const payout = await getPayout(ref, account);
   if (!payout) {
     return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
   }
