@@ -44,13 +44,29 @@ export type HyperToken = {
   deployments: Record<number, { address: `0x${string}`; kind: "wrapped" | "remote" }>;
 };
 
-// The coins we intend to route over Hyperbridge. USDC is deliberately absent — it
-// stays on CCTP. `deployments` are empty until the per-coin contracts ship; that
-// is what keeps every route honestly "not live yet" for now.
+// The coins we route over Hyperbridge. USDC is deliberately absent — it stays on
+// CCTP. A coin appears here once its cross-chain contracts are deployed + peered.
 export const HYPER_TOKENS: Record<HyperNetwork, Record<string, HyperToken>> = {
   mainnet: {},
-  testnet: {},
+  testnet: {
+    // First proof deployment: a wrapped test naira, Base Sepolia (home) <-> Arb
+    // Sepolia (remote). Contracts are live + peered; the in-app send path follows.
+    cNGN: {
+      symbol: "cNGN",
+      homeChainId: 84532,
+      deployments: {
+        84532: { address: "0x1BAd624c31986f5F5Aa335eB4f1db6CB5749f8a5", kind: "wrapped" },
+        421614: { address: "0x240372d47D3085060a0e8eaA21d0B9a86745edFF", kind: "remote" },
+      },
+    },
+  },
 };
+
+/** Does this coin have a live cross-chain deployment (contracts on 2+ chains)? */
+export function hasHyperRoute(network: HyperNetwork, symbol: string): boolean {
+  const token = HYPER_TOKENS[network][symbol];
+  return !!token && Object.keys(token.deployments).length >= 2;
+}
 
 /** Is this coin routable between these two chains over Hyperbridge right now?
  *  Returns the two deployment endpoints, or null when either side isn't deployed. */
