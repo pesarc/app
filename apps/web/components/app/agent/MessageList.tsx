@@ -18,15 +18,19 @@ const DEFAULT_STEPS = ["Reading what you need", "Checking today's rate", "Gettin
  *  stages of the action (understand, match, settle, pay out), so the user can
  *  watch it work. Steps advance on a cadence and hold on the last until the
  *  result arrives. */
-function Thinking({ steps }: { steps?: string[] }) {
+function Thinking({ steps, activeStep }: { steps?: string[]; activeStep?: number }) {
   const list = steps && steps.length ? steps : DEFAULT_STEPS;
-  const [i, setI] = useState(0);
+  // Server-driven index (SSE) when given; otherwise advance on a local timer.
+  const driven = typeof activeStep === "number";
+  const [timed, setTimed] = useState(0);
   useEffect(() => {
-    setI(0);
-    const id = setInterval(() => setI((n) => Math.min(n + 1, list.length - 1)), 1200);
+    if (driven) return;
+    setTimed(0);
+    const id = setInterval(() => setTimed((n) => Math.min(n + 1, list.length - 1)), 1200);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list.join("|")]);
+  }, [driven, list.join("|")]);
+  const i = driven ? Math.min(activeStep!, list.length - 1) : timed;
 
   return (
     <div className="flex justify-start">
@@ -80,6 +84,7 @@ export function MessageList({
   msgs,
   busy,
   thinking,
+  thinkingStep,
   endRef,
   onConfirm,
   onDecline,
@@ -87,6 +92,7 @@ export function MessageList({
   msgs: Msg[];
   busy: boolean;
   thinking?: string[];
+  thinkingStep?: number;
   endRef: RefObject<HTMLDivElement>;
   onConfirm: (index: number, draft: AgentDraft) => void;
   onDecline: (index: number) => void;
@@ -204,7 +210,7 @@ export function MessageList({
           </motion.div>
         ),
       )}
-      {busy && <Thinking steps={thinking} />}
+      {busy && <Thinking steps={thinking} activeStep={thinkingStep} />}
       <div ref={endRef} />
     </div>
   );

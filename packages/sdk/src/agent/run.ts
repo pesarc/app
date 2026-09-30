@@ -17,6 +17,7 @@ import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
 import { parseSwapIntent } from "./swap-intent";
+import { emitStep, type OnProgress } from "./progress";
 import { fetchAggregatedBalance } from "../chain/aggregateBalance";
 import { fetchOnchainActivity } from "../chain/history";
 import { getBankAccount } from "../bank";
@@ -476,18 +477,20 @@ export async function runAgentTurn(
   return execTransfer(chain, draft);
 }
 
-/** Execute a drafted, consented action and return its receipt. */
+/** Execute a drafted, consented action and return its receipt. `onProgress` is
+ *  called as each real stage begins, so a surface can stream live progress. */
 export async function runAgentExecute(
   draft: AgentDraft,
   account: string,
+  onProgress?: OnProgress,
 ): Promise<AgentTurnResult> {
-  if (draft.type === "bill") return execBill(draft, account);
-  if (draft.type === "payout") return execPayout(draft, account);
+  if (draft.type === "bill") return execBill(draft, account, onProgress);
+  if (draft.type === "payout") return execPayout(draft, account, onProgress);
   const chain = activeChain();
   if (!evmAgentReady(chain)) {
     return { ok: false, reply: "The agent isn't set up to settle on this network yet." };
   }
-  return execTransfer(chain, draft);
+  return execTransfer(chain, draft, onProgress);
 }
 
 /** Execute a consented bank cash-out: pay out fiat to the user's linked bank via
@@ -495,13 +498,16 @@ export async function runAgentExecute(
 async function execPayout(
   draft: Extract<AgentDraft, { type: "payout" }>,
   account: string,
+  onProgress?: OnProgress,
 ): Promise<AgentTurnResult> {
   const bank = await getBankAccount(account);
   if (!bank || bank.status !== "active") {
     return { ok: false, reply: "I couldn't find an active bank account to pay out to. Link one first." };
   }
   try {
+    emitStep(onProgress, "payout", 0);
     const reference = sendReference();
+    emitStep(onProgress, "payout", 1);
     const payout = await createPayout(
       {
         reference,
@@ -528,6 +534,7 @@ async function execPayout(
       account,
     ).catch(() => {});
 
+    emitStep(onProgress, "payout", 2);
     const naira = `₦${fmt(draft.amountNgn)}`;
     const paid = payout.status === "paid";
     const last4 = bank.accountNumber.slice(-4);
@@ -560,8 +567,11 @@ async function execPayout(
 async function execBill(
   draft: Extract<AgentDraft, { type: "bill" }>,
   account: string,
+  onProgress?: OnProgress,
 ): Promise<AgentTurnResult> {
   try {
+    emitStep(onProgress, "bill", 0);
+    emitStep(onProgress, "bill", 1);
     const result = await getBillsAdapter().purchase({
       category: draft.category as BillCategory,
       operatorId: draft.operatorId,
@@ -570,6 +580,7 @@ async function execBill(
       planId: draft.planId,
       meterType: draft.meterType as MeterType | undefined,
     });
+    emitStep(onProgress, "bill", 2);
     recordTransfer(
       {
         direction: "sent",
@@ -626,6 +637,7 @@ async function execBill(
 async function execTransfer(
   chain: EvmChainConfig,
   draft: Extract<AgentDraft, { type: "transfer" }>,
+  onProgress?: OnProgress,
 ): Promise<AgentTurnResult> {
   const from = tokenByCode(chain, draft.fromCode);
   const to = tokenByCode(chain, draft.toCode);
@@ -637,6 +649,7 @@ async function execTransfer(
   const recipient = (draft.recipient ?? evmAgentAddress(chain)) as `0x${string}`;
 
   try {
+    emitStep(onProgress, "transfer", 0);
     const submitTx = await submitIntentOn(chain, {
       tokenIn: from.address,
       tokenOut: to.address,
@@ -646,8 +659,10 @@ async function execTransfer(
       ref: `AGENT-${from.code}-${to.code}`,
     });
 
+    emitStep(onProgress, "transfer", 1);
     const outcome = await runEvmSolver(chain);
     const didSettle = outcome.settled.length > 0;
+    emitStep(onProgress, "transfer", 2);
 
     const reply = didSettle
       ? `Done. I matched your ${fmt(draft.amount)} ${from.code} against opposing ${to.code} flow and settled it peer-to-peer on ${chain.label} in local currency. ${to.flag} ${to.code} is on its way to the recipient.`
