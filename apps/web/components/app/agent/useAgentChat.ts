@@ -8,26 +8,36 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 import type { ParsedUpload } from "@pesarc/sdk/agent/files";
-import type { AgentDraft } from "@pesarc/sdk/agent/run";
+import type { AgentDraft, AgentReceipt } from "@pesarc/sdk/agent/run";
+import { AGENT_STEPS } from "@pesarc/sdk/agent/progress";
 import type { Msg, Thread } from "./types";
 import { GREETING, MAX_THREADS, loadThreads, saveThreads } from "./helpers";
 
-// Branded, human step labels for the "agent at work" trace — the real stages of
-// each action, in Pesarc's voice (no dev jargon).
-const STEPS_UNDERSTAND = ["Reading what you need", "Checking today's rate", "Getting your options ready"];
-const STEPS_BY_ACTION: Record<string, string[]> = {
-  transfer: ["Placing your transfer", "Finding someone going the other way", "Settling in local currency", "Finishing up"],
-  payout: ["Settling your funds on Arc", "Sending to your bank", "Confirming the payout"],
-  bill: ["Reaching your provider", "Sending it through", "Confirming"],
-};
-const STEPS_UPLOAD = ["Reading your file", "Drafting each payout", "Getting them ready to review"];
+/** Parse one SSE frame ("event: x\ndata: {...}") into {event, data}. */
+function parseSse(frame: string): { event: string; data: unknown } | null {
+  let event = "message";
+  const dataLines: string[] = [];
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if (!dataLines.length) return null;
+  try {
+    return { event, data: JSON.parse(dataLines.join("\n")) };
+  } catch {
+    return null;
+  }
+}
 
 export function useAgentChat() {
   const smart = useSmartWallet();
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  // The active work-trace steps, and (when server-driven over SSE) the live step
+  // index; undefined index = advance on the client's own timer.
   const [thinking, setThinking] = useState<string[] | undefined>(undefined);
+  const [thinkingStep, setThinkingStep] = useState<number | undefined>(undefined);
   const [budget, setBudget] = useState<AgentBudget | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const activeId = useRef<string | null>(null);
@@ -103,7 +113,8 @@ export function useAgentChat() {
       if (!text.trim() || busy) return;
       setMsgs((m) => [...m, { role: "user", text }]);
       setInput("");
-      setThinking(STEPS_UNDERSTAND);
+      setThinking(AGENT_STEPS.understand);
+      setThinkingStep(undefined);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
@@ -145,16 +156,50 @@ export function useAgentChat() {
     async (index: number, draft: AgentDraft) => {
       if (busy) return;
       setMsgs((m) => m.map((x, i) => (i === index ? { ...x, draftState: "confirmed" } : x)));
-      setThinking(STEPS_BY_ACTION[draft.type] ?? STEPS_UNDERSTAND);
+      setThinking(AGENT_STEPS[draft.type] ?? AGENT_STEPS.understand);
+      setThinkingStep(0);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
         const res = await fetch("/api/agent/execute", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
           body: JSON.stringify({ draft }),
         });
-        const data = await res.json();
+
+        // Stream live progress when the server sends SSE; else read plain JSON.
+        let data: {
+          ok?: boolean;
+          reply?: string;
+          matched?: boolean;
+          submitUrl?: string;
+          settlements?: { kind: string; url: string }[];
+          billsUrl?: string;
+          receipt?: AgentReceipt;
+        } | null = null;
+        const ctype = res.headers.get("content-type") ?? "";
+        if (res.body && ctype.includes("text/event-stream")) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = "";
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let sep: number;
+            while ((sep = buf.indexOf("\n\n")) !== -1) {
+              const frame = buf.slice(0, sep);
+              buf = buf.slice(sep + 2);
+              const ev = parseSse(frame);
+              if (!ev) continue;
+              if (ev.event === "step") setThinkingStep((ev.data as { index?: number }).index ?? 0);
+              else if (ev.event === "result") data = ev.data as typeof data;
+            }
+          }
+        } else {
+          data = await res.json();
+        }
+        if (!data) data = { ok: false, reply: "Something went wrong." };
         setMsgs((m) => [
           ...m,
           {
@@ -194,7 +239,8 @@ export function useAgentChat() {
     async (file: File) => {
       if (busy) return;
       setMsgs((m) => [...m, { role: "user", text: "Read this file and draft the payouts.", attachment: file.name }]);
-      setThinking(STEPS_UPLOAD);
+      setThinking(AGENT_STEPS.upload);
+      setThinkingStep(undefined);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
@@ -225,6 +271,7 @@ export function useAgentChat() {
     setInput,
     busy,
     thinking,
+    thinkingStep,
     budget,
     threads,
     activeId,
