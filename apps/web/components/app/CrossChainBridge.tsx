@@ -13,7 +13,7 @@ import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
 import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import { STABLECOINS } from "@pesarc/sdk/stablecoins";
-import { HYPER_ELIGIBLE_SYMBOLS, hyperRouteFor } from "@pesarc/sdk/chain/hyperbridge/registry";
+import { HYPER_ELIGIBLE_SYMBOLS, hasHyperRoute } from "@pesarc/sdk/chain/hyperbridge/registry";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
 
 // USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
@@ -558,13 +558,15 @@ export default function CrossChainBridge() {
 // cross-chain contracts deployed before a route goes live; until then we say so
 // plainly rather than offer a move that can't settle.
 function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork }) {
-  // Any live route for this coin at all? (contracts deployed on 2+ chains)
-  const live = hyperRouteFor(network, symbol, 0, 0) !== null;
+  const live = hasHyperRoute(network, symbol);
   return (
     <Card className="mt-4 p-4">
       <div className="text-[15px] font-bold text-harbor">Moving {symbol} across chains</div>
       {live ? (
-        <p className="mt-1.5 text-sm text-slate">This route is live. Pick your chains below.</p>
+        <p className="mt-1.5 text-sm text-slate">
+          {symbol} cross-chain is set up on this network and the in-app move is being wired up now.
+          Everything is in place; the button to move it lands shortly.
+        </p>
       ) : (
         <>
           <p className="mt-1.5 text-sm text-slate">
