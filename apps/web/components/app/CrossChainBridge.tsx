@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createWalletClient, createPublicClient, custom, http } from "viem";
 import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
+import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
 import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi";
 import {
@@ -382,7 +383,11 @@ export default function CrossChainBridge() {
                   ariaLabel="Source chain"
                   value={srcKey}
                   onChange={setSrcKey}
-                  options={srcChains.map((c) => ({ value: c.key, label: c.label }))}
+                  options={srcChains.map((c) => ({
+                    value: c.key,
+                    label: c.label,
+                    icon: chainLogoUrlForLabel(c.label),
+                  }))}
                 />
               </div>
             </div>
@@ -393,7 +398,11 @@ export default function CrossChainBridge() {
                   ariaLabel="Destination chain"
                   value={dstKey}
                   onChange={setDstKey}
-                  options={dstChains.map((c) => ({ value: c.key, label: c.label }))}
+                  options={dstChains.map((c) => ({
+                    value: c.key,
+                    label: c.label,
+                    icon: chainLogoUrlForLabel(c.label),
+                  }))}
                 />
               </div>
             </div>

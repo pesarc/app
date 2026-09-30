@@ -23,3 +23,24 @@ export function chainLogoUrl(key: string, transform = "f_auto,q_auto,w_64,h_64,c
   if (!id) return "";
   return `https://res.cloudinary.com/${CLOUD}/image/upload/${transform}/${id}`;
 }
+
+/** Map any human chain label ("Arbitrum Sepolia", "OP Mainnet", …) to a canonical
+ *  CHAIN_LOGO key. One place so every surface (balance, swap, send, bridge) tags
+ *  a chain with the same brand mark. */
+export function chainLogoKey(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes("arbitrum")) return "Arbitrum";
+  if (l.includes("base")) return "Base";
+  if (l.includes("optimism") || /\bop\b/.test(l)) return "Optimism";
+  if (l.includes("polygon") || l.includes("amoy")) return "Polygon";
+  if (l.includes("celo")) return "Celo";
+  if (l.includes("arc")) return "Arc";
+  if (l.includes("solana")) return "Solana";
+  if (l.includes("algorand")) return "Algorand";
+  if (l.includes("ethereum") || l.includes("sepolia")) return "Ethereum";
+  return "";
+}
+
+/** Logo URL straight from a chain label ("" when we have none). */
+export const chainLogoUrlForLabel = (label: string, transform?: string): string =>
+  chainLogoUrl(chainLogoKey(label), transform);
