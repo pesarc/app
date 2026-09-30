@@ -12,7 +12,19 @@ import { createWalletClient, createPublicClient, custom, http } from "viem";
 import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
 import { chainLogoUrlForLabel } from "@/lib/chainLogos";
+import { STABLECOINS } from "@pesarc/sdk/stablecoins";
+import { HYPER_ELIGIBLE_SYMBOLS, hyperRouteFor } from "@pesarc/sdk/chain/hyperbridge/registry";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
+
+// USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
+// is live). One selector, the rail is picked for the user.
+const COIN_OPTS = [
+  { value: "USDC", label: "🇺🇸 USDC" },
+  ...HYPER_ELIGIBLE_SYMBOLS.map((s) => {
+    const meta = STABLECOINS.find((c) => c.symbol === s);
+    return { value: s, label: meta ? `${meta.flag} ${s}` : s };
+  }),
+];
 import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi";
 import {
   cctpChains,
@@ -57,6 +69,7 @@ export default function CrossChainBridge() {
   // Testnet first: it's the safe default (mainnet moves real USDC) and matches how
   // the app is tested. Everything below re-derives from this one value.
   const [network, setNetwork] = useState<CctpNetwork>("testnet");
+  const [coin, setCoin] = useState("USDC");
   const isTestnet = network === "testnet";
 
   const evmChains = useMemo(() => evmBridgeChains(network), [network]);
@@ -357,7 +370,14 @@ export default function CrossChainBridge() {
         />
       </div>
 
-      {!isTestnet && (
+      <div className="mt-4">
+        <div className="text-xs font-bold text-slate mb-1">Coin</div>
+        <Dropdown ariaLabel="Coin to move" value={coin} onChange={setCoin} options={COIN_OPTS} />
+      </div>
+
+      {coin !== "USDC" && <HyperPanel symbol={coin} network={network} />}
+
+      {coin === "USDC" && !isTestnet && (
         <div className="mt-4">
           <Segmented
             aria-label="Bridge mode"
@@ -371,9 +391,9 @@ export default function CrossChainBridge() {
         </div>
       )}
 
-      {mode === "algorand" && !isTestnet && <WormholeAlgorand />}
+      {coin === "USDC" && mode === "algorand" && !isTestnet && <WormholeAlgorand />}
 
-      {mode === "usdc" && (
+      {coin === "USDC" && mode === "usdc" && (
         <Card className="mt-4 flex flex-col gap-4 p-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -523,12 +543,41 @@ export default function CrossChainBridge() {
         </Card>
       )}
 
-      <p className="mt-3 text-xs text-slate/70">
-        {isTestnet
-          ? "Test mode uses free practice coins, so you can try a move end to end before using real money."
-          : "New to a route? Moving a small amount first is a smart way to check everything works."}
-      </p>
+      {coin === "USDC" && (
+        <p className="mt-3 text-xs text-slate/70">
+          {isTestnet
+            ? "Test mode uses free practice coins, so you can try a move end to end before using real money."
+            : "New to a route? Moving a small amount first is a smart way to check everything works."}
+        </p>
+      )}
     </div>
+  );
+}
+
+// Non-USDC coins move over Hyperbridge. The rail is wired but each coin needs its
+// cross-chain contracts deployed before a route goes live; until then we say so
+// plainly rather than offer a move that can't settle.
+function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork }) {
+  // Any live route for this coin at all? (contracts deployed on 2+ chains)
+  const live = hyperRouteFor(network, symbol, 0, 0) !== null;
+  return (
+    <Card className="mt-4 p-4">
+      <div className="text-[15px] font-bold text-harbor">Moving {symbol} across chains</div>
+      {live ? (
+        <p className="mt-1.5 text-sm text-slate">This route is live. Pick your chains below.</p>
+      ) : (
+        <>
+          <p className="mt-1.5 text-sm text-slate">
+            {symbol} cross-chain is coming soon. It rides a different rail from USDC and we are
+            finishing its setup. USDC can move across chains today.
+          </p>
+          <p className="mt-3 text-xs text-slate/70">
+            Want to change currency instead? Use the Currencies tab to swap {symbol} into USDC,
+            then move the USDC.
+          </p>
+        </>
+      )}
+    </Card>
   );
 }
 
