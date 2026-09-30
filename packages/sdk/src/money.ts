@@ -142,6 +142,26 @@ export function formatMoney(amount: number, code: CurrencyCode): string {
   }
 }
 
+/** Compact money for large balances (>= 1M): $2.07B, ₦1.20M. Below 1M it defers
+ *  to full formatMoney so everyday amounts stay exact. Keeps big holdings from
+ *  rendering as absurd 10-digit strings. */
+export function formatMoneyCompact(amount: number, code: CurrencyCode): string {
+  const abs = Math.abs(amount);
+  if (abs < 1_000_000) return formatMoney(amount, code);
+  const sym = CURRENCIES[code].symbol;
+  const [div, suffix] = abs >= 1e12 ? [1e12, "T"] : abs >= 1e9 ? [1e9, "B"] : [1e6, "M"];
+  return `${sym}${(amount / div).toFixed(2)}${suffix}`;
+}
+
+/** Compact token amount (no currency): 1.20B, 12.5M, 12,500, 19.51. */
+export function formatAmountCompact(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1e12) return `${(n / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 /** Plain number with grouping, no symbol — for split symbol/amount layouts. */
 export function formatNumber(amount: number, code: CurrencyCode): string {
   const c = CURRENCIES[code];

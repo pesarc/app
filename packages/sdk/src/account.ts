@@ -27,45 +27,6 @@ export type Recipient = {
 };
 
 export const RECIPIENTS: Recipient[] = [
-  {
-    id: "r1",
-    name: "Mum",
-    handle: "+234 803 555 0142",
-    country: "Nigeria",
-    flag: "🇳🇬",
-    receiveCurrency: "NGN",
-    recent: true,
-    initialsColor: "#EA580C",
-  },
-  {
-    id: "r2",
-    name: "Chidi Okafor",
-    handle: "@chidi",
-    country: "Nigeria",
-    flag: "🇳🇬",
-    receiveCurrency: "NGN",
-    recent: true,
-    initialsColor: "#E0A82E",
-  },
-  {
-    id: "r3",
-    name: "Amara Njoku",
-    handle: "+254 712 555 0198",
-    country: "Kenya",
-    flag: "🇰🇪",
-    receiveCurrency: "KES",
-    recent: true,
-    initialsColor: "#5a7a8a",
-  },
-  {
-    id: "r4",
-    name: "Kwame Mensah",
-    handle: "@kwame.gh",
-    country: "Ghana",
-    flag: "🇬🇭",
-    receiveCurrency: "GHS",
-    initialsColor: "#8b3a3a",
-  },
 ];
 
 export function initials(name: string): string {
