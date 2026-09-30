@@ -11,7 +11,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, Check, Loader2, RefreshCw } from "@/components/icons";
 import { Card, Button } from "@/components/app/ui";
-import { StablecoinSelect } from "@/components/app/StablecoinSelect";
+import { Dropdown } from "@/components/app/Dropdown";
 import { STABLECOINS, currencyOf } from "@pesarc/sdk/stablecoins";
 import { CURRENCIES, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
@@ -25,6 +25,7 @@ import { ExternalLink } from "@/components/icons";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 const FEE = 0.004; // 0.4% swap fee, shown up front.
+const TOKEN_OPTS = STABLECOINS.map((s) => ({ value: s.symbol, label: `${s.flag} ${s.symbol}` }));
 
 export default function SwapFlow() {
   const [fromSym, setFromSym] = useState("cNGN");
@@ -142,11 +143,10 @@ export default function SwapFlow() {
         <p className="text-slate">Turn one of your currencies into another at the corridor rate.</p>
       </div>
 
-      {/* From */}
-      <Card className="p-4 mb-2">
-        <StablecoinSelect value={fromSym} onChange={setFromSym} label="From" />
-        <div className="mt-3 flex items-center rounded-xl border border-fog bg-snow px-4 py-3">
-          <span className="text-slate mr-2 text-sm">{CURRENCIES[fromCcy].symbol}</span>
+      {/* Sell */}
+      <Card className="p-4 mb-1.5">
+        <div className="text-[13px] font-semibold text-slate mb-1.5">Sell</div>
+        <div className="flex items-center gap-3">
           <input
             inputMode="decimal"
             autoFocus
@@ -154,37 +154,48 @@ export default function SwapFlow() {
             onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9.]/g, ""))}
             placeholder="0"
             aria-label="Amount to swap"
-            className="flex-1 bg-transparent outline-none text-2xl font-extrabold text-ink numerals"
+            className="flex-1 min-w-0 bg-transparent outline-none text-4xl font-extrabold text-ink numerals placeholder:text-ink/30"
           />
+          <Dropdown compact value={fromSym} onChange={setFromSym} ariaLabel="Sell token" options={TOKEN_OPTS} />
         </div>
-        <div className={`mt-2 flex items-center justify-between text-[12px] ${insufficient ? "font-bold text-alert" : "text-slate"}`}>
-          <span>{insufficient ? `More than your ${currencyName(fromCcy)}` : `Your ${currencyName(fromCcy)}`}</span>
-          <span className="numerals">
-            {bal.loading ? "…" : formatMoney(bal.amount ?? 0, fromCcy)}
-            {!bal.available && <span className="ml-1 text-slate/70">demo</span>}
+        <div className="mt-1.5 flex items-center justify-between text-[12px]">
+          <span className={insufficient ? "font-bold text-alert" : "text-slate"}>
+            {insufficient ? `More than your ${currencyName(fromCcy)}` : formatMoney(amount, fromCcy)}
           </span>
+          <button
+            type="button"
+            onClick={() => bal.amount && setAmountStr(String(bal.amount))}
+            className="text-slate hover:text-ink numerals"
+          >
+            {bal.loading ? "…" : `Balance ${formatMoney(bal.amount ?? 0, fromCcy)}`}
+            {!bal.available && <span className="ml-1 text-slate/60">demo</span>}
+          </button>
         </div>
       </Card>
 
-      {/* Swap sides */}
-      <div className="flex justify-center -my-1.5 relative z-10">
+      {/* Flip */}
+      <div className="flex justify-center -my-3.5 relative z-10">
         <button
           onClick={swapSides}
           aria-label="Swap the two currencies"
-          className="w-10 h-10 rounded-full bg-harbor text-white flex items-center justify-center shadow-pop-sm hover:rotate-180 transition-transform duration-300"
+          className="w-10 h-10 rounded-xl bg-snow border-4 border-cream text-harbor flex items-center justify-center hover:bg-cream transition-colors"
         >
           <ArrowDown className="w-4 h-4" />
         </button>
       </div>
 
-      {/* To */}
-      <Card className="p-4 mt-2 mb-4">
-        <StablecoinSelect value={toSym} onChange={setToSym} label="To" />
-        <div className="mt-3 rounded-xl border border-fog bg-black/[0.02] px-4 py-3">
-          <div className="text-2xl font-extrabold text-harbor numerals">
-            {CURRENCIES[toCcy].symbol}
-            {receive > 0 ? formatMoney(receive, toCcy).replace(CURRENCIES[toCcy].symbol, "") : "0"}
+      {/* Buy */}
+      <Card className="p-4 mt-1.5 mb-4">
+        <div className="text-[13px] font-semibold text-slate mb-1.5">Buy</div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0 truncate text-4xl font-extrabold numerals text-ink">
+            {receive > 0 ? (
+              formatMoney(receive, toCcy).replace(CURRENCIES[toCcy].symbol, "")
+            ) : (
+              <span className="text-ink/30">0</span>
+            )}
           </div>
+          <Dropdown compact value={toSym} onChange={setToSym} ariaLabel="Buy token" options={TOKEN_OPTS} />
         </div>
       </Card>
 
@@ -236,7 +247,3 @@ export default function SwapFlow() {
     </div>
   );
 }
-
-// Keep a stable reference for the currency list (imported for side-effect-free
-// tree-shaking of STABLECOINS in case it's needed for future validation).
-void STABLECOINS;
