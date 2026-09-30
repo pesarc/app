@@ -7,7 +7,7 @@
 // Balances go live when a wallet is connected; otherwise the demo path runs so the
 // flow is always complete.
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowDown, Check, Loader2, RefreshCw } from "@/components/icons";
 import { Card, Button } from "@/components/app/ui";
@@ -25,8 +25,6 @@ import { ExternalLink } from "@/components/icons";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 
 const FEE = 0.004; // 0.4% swap fee, shown up front.
-const TOKEN_OPTS = STABLECOINS.map((s) => ({ value: s.symbol, label: `${s.flag} ${s.symbol}` }));
-
 export default function SwapFlow() {
   const [fromSym, setFromSym] = useState("cNGN");
   const [toSym, setToSym] = useState("cGHS");
@@ -42,6 +40,24 @@ export default function SwapFlow() {
 
   const { chain } = useActiveEvmChain();
   const smart = useSmartWallet();
+
+  // Only offer tokens actually wired on the active chain, so every option has a
+  // real balance (no "demo" placeholders). Falls back to all if a chain has none.
+  const tokenOpts = useMemo(() => {
+    const tokens = chain.tokens as Record<string, string | undefined>;
+    const supported = STABLECOINS.filter((s) => Boolean(tokens[currencyOf(s.symbol)]));
+    const list = supported.length ? supported : STABLECOINS;
+    return list.map((s) => ({ value: s.symbol, label: `${s.flag} ${s.symbol}` }));
+  }, [chain]);
+
+  // If a chain switch drops the selected token, snap to a supported one.
+  useEffect(() => {
+    const vals = tokenOpts.map((o) => o.value);
+    if (!vals.includes(fromSym)) setFromSym(vals[0]);
+    if (!vals.includes(toSym)) setToSym(vals.find((v) => v !== (vals.includes(fromSym) ? fromSym : vals[0])) ?? vals[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenOpts]);
+
   const bal = useLiveBalance(fromCcy);
   const insufficient = bal.available && bal.amount !== undefined ? amount > bal.amount : false;
 
@@ -156,7 +172,7 @@ export default function SwapFlow() {
             aria-label="Amount to swap"
             className="flex-1 min-w-0 bg-transparent outline-none text-4xl font-extrabold text-ink numerals placeholder:text-ink/30"
           />
-          <Dropdown compact value={fromSym} onChange={setFromSym} ariaLabel="Sell token" options={TOKEN_OPTS} />
+          <Dropdown compact value={fromSym} onChange={setFromSym} ariaLabel="Sell token" options={tokenOpts} />
         </div>
         <div className="mt-1.5 flex items-center justify-between text-[12px]">
           <span className={insufficient ? "font-bold text-alert" : "text-slate"}>
@@ -195,7 +211,7 @@ export default function SwapFlow() {
               <span className="text-ink/30">0</span>
             )}
           </div>
-          <Dropdown compact value={toSym} onChange={setToSym} ariaLabel="Buy token" options={TOKEN_OPTS} />
+          <Dropdown compact value={toSym} onChange={setToSym} ariaLabel="Buy token" options={tokenOpts} />
         </div>
       </Card>
 
