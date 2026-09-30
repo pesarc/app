@@ -4,6 +4,7 @@
 // The container (AgentChat.tsx) only renders what this hook exposes.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSpeechInput } from "@/components/app/useSpeechInput";
 import { fetchAgentBudget, type AgentBudget } from "@pesarc/sdk/agent-budget";
 import type { ParsedUpload } from "@pesarc/sdk/agent/files";
@@ -12,6 +13,7 @@ import type { Msg, Thread } from "./types";
 import { GREETING, MAX_THREADS, loadThreads, saveThreads } from "./helpers";
 
 export function useAgentChat() {
+  const smart = useSmartWallet();
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -96,7 +98,7 @@ export function useAgentChat() {
         const res = await fetch("/api/agent/settle", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
+          body: JSON.stringify({ message: text, wallet: smart.address }),
         });
         const data = await res.json();
         // A money-moving action comes back as a `draft` to confirm; anything
@@ -122,7 +124,7 @@ export function useAgentChat() {
       setBusy(false);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     },
-    [busy],
+    [busy, smart.address],
   );
 
   // The user consented to a drafted action: execute it and show the receipt.
