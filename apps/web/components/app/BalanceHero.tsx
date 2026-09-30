@@ -20,20 +20,7 @@ import {
   type AggregatedBalance,
 } from "@pesarc/sdk/chain/aggregateBalance";
 import { fetchSvmBalances } from "@pesarc/sdk/svm/balance";
-import { chainLogoUrl } from "@/lib/chainLogos";
-
-function logoKey(label: string): string {
-  const l = label.toLowerCase();
-  if (l.includes("arbitrum")) return "Arbitrum";
-  if (l.includes("base")) return "Base";
-  if (l.includes("optimism") || /\bop\b/.test(l)) return "Optimism";
-  if (l.includes("polygon")) return "Polygon";
-  if (l.includes("celo")) return "Celo";
-  if (l.includes("arc")) return "Arc";
-  if (l.includes("solana")) return "Solana";
-  if (l.includes("ethereum") || l.includes("sepolia")) return "Ethereum";
-  return "";
-}
+import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 
 const shortChain = (label: string) =>
   label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
@@ -144,7 +131,7 @@ export function BalanceHero() {
           {open && (
             <div className="mt-3 space-y-2">
               {holdings.map((h) => {
-                const url = chainLogoUrl(logoKey(h.chainLabel));
+                const url = chainLogoUrlForLabel(h.chainLabel);
                 return (
                   <div
                     key={`${h.chainKey}-${h.symbol}`}

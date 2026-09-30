@@ -6,7 +6,23 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "@/components/icons";
 
-export type DropdownOption<T extends string> = { value: T; label: string; hint?: string };
+export type DropdownOption<T extends string> = {
+  value: T;
+  label: string;
+  hint?: string;
+  /** Optional leading image (e.g. a chain logo URL) shown before the label. */
+  icon?: string;
+};
+
+function OptIcon({ src }: { src?: string }) {
+  if (!src) return null;
+  return (
+    <span className="w-4 h-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
+      {/* eslint-disable-next-line @next/next/no-img-element -- tiny chain logo */}
+      <img src={src} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
+    </span>
+  );
+}
 
 export function Dropdown<T extends string>({
   value,
@@ -61,7 +77,10 @@ export function Dropdown<T extends string>({
             : "w-full flex items-center justify-between gap-2 rounded-xl border border-fog bg-snow px-3.5 py-2.5 text-sm font-semibold text-ink hover:border-slate/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 transition-colors"
         }
       >
-        <span className="truncate">{selected ? selected.label : placeholder}</span>
+        <span className="flex items-center gap-2 min-w-0">
+          <OptIcon src={selected?.icon} />
+          <span className="truncate">{selected ? selected.label : placeholder}</span>
+        </span>
         <ChevronDown
           className={`w-4 h-4 text-slate shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
         />
@@ -89,7 +108,10 @@ export function Dropdown<T extends string>({
                   : "text-ink hover:bg-black/[0.04]"
               }`}
             >
-              <span className="truncate">{o.label}</span>
+              <span className="flex items-center gap-2 min-w-0">
+                <OptIcon src={o.icon} />
+                <span className="truncate">{o.label}</span>
+              </span>
               {o.hint && <span className="text-[11px] text-slate shrink-0">{o.hint}</span>}
             </button>
           ))}
