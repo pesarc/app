@@ -15,6 +15,7 @@ export const CHAIN_LOGO: Record<string, string> = {
   Optimism: "05dee11fbd0f605cc307d301daf68e2192297e50_k3gqrv",
   Algorand: "algorand-logomark-blue-RGB_ckba3s",
   Polygon: "polygon-icon-primary-purple_w6psna",
+  Avalanche: "Avalanche_AvaxToken_1_lxnnyl",
 };
 
 // e_trim strips each source's surrounding padding first, so marks that ship with
