@@ -15,6 +15,7 @@ export function Dropdown<T extends string>({
   ariaLabel,
   className = "",
   placeholder = "Select",
+  compact = false,
 }: {
   value: T | "";
   options: DropdownOption<T>[];
@@ -22,6 +23,8 @@ export function Dropdown<T extends string>({
   ariaLabel?: string;
   className?: string;
   placeholder?: string;
+  /** Render as a compact rounded pill (e.g. a token selector) instead of a full-width field. */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -45,14 +48,18 @@ export function Dropdown<T extends string>({
   const selected = options.find((o) => o.value === value);
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${compact ? "inline-block" : ""} ${className}`}>
       <button
         type="button"
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 rounded-xl border border-fog bg-snow px-3.5 py-2.5 text-sm font-semibold text-ink hover:border-slate/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 transition-colors"
+        className={
+          compact
+            ? "inline-flex items-center gap-1.5 rounded-full border border-fog bg-cream px-3 py-1.5 text-[15px] font-bold text-ink hover:border-slate/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 transition-colors"
+            : "w-full flex items-center justify-between gap-2 rounded-xl border border-fog bg-snow px-3.5 py-2.5 text-sm font-semibold text-ink hover:border-slate/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky/40 transition-colors"
+        }
       >
         <span className="truncate">{selected ? selected.label : placeholder}</span>
         <ChevronDown
@@ -62,7 +69,9 @@ export function Dropdown<T extends string>({
       {open && (
         <div
           role="listbox"
-          className="absolute z-30 mt-1.5 w-full max-h-64 overflow-auto rounded-xl border border-fog bg-snow shadow-pop-sm py-1"
+          className={`absolute z-30 mt-1.5 max-h-64 overflow-auto rounded-xl border border-fog bg-snow shadow-pop-sm py-1 ${
+            compact ? "right-0 min-w-[190px]" : "w-full"
+          }`}
         >
           {options.map((o) => (
             <button
