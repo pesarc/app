@@ -11,6 +11,8 @@ import { ChevronDown } from "@/components/icons";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { getActiveChainKey } from "@pesarc/sdk/chain/registry";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
 import {
@@ -36,10 +38,14 @@ function logoKey(label: string): string {
 const shortChain = (label: string) =>
   label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
 
+// Auto-pick the default network once per load — only if the user hasn't chosen one.
+let autoNetworkDone = false;
+
 export function BalanceHero() {
   const { mode, authenticated } = useWallet();
   const smart = useSmartWallet();
   const solana = useSolanaSigner();
+  const { setChainKey } = useActiveEvmChain();
   const { sendCurrency } = usePrefs();
   const [data, setData] = useState<AggregatedBalance | null>(null);
   const [open, setOpen] = useState(false);
@@ -63,12 +69,25 @@ export function BalanceHero() {
         const holdings = [...evm.holdings, ...svm].sort((a, b) => b.valueInDenom - a.valueInDenom);
         const total = holdings.reduce((s, h) => s + h.valueInDenom, 0);
         setData({ denom: sendCurrency, total, holdings });
+
+        // Default the network to the EVM chain that actually holds funds — once,
+        // and only if the user hasn't already picked a network this session.
+        if (!autoNetworkDone && !getActiveChainKey()) {
+          const byChain = new Map<string, number>();
+          for (const h of evm.holdings)
+            byChain.set(h.chainKey, (byChain.get(h.chainKey) ?? 0) + h.valueInDenom);
+          const richest = [...byChain.entries()].sort((a, b) => b[1] - a[1])[0];
+          if (richest && richest[1] > 0) {
+            autoNetworkDone = true;
+            setChainKey(richest[0]);
+          }
+        }
       })
       .catch(() => active && setData(null));
     return () => {
       active = false;
     };
-  }, [live, smart.address, solAddr, sendCurrency]);
+  }, [live, smart.address, solAddr, sendCurrency, setChainKey]);
 
   const total = data?.total ?? 0;
   const holdings = data?.holdings ?? [];
