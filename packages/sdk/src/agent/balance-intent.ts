@@ -16,3 +16,18 @@ export function parseBalanceIntent(message: string): BalanceIntent | null {
   const addr = message.match(EVM_ADDRESS)?.[0] as `0x${string}` | undefined;
   return { address: addr };
 }
+
+/** "Show my recent activity" / "what did I send" / "transactions for 0x…" — also
+ *  read-only. Reads recent on-chain transfers for the wallet. */
+export type ActivityIntent = { address?: `0x${string}` };
+
+export function parseActivityIntent(message: string): ActivityIntent | null {
+  const m = message.toLowerCase();
+  const asksActivity =
+    /\b(activity|activities|transactions?|tx history|history|recent (sends|payments|transfers|activity)|what (have|did) i (send|sent|receive|received|do))\b/.test(
+      m,
+    );
+  if (!asksActivity) return null;
+  const addr = message.match(EVM_ADDRESS)?.[0] as `0x${string}` | undefined;
+  return { address: addr };
+}
