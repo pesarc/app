@@ -187,6 +187,58 @@ export async function getPayout(
   };
 }
 
+/** All of a caller's payouts, newest first — for the activity feed's bank filter.
+ *  Scoped to the account, same as getPayout. */
+export async function listPayouts(account = DEMO_ACCOUNT, limit = 20): Promise<PayoutRow[]> {
+  if (hasNeon()) {
+    try {
+      const sql = sqlClient();
+      await ensureSchema(sql);
+      const rows = await sql`
+        SELECT * FROM payouts WHERE account = ${account}
+        ORDER BY created_at DESC LIMIT ${limit}
+      `;
+      return Promise.all(
+        rows.map(async (r0) => {
+          const r = r0 as Record<string, unknown>;
+          const createdAt =
+            r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at);
+          return {
+            id: String(r.id),
+            reference: String(r.reference),
+            beneficiary: String(r.beneficiary),
+            method: r.method as PayoutMethod,
+            amountNgn: Number(r.amount_ngn),
+            txHash: (r.tx_hash as string) ?? undefined,
+            partnerRef: String(r.partner_ref),
+            provider: (r.provider as string) ?? "simulated",
+            createdAt,
+            status: await resolveStatus(
+              createdAt,
+              String(r.partner_ref),
+              (r.provider as string) ?? "simulated",
+              r.status as PayoutStatus,
+            ),
+          };
+        }),
+      );
+    } catch {
+      /* fall through to file store */
+    }
+  }
+  const rows = await readFileRows();
+  const mine = rows
+    .filter((r) => (r.account ?? DEMO_ACCOUNT) === account)
+    .reverse()
+    .slice(0, limit);
+  return Promise.all(
+    mine.map(async (row) => ({
+      ...row,
+      status: await resolveStatus(row.createdAt, row.partnerRef, row.provider ?? "simulated", row.status),
+    })),
+  );
+}
+
 /** With a real provider the stored (webhook-driven) status is authoritative;
  *  the simulator derives it from elapsed time. Routed to the provider that
  *  actually handled the payout. */
