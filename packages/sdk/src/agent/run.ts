@@ -15,8 +15,12 @@
 import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
+import { parseCashoutIntent } from "./cashout-intent";
 import { fetchAggregatedBalance } from "../chain/aggregateBalance";
 import { fetchOnchainActivity } from "../chain/history";
+import { getBankAccount } from "../bank";
+import { createPayout } from "../payouts";
+import { sendReference } from "../reference";
 import { getBillsAdapter, findOperator, type BillCategory, type MeterType } from "../bills";
 import { recordTransfer } from "../transfers";
 import { createCatalog } from "../catalog";
@@ -58,11 +62,18 @@ export type AgentDraft =
       meterType?: string;
       operatorName: string;
       label: string;
+    }
+  | {
+      type: "payout";
+      amountNgn: number;
+      method: "bank" | "mobile_money";
+      beneficiary: string;
+      label: string;
     };
 
 /** A completed action, rendered as a receipt by the surface. */
 export type AgentReceipt = {
-  kind: "transfer" | "bill";
+  kind: "transfer" | "bill" | "payout";
   title: string;
   status: "settled" | "pending" | "done";
   lines: { label: string; value: string }[];
@@ -249,6 +260,37 @@ export async function runAgentTurn(
     return execBill(draft, account);
   }
 
+  // Cash out to the user's linked bank: settle on Arc, then pay out fiat via the
+  // ramp partner (Paystack in prod). Money moves, so preview drafts it for consent.
+  const cashout = parseCashoutIntent(message);
+  if (cashout) {
+    const bank = await getBankAccount(account);
+    if (!bank || bank.status !== "active") {
+      return {
+        ok: true,
+        needsInput: true,
+        reply: "Link a bank account first (in Add money, or the You tab) and I'll cash out to it.",
+      };
+    }
+    const label = `${bank.bankName} (${bank.accountName})`;
+    const draft: AgentDraft = {
+      type: "payout",
+      amountNgn: cashout.amountNgn,
+      method: "bank",
+      beneficiary: bank.accountName,
+      label,
+    };
+    if (preview) {
+      return {
+        ok: true,
+        understood: `Cash out NGN ${fmt(cashout.amountNgn)} to ${label}`,
+        reply: `I'll cash out ₦${fmt(cashout.amountNgn)} to your ${bank.bankName} account ending ${bank.accountNumber.slice(-4)}, settled on Arc and paid out to your bank. Confirm to send.`,
+        draft,
+      };
+    }
+    return execPayout(draft, account);
+  }
+
   // Read-only: check on-chain balances for the user's own wallet, or a given 0x
   // address. No money moves, so no consent — the agent just reports what it reads.
   const balAsk = parseBalanceIntent(message);
@@ -371,11 +413,77 @@ export async function runAgentExecute(
   account: string,
 ): Promise<AgentTurnResult> {
   if (draft.type === "bill") return execBill(draft, account);
+  if (draft.type === "payout") return execPayout(draft, account);
   const chain = activeChain();
   if (!evmAgentReady(chain)) {
     return { ok: false, reply: "The agent isn't set up to settle on this network yet." };
   }
   return execTransfer(chain, draft);
+}
+
+/** Execute a consented bank cash-out: pay out fiat to the user's linked bank via
+ *  the ramp partner (Paystack in prod), and return a receipt. */
+async function execPayout(
+  draft: Extract<AgentDraft, { type: "payout" }>,
+  account: string,
+): Promise<AgentTurnResult> {
+  const bank = await getBankAccount(account);
+  if (!bank || bank.status !== "active") {
+    return { ok: false, reply: "I couldn't find an active bank account to pay out to. Link one first." };
+  }
+  try {
+    const reference = sendReference();
+    const payout = await createPayout(
+      {
+        reference,
+        beneficiary: bank.accountName,
+        method: "bank",
+        amountNgn: draft.amountNgn,
+        accountName: bank.accountName,
+        accountNumber: bank.accountNumber,
+      },
+      account,
+    );
+    recordTransfer(
+      {
+        direction: "sent",
+        counterparty: `${bank.bankName} (${bank.accountName})`,
+        counterpartyHandle: bank.accountNumber,
+        sendAmount: draft.amountNgn,
+        sendCurrency: "NGN",
+        receiveAmount: draft.amountNgn,
+        receiveCurrency: "NGN",
+        payout: "bank",
+        reference,
+      },
+      account,
+    ).catch(() => {});
+
+    const naira = `₦${fmt(draft.amountNgn)}`;
+    const paid = payout.status === "paid";
+    const last4 = bank.accountNumber.slice(-4);
+    return {
+      ok: true,
+      matched: false,
+      reply: `Done — I'm paying out ${naira} to your ${bank.bankName} account ending ${last4}. Reference ${reference}${paid ? ", paid" : `, ${payout.status}`}.`,
+      receipt: {
+        kind: "payout",
+        title: "Cash out to bank",
+        status: paid ? "done" : "pending",
+        lines: [
+          { label: "To", value: `${bank.bankName} ••${last4}` },
+          { label: "Amount", value: naira },
+          { label: "Status", value: payout.status },
+        ],
+        reference,
+      },
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      reply: e instanceof Error ? `Cash out failed: ${e.message.slice(0, 140)}` : "Cash out failed.",
+    };
+  }
 }
 
 // ---- execution helpers (shared by direct + confirmed paths) ----------------

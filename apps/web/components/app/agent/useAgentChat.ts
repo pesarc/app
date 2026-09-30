@@ -152,7 +152,7 @@ export function useAgentChat() {
           },
         ]);
         if (data.ok) {
-          const amt = draft.type === "transfer" ? draft.amount : draft.amount ?? 0;
+          const amt = draft.type === "payout" ? draft.amountNgn : draft.amount ?? 0;
           if (amt > 0) setBudget((b) => (b ? { ...b, remaining: Math.max(0, b.remaining - amt) } : b));
         }
       } catch {
