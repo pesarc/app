@@ -77,6 +77,19 @@ export function hasHyperRoute(network: HyperNetwork, symbol: string): boolean {
   return !!token && Object.keys(token.deployments).length >= 2;
 }
 
+/** The token the SENDER holds on `chainId` for this coin: the underlying ERC20
+ *  on the home chain (it's locked/wrapped there), or the HFT on a remote chain
+ *  (minted/burned there). Used to show the sender's balance. */
+export function hyperTokenFor(
+  network: HyperNetwork,
+  symbol: string,
+  chainId: number,
+): `0x${string}` | undefined {
+  const d = HYPER_TOKENS[network][symbol]?.deployments[chainId];
+  if (!d) return undefined;
+  return d.kind === "wrapped" ? d.underlying : d.address;
+}
+
 /** The chains a coin is deployed on, with labels, for the send form. */
 export function hyperEndpoints(
   network: HyperNetwork,
