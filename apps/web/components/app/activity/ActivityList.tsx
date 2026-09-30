@@ -115,18 +115,25 @@ function EmptyState() {
   );
 }
 
-type Filters = { source: "all" | "onchain" | "bank"; chain: string; token: string };
+type Filters = {
+  source: "all" | "onchain" | "bank";
+  network: "all" | "testnet" | "mainnet";
+  chain: string;
+  token: string;
+};
 
 function FilterMenu({
   chains,
   tokens,
   hasBank,
+  hasBothNetworks,
   value,
   onChange,
 }: {
-  chains: { key: string; label: string }[];
+  chains: { key: string; label: string; testnet: boolean }[];
   tokens: string[];
   hasBank: boolean;
+  hasBothNetworks: boolean;
   value: Filters;
   onChange: (f: Filters) => void;
 }) {
@@ -141,7 +148,8 @@ function FilterMenu({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const active = value.source !== "all" || value.chain !== "all" || value.token !== "all";
+  const active =
+    value.source !== "all" || value.network !== "all" || value.chain !== "all" || value.token !== "all";
   const chip = (on: boolean) =>
     `px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
       on ? "bg-harbor text-white" : "bg-black/[0.05] text-slate hover:bg-black/[0.08]"
@@ -171,6 +179,18 @@ function FilterMenu({
               ))}
             </div>
           </div>
+          {hasBothNetworks && (
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate mb-1.5">Network</div>
+              <div className="flex flex-wrap gap-1.5">
+                {(["all", "mainnet", "testnet"] as const).map((n) => (
+                  <button key={n} className={chip(value.network === n)} onClick={() => onChange({ ...value, network: n })}>
+                    {n === "all" ? "All" : n === "mainnet" ? "Live" : "Testnet"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {chains.length > 1 && (
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate mb-1.5">Chain</div>
@@ -179,8 +199,15 @@ function FilterMenu({
                   All
                 </button>
                 {chains.map((c) => (
-                  <button key={c.key} className={chip(value.chain === c.key)} onClick={() => onChange({ ...value, chain: c.key })}>
+                  <button
+                    key={c.key}
+                    className={chip(value.chain === c.key)}
+                    onClick={() => onChange({ ...value, chain: c.key })}
+                  >
                     {shortNetwork(c.label)}
+                    <span className={`ml-1 text-[9px] ${c.testnet ? "text-amber-500" : "text-emerald-500"}`}>
+                      {c.testnet ? "test" : "live"}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -209,22 +236,26 @@ function FilterMenu({
 
 export function ActivityList({ mode }: { mode: "home" | "full" }) {
   const { items, live } = useActivity();
-  const [filters, setFilters] = useState<Filters>({ source: "all", chain: "all", token: "all" });
+  const [filters, setFilters] = useState<Filters>({ source: "all", network: "all", chain: "all", token: "all" });
   const [visible, setVisible] = useState(mode === "home" ? 5 : 15);
 
   const chains = useMemo(
     () =>
       Array.from(
-        new Map(items.filter((i) => i.chainKey).map((i) => [i.chainKey!, i.chainLabel!])).entries(),
-      ).map(([key, label]) => ({ key, label })),
+        new Map(
+          items.filter((i) => i.chainKey).map((i) => [i.chainKey!, { label: i.chainLabel!, testnet: !!i.testnet }]),
+        ).entries(),
+      ).map(([key, v]) => ({ key, label: v.label, testnet: v.testnet })),
     [items],
   );
   const tokens = useMemo(() => Array.from(new Set(items.map((i) => i.symbol))), [items]);
   const hasBank = items.some((i) => i.source === "bank");
+  const hasBothNetworks = items.some((i) => i.testnet === true) && items.some((i) => i.testnet === false);
 
   const filtered = items.filter(
     (i) =>
       (filters.source === "all" || i.source === filters.source) &&
+      (filters.network === "all" || i.testnet === (filters.network === "testnet")) &&
       (filters.chain === "all" || i.chainKey === filters.chain) &&
       (filters.token === "all" || i.symbol === filters.token),
   );
@@ -242,7 +273,17 @@ export function ActivityList({ mode }: { mode: "home" | "full" }) {
         <div className="text-[12px] font-semibold text-slate">
           {filtered.length} {filtered.length === 1 ? "transaction" : "transactions"}
         </div>
-        <FilterMenu chains={chains} tokens={tokens} hasBank={hasBank} value={filters} onChange={(f) => { setFilters(f); setVisible(mode === "home" ? 5 : 15); }} />
+        <FilterMenu
+          chains={chains}
+          tokens={tokens}
+          hasBank={hasBank}
+          hasBothNetworks={hasBothNetworks}
+          value={filters}
+          onChange={(f) => {
+            setFilters(f);
+            setVisible(mode === "home" ? 5 : 15);
+          }}
+        />
       </div>
 
       {mode === "full" && (

@@ -1,40 +1,45 @@
 import type { Metadata } from "next";
-import { Manrope, JetBrains_Mono, Geist, Newsreader } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { site } from "@pesarc/sdk/site";
 import Analytics from "@/components/Analytics";
 import EnvBadge from "@/components/app/EnvBadge";
 
-const manrope = Manrope({
+// Self-hosted variable fonts (latin), committed under ./fonts. Self-hosting keeps
+// the build offline — no Google Fonts fetch at build time, which was flaky and
+// broke the container image build intermittently. One variable file per family
+// covers every weight we use.
+const manrope = localFont({
+  src: "./fonts/Manrope.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: "200 800",
   display: "swap",
 });
 
 // Display face for the coin-compass landing.
-const geist = Geist({
+const geist = localFont({
+  src: "./fonts/Geist.woff2",
   variable: "--font-geist",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: "100 900",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/JetBrainsMono.woff2",
   variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: "100 800",
   display: "swap",
 });
 
 // Editorial serif for the display/italic headings across the landing. Wired as
 // --font-serif so the landing's `var(--font-serif, Georgia)` usages resolve to
 // an intentional face instead of falling back to Georgia.
-const newsreader = Newsreader({
+const newsreader = localFont({
+  src: [
+    { path: "./fonts/Newsreader.woff2", weight: "200 800", style: "normal" },
+    { path: "./fonts/Newsreader-Italic.woff2", weight: "200 800", style: "italic" },
+  ],
   variable: "--font-serif",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 
