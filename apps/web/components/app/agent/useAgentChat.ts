@@ -12,11 +12,22 @@ import type { AgentDraft } from "@pesarc/sdk/agent/run";
 import type { Msg, Thread } from "./types";
 import { GREETING, MAX_THREADS, loadThreads, saveThreads } from "./helpers";
 
+// Branded, human step labels for the "agent at work" trace — the real stages of
+// each action, in Pesarc's voice (no dev jargon).
+const STEPS_UNDERSTAND = ["Reading what you need", "Checking today's rate", "Getting your options ready"];
+const STEPS_BY_ACTION: Record<string, string[]> = {
+  transfer: ["Placing your transfer", "Finding someone going the other way", "Settling in local currency", "Finishing up"],
+  payout: ["Settling your funds on Arc", "Sending to your bank", "Confirming the payout"],
+  bill: ["Reaching your provider", "Sending it through", "Confirming"],
+};
+const STEPS_UPLOAD = ["Reading your file", "Drafting each payout", "Getting them ready to review"];
+
 export function useAgentChat() {
   const smart = useSmartWallet();
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [thinking, setThinking] = useState<string[] | undefined>(undefined);
   const [budget, setBudget] = useState<AgentBudget | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const activeId = useRef<string | null>(null);
@@ -92,6 +103,7 @@ export function useAgentChat() {
       if (!text.trim() || busy) return;
       setMsgs((m) => [...m, { role: "user", text }]);
       setInput("");
+      setThinking(STEPS_UNDERSTAND);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
@@ -133,6 +145,7 @@ export function useAgentChat() {
     async (index: number, draft: AgentDraft) => {
       if (busy) return;
       setMsgs((m) => m.map((x, i) => (i === index ? { ...x, draftState: "confirmed" } : x)));
+      setThinking(STEPS_BY_ACTION[draft.type] ?? STEPS_UNDERSTAND);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
@@ -181,6 +194,7 @@ export function useAgentChat() {
     async (file: File) => {
       if (busy) return;
       setMsgs((m) => [...m, { role: "user", text: "Read this file and draft the payouts.", attachment: file.name }]);
+      setThinking(STEPS_UPLOAD);
       setBusy(true);
       setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
       try {
@@ -210,6 +224,7 @@ export function useAgentChat() {
     input,
     setInput,
     busy,
+    thinking,
     budget,
     threads,
     activeId,

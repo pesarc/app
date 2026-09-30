@@ -16,6 +16,7 @@ export default function AgentChat() {
     input,
     setInput,
     busy,
+    thinking,
     endRef,
     fileRef,
     speech,
@@ -51,7 +52,7 @@ export default function AgentChat() {
       </div>
 
       <div className="flex-1">
-        <MessageList msgs={msgs} busy={busy} endRef={endRef} onConfirm={confirm} onDecline={decline} />
+        <MessageList msgs={msgs} busy={busy} thinking={thinking} endRef={endRef} onConfirm={confirm} onDecline={decline} />
       </div>
 
       {msgs.length <= 1 && (
