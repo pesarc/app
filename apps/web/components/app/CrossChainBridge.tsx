@@ -169,7 +169,7 @@ export default function CrossChainBridge() {
         const [account] = (await provider.request({ method: "eth_requestAccounts" })) as `0x${string}`[];
 
         setPhase("switching");
-        setNote("Finding the best route via LI.FI…");
+        setNote("Finding the best route…");
         const quote = await getLifiQuote({
           fromChain: src.chainId as number,
           toChain: LIFI_SOLANA_CHAIN,
@@ -199,7 +199,7 @@ export default function CrossChainBridge() {
         })) as bigint;
         if (allowance < amountIn) {
           setPhase("approving");
-          setNote("Approve USDC…");
+          setNote("Approve the transfer in your wallet…");
           const aTx = await wallet.writeContract({
             address: src.usdc as `0x${string}`,
             abi: erc20ApproveAbi,
@@ -210,7 +210,7 @@ export default function CrossChainBridge() {
         }
 
         setPhase("burning");
-        setNote(`Bridging ${amount} USDC to Solana via ${quote.tool}…`);
+        setNote(`Moving ${amount} USDC to Solana…`);
         const hash = await wallet.sendTransaction({
           to: quote.transactionRequest.to,
           data: quote.transactionRequest.data,
@@ -220,20 +220,20 @@ export default function CrossChainBridge() {
         setBurnTx(hash);
 
         setPhase("attesting");
-        setNote("Bridging via LI.FI — delivering to Solana…");
+        setNote("Moving your money to Solana…");
         const dl = Date.now() + 25 * 60_000;
         while (Date.now() < dl) {
           const s = await getLifiStatus(hash, src.chainId as number, LIFI_SOLANA_CHAIN);
           if (s.status === "DONE") {
             if (s.receivingTx) setMintTx(s.receivingTx);
             setPhase("done");
-            setNote(`Delivered USDC to Solana via ${quote.tool}.`);
+            setNote(`Done. Your USDC is on Solana.`);
             return;
           }
-          if (s.status === "FAILED") throw new Error(`Route failed: ${s.substatus || "unknown"}`);
+          if (s.status === "FAILED") throw new Error(`That route did not go through: ${s.substatus || "unknown"}`);
           await sleep(15_000);
         }
-        throw new Error("Timed out; the source tx is confirmed — check LI.FI status later.");
+        throw new Error("This is taking longer than usual. Your money left safely and will arrive shortly.");
       }
 
       // Fast (finality 1000) lands in seconds and deducts up to maxFee; Standard
@@ -245,13 +245,13 @@ export default function CrossChainBridge() {
       let bTx: string;
       if (src.kind === "solana") {
         // Solana source -> EVM/Arc destination (mint happens on the EVM side).
-        if (!solanaSigner) throw new Error("Connect your Solana wallet to bridge from Solana.");
+        if (!solanaSigner) throw new Error("Connect your Solana wallet first.");
         const to = recipient.trim();
         if (!/^0x[0-9a-fA-F]{40}$/.test(to)) {
           throw new Error(`Enter the destination address on ${dst.label} (0x…).`);
         }
         setPhase("burning");
-        setNote(`Burning ${amount} USDC on Solana…`);
+        setNote(`Sending ${amount} USDC from Solana…`);
         bTx = await burnOnSolana(solanaSigner, solanaRpc(), {
           amount: amountIn,
           destinationDomain: dst.domain,
@@ -290,7 +290,7 @@ export default function CrossChainBridge() {
         })) as bigint;
         if (allowance < amountIn) {
           setPhase("approving");
-          setNote("Approve USDC…");
+          setNote("Approve the transfer in your wallet…");
           const aTx = await wallet.writeContract({
             address: src.usdc as `0x${string}`,
             abi: erc20ApproveAbi,
@@ -301,7 +301,7 @@ export default function CrossChainBridge() {
         }
 
         setPhase("burning");
-        setNote(`Burning ${amount} USDC on ${src.label}…`);
+        setNote(`Sending ${amount} USDC from ${src.label}…`);
         const evmBurn = await wallet.writeContract({
           address: tokenMessengerV2(network),
           abi: tokenMessengerV2Abi,
@@ -317,8 +317,8 @@ export default function CrossChainBridge() {
       setPhase("attesting");
       setNote(
         useFast
-          ? "Waiting for Circle's fast attestation, then minting on the destination (seconds)…"
-          : "Waiting for Circle attestation, then minting on the destination (can take ~15 min for a free Standard transfer)…",
+          ? "Confirming your transfer. This usually takes a few seconds…"
+          : "Confirming your transfer. A free standard transfer can take about 15 minutes…",
       );
       const deadline = Date.now() + 25 * 60_000;
       while (Date.now() < deadline) {
@@ -326,16 +326,16 @@ export default function CrossChainBridge() {
         if (r.ok) {
           setMintTx(r.mintTx);
           setPhase("done");
-          setNote(`Delivered ${amount} USDC on ${dst.label}.`);
+          setNote(`Done. ${amount} USDC is now on ${dst.label}.`);
           return;
         }
         if (!r.pending) throw new Error(r.error);
         await sleep(20_000);
       }
-      throw new Error("Timed out waiting for attestation. Your burn is safe — finalize it later with the same burn tx.");
+      throw new Error("This is taking longer than usual. Your money is safe and will land shortly.");
     } catch (e: any) {
       setPhase("error");
-      setNote(e?.shortMessage || e?.message || "Bridge failed.");
+      setNote(e?.shortMessage || e?.message || "That did not go through. Please try again.");
     }
   }
 
@@ -343,7 +343,7 @@ export default function CrossChainBridge() {
     <div>
       <div className="flex items-center justify-between gap-3">
         <p className="text-slate text-[15px]">
-          Move USDC across the chains you support, non-custodially over Circle CCTP.
+          Move your money between the chains you use. You stay in control the whole time.
         </p>
         <Segmented
           aria-label="Network"
@@ -351,8 +351,8 @@ export default function CrossChainBridge() {
           value={network}
           onChange={(v) => !busy && setNetwork(v)}
           options={[
-            { value: "testnet", label: "Testnet" },
-            { value: "mainnet", label: "Mainnet" },
+            { value: "testnet", label: "Test" },
+            { value: "mainnet", label: "Live" },
           ]}
         />
       </div>
@@ -364,8 +364,8 @@ export default function CrossChainBridge() {
             value={mode}
             onChange={(v) => setMode(v)}
             options={[
-              { value: "usdc", label: "USDC (CCTP/LI.FI)" },
-              { value: "algorand", label: "Algorand (Wormhole)" },
+              { value: "usdc", label: "USDC" },
+              { value: "algorand", label: "Algorand" },
             ]}
           />
         </div>
@@ -424,7 +424,7 @@ export default function CrossChainBridge() {
                 >
                   <div className="font-bold text-ink">Fast</div>
                   <div className="text-slate">
-                    {feeLoading ? "checking fee…" : fastBps == null ? "unavailable" : "~seconds · small fee"}
+                    {feeLoading ? "checking…" : fastBps == null ? "unavailable" : "Arrives in seconds"}
                   </div>
                 </button>
                 <button
@@ -438,7 +438,7 @@ export default function CrossChainBridge() {
                   }`}
                 >
                   <div className="font-bold text-ink">Standard</div>
-                  <div className="text-slate">~13–19 min · free</div>
+                  <div className="text-slate">About 15 min, free</div>
                 </button>
               </div>
             </div>
@@ -460,10 +460,10 @@ export default function CrossChainBridge() {
             Recipient on {dst.label}{" "}
             <span className="font-normal">
               {dst.kind === "solana"
-                ? "(required — Solana address)"
+                ? "(required, Solana address)"
                 : src.kind === "solana"
-                  ? "(required — destination address)"
-                  : "(optional — defaults to your address)"}
+                  ? "(required, destination address)"
+                  : "(optional, defaults to your address)"}
             </span>
             <input
               placeholder={dst.kind === "solana" ? "Solana address…" : "0x…"}
@@ -478,8 +478,8 @@ export default function CrossChainBridge() {
             <div className="rounded-xl bg-black/[0.03] p-3 text-sm">
               <Row k="You send" v={`${formatUsdc(q.amountIn)} USDC on ${src.label}`} />
               <Row k="They receive" v={`${formatUsdc(q.amountOut)} USDC on ${dst.label}`} />
-              <Row k="Bridge fee" v={feeLabel(q.feeUsdc)} />
-              <Row k="ETA" v={q.etaLabel} />
+              <Row k="Fee" v={feeLabel(q.feeUsdc)} />
+              <Row k="Arrives in" v={q.etaLabel} />
             </div>
           )}
 
@@ -490,13 +490,12 @@ export default function CrossChainBridge() {
                 <>
                   <Row k="You send" v={`${amount || "0"} USDC on ${src.label}`} />
                   <Row k="They receive" v={`${(Number(lifiQ.toAmount) / 1e6).toFixed(2)} USDC on Solana`} />
-                  <Row k="Fees (bridge + gas)" v={`~$${(lifiQ.feeUSD + lifiQ.gasUSD).toFixed(2)}`} />
-                  <Row k="ETA" v={`~${Math.max(1, Math.round(lifiQ.durationSec / 60))} min`} />
-                  <Row k="Route" v={`via ${lifiQ.tool} (LI.FI)`} />
+                  <Row k="Fee" v={`~$${(lifiQ.feeUSD + lifiQ.gasUSD).toFixed(2)}`} />
+                  <Row k="Arrives in" v={`~${Math.max(1, Math.round(lifiQ.durationSec / 60))} min`} />
                 </>
               )}
               {!lifiLoading && !lifiQ && (
-                <p className="text-slate">Enter a Solana recipient to see the route.</p>
+                <p className="text-slate">Enter a Solana address to see the details.</p>
               )}
             </div>
           )}
@@ -505,7 +504,7 @@ export default function CrossChainBridge() {
             onClick={run}
             disabled={busy || srcKey === dstKey || amountIn <= 0n || (viaLifi && !isSolAddr(recipient.trim()))}
           >
-            {busy ? "Bridging…" : `Bridge to ${dst.label}`}
+            {busy ? "Moving…" : `Move to ${dst.label}`}
           </Button>
 
           {note && (
@@ -513,12 +512,12 @@ export default function CrossChainBridge() {
           )}
           {burnTx && (
             <a className="text-xs font-semibold text-sky-deep underline" href={src.explorerTx(burnTx)} target="_blank" rel="noreferrer">
-              Burn tx on {src.label} ↗
+              View on {src.label} ↗
             </a>
           )}
           {mintTx && (
             <a className="text-xs font-semibold text-sky-deep underline" href={dst.explorerTx(mintTx)} target="_blank" rel="noreferrer">
-              Mint tx on {dst.label} ↗
+              View on {dst.label} ↗
             </a>
           )}
         </Card>
@@ -526,17 +525,17 @@ export default function CrossChainBridge() {
 
       <p className="mt-3 text-xs text-slate/70">
         {isTestnet
-          ? "Testnet corridors run Circle's sandbox attestation — bridge faucet USDC across Arc, Base, Polygon, Arbitrum, OP, Ethereum and Avalanche testnets. Try a small amount first."
-          : "EVM ↔ EVM/Arc and Solana → EVM use native Circle CCTP; EVM → Solana routes via LI.FI. Algorand uses Wormhole. Test a small amount on any new corridor first."}
+          ? "Test mode uses free practice coins, so you can try a move end to end before using real money."
+          : "New to a route? Moving a small amount first is a smart way to check everything works."}
       </p>
     </div>
   );
 }
 
 function feeLabel(v: bigint): string {
-  if (v === 0n) return "Free (Standard)";
+  if (v === 0n) return "Free";
   const usd = Number(v) / 1_000_000;
-  if (usd < 0.01) return `~$${usd.toFixed(4)} (fast)`;
+  if (usd < 0.01) return `~$${usd.toFixed(4)}`;
   return `${usd.toFixed(2)} USDC`;
 }
 
