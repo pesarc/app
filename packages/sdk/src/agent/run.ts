@@ -162,9 +162,11 @@ function ruleReply(message: string): AgentTurnResult {
 export async function runAgentTurn(
   message: string,
   account: string,
-  opts: { preview?: boolean } = {},
+  opts: { preview?: boolean; wallet?: string } = {},
 ): Promise<AgentTurnResult> {
   const preview = opts.preview ?? false;
+  // The signed-in user's wallet, so "my balance / activity" needs no address.
+  const myWallet = opts.wallet;
 
   // Create-a-market intent — no money moves, so it never needs consent.
   const spec = parseCreateMarket(message);
@@ -295,9 +297,13 @@ export async function runAgentTurn(
   // address. No money moves, so no consent — the agent just reports what it reads.
   const balAsk = parseBalanceIntent(message);
   if (balAsk) {
-    const owner = (balAsk.address ?? account) as `0x${string}`;
+    const owner = (balAsk.address ?? myWallet ?? account) as `0x${string}`;
     if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) {
-      return { ok: true, needsInput: true, reply: "Tell me the wallet address (0x…) you'd like me to check." };
+      return {
+        ok: true,
+        needsInput: true,
+        reply: "Connect or sign in with your wallet and I'll read your balance. Or paste a 0x address to check any wallet.",
+      };
     }
     try {
       const { total, holdings } = await fetchAggregatedBalance(owner, "USD");
@@ -324,9 +330,13 @@ export async function runAgentTurn(
   // Read-only: recent on-chain activity for the user's wallet, or a given address.
   const actAsk = parseActivityIntent(message);
   if (actAsk) {
-    const owner = (actAsk.address ?? account) as `0x${string}`;
+    const owner = (actAsk.address ?? myWallet ?? account) as `0x${string}`;
     if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) {
-      return { ok: true, needsInput: true, reply: "Tell me the wallet address (0x…) whose activity you'd like to see." };
+      return {
+        ok: true,
+        needsInput: true,
+        reply: "Connect or sign in with your wallet and I'll show your activity. Or paste a 0x address to check any wallet.",
+      };
     }
     try {
       const items = await fetchOnchainActivity(owner, 6);
