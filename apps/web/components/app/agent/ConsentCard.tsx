@@ -28,6 +28,13 @@ function lines(draft: AgentDraft): { label: string; value: string }[] {
       { label: "Method", value: draft.method === "bank" ? "Bank account" : "Mobile money" },
     ];
   }
+  if (draft.type === "earn") {
+    const out: { label: string; value: string }[] = [{ label: "Pool", value: draft.poolName }];
+    if (draft.action === "deposit" && draft.amount)
+      out.push({ label: "Deposit", value: `$${draft.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}` });
+    out.push({ label: draft.action === "deposit" ? "APY" : "Action", value: draft.action === "deposit" ? `${draft.apy.toFixed(1)}%` : "Withdraw all" });
+    return out;
+  }
   const out: { label: string; value: string }[] = [
     { label: draft.category === "electricity" ? "Meter" : "To", value: draft.customer },
   ];
@@ -53,7 +60,11 @@ export function ConsentCard({
       ? "Confirm this transfer"
       : draft.type === "payout"
         ? "Confirm this cash out"
-        : `Confirm this ${draft.category}`;
+        : draft.type === "earn"
+          ? draft.action === "deposit"
+            ? "Confirm this deposit"
+            : "Confirm this withdrawal"
+          : `Confirm this ${draft.category}`;
   return (
     <div className="mt-3 rounded-2xl border border-sky/30 bg-sky-tint/25 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-sky/20">
@@ -95,7 +106,11 @@ export function ConsentCard({
               ? "Confirm & send"
               : draft.type === "payout"
                 ? "Confirm & cash out"
-                : "Confirm & pay"}
+                : draft.type === "earn"
+                  ? draft.action === "deposit"
+                    ? "Confirm & earn"
+                    : "Confirm & withdraw"
+                  : "Confirm & pay"}
           </button>
         </div>
       )}

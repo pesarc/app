@@ -40,6 +40,14 @@ const draftSchema = z.discriminatedUnion("type", [
     beneficiary: z.string().max(120),
     label: z.string().max(80),
   }),
+  z.object({
+    type: z.literal("earn"),
+    action: z.enum(["deposit", "withdraw"]),
+    poolId: z.string().min(1).max(40),
+    poolName: z.string().max(60),
+    amount: z.number().positive().max(1e12).optional(),
+    apy: z.number().nonnegative().max(1000),
+  }),
 ]);
 
 const schema = z.object({ draft: draftSchema });
@@ -61,6 +69,41 @@ export async function POST(request: Request) {
   }
 
   const account = await getAccount(request);
-  const { status, ...result } = await runAgentExecute(parsed.data.draft as AgentDraft, account);
-  return NextResponse.json(result, { status: status ?? 200 });
+  const draft = parsed.data.draft as AgentDraft;
+
+  // Stream live progress over SSE when the client asks for it: a `step` event as
+  // each real stage begins, then a final `result` event with the receipt. Any
+  // other client still gets a single JSON response.
+  const wantsStream = (request.headers.get("accept") ?? "").includes("text/event-stream");
+  if (!wantsStream) {
+    const { status, ...result } = await runAgentExecute(draft, account);
+    return NextResponse.json(result, { status: status ?? 200 });
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: string, data: unknown) =>
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      try {
+        const { status: _status, ...result } = await runAgentExecute(draft, account, (p) =>
+          send("step", p),
+        );
+        send("result", result);
+      } catch {
+        send("result", { ok: false, reply: "I couldn't complete that. Nothing was sent." });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
