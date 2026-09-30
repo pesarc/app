@@ -119,6 +119,8 @@ function useTokenBalanceOn(
     return () => {
       alive = false;
     };
+    // src is keyed by chainId; re-read only when the token/owner/chain changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, owner, src.chainId]);
   return state;
 }
