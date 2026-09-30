@@ -13,7 +13,12 @@ import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
 import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import { STABLECOINS } from "@pesarc/sdk/stablecoins";
-import { HYPER_ELIGIBLE_SYMBOLS, hasHyperRoute } from "@pesarc/sdk/chain/hyperbridge/registry";
+import {
+  HYPER_ELIGIBLE_SYMBOLS,
+  hasHyperRoute,
+  hyperEndpoints,
+} from "@pesarc/sdk/chain/hyperbridge/registry";
+import { hyperSend } from "@pesarc/sdk/chain/hyperbridge/send";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
 
 // USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
@@ -558,27 +563,94 @@ export default function CrossChainBridge() {
 // cross-chain contracts deployed before a route goes live; until then we say so
 // plainly rather than offer a move that can't settle.
 function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork }) {
-  const live = hasHyperRoute(network, symbol);
-  return (
-    <Card className="mt-4 p-4">
-      <div className="text-[15px] font-bold text-harbor">Moving {symbol} across chains</div>
-      {live ? (
+  const hyperNet = network === "testnet" ? "testnet" : "mainnet";
+  const live = hasHyperRoute(hyperNet, symbol);
+  const endpoints = hyperEndpoints(hyperNet, symbol);
+  const [fromId, setFromId] = useState(endpoints[0]?.chainId ?? 0);
+  const [toId, setToId] = useState(endpoints[1]?.chainId ?? 0);
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const [errored, setErrored] = useState(false);
+
+  if (!live) {
+    return (
+      <Card className="mt-4 p-4">
+        <div className="text-[15px] font-bold text-harbor">Moving {symbol} across chains</div>
         <p className="mt-1.5 text-sm text-slate">
-          {symbol} cross-chain is set up on this network and the in-app move is being wired up now.
-          Everything is in place; the button to move it lands shortly.
+          {symbol} cross-chain is coming soon. It rides a different rail from USDC and we are
+          finishing its setup. USDC can move across chains today.
         </p>
-      ) : (
-        <>
-          <p className="mt-1.5 text-sm text-slate">
-            {symbol} cross-chain is coming soon. It rides a different rail from USDC and we are
-            finishing its setup. USDC can move across chains today.
-          </p>
-          <p className="mt-3 text-xs text-slate/70">
-            Want to change currency instead? Use the Currencies tab to swap {symbol} into USDC,
-            then move the USDC.
-          </p>
-        </>
-      )}
+        <p className="mt-3 text-xs text-slate/70">
+          Want to change currency instead? Use the Currencies tab to swap {symbol} into USDC, then
+          move the USDC.
+        </p>
+      </Card>
+    );
+  }
+
+  const chainOpts = endpoints.map((e) => ({
+    value: String(e.chainId),
+    label: e.label,
+    icon: chainLogoUrlForLabel(e.label),
+  }));
+  const same = fromId === toId;
+  const amt = Number(amount) || 0;
+
+  const move = async () => {
+    if (amt <= 0 || same || busy) return;
+    setBusy(true);
+    setErrored(false);
+    setNote(`Sending ${amount} ${symbol}…`);
+    try {
+      const tx = await hyperSend({
+        network: hyperNet,
+        symbol,
+        fromChainId: fromId,
+        toChainId: toId,
+        amount,
+      });
+      setNote(`Sent from the source chain. It will arrive once Hyperbridge relays it. Tx ${tx.slice(0, 10)}…`);
+    } catch (e: any) {
+      setErrored(true);
+      setNote(e?.shortMessage || e?.message?.split("\n")[0] || "That didn't go through. Try again.");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Card className="mt-4 p-4 flex flex-col gap-3">
+      <div className="text-[15px] font-bold text-harbor">Move {symbol} across chains</div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-xs font-bold text-slate mb-1">From</div>
+          <Dropdown ariaLabel="Source chain" value={String(fromId)} onChange={(v) => setFromId(Number(v))} options={chainOpts} />
+        </div>
+        <div>
+          <div className="text-xs font-bold text-slate mb-1">To</div>
+          <Dropdown ariaLabel="Destination chain" value={String(toId)} onChange={(v) => setToId(Number(v))} options={chainOpts} />
+        </div>
+      </div>
+      <label className="text-xs font-bold text-slate">
+        Amount ({symbol})
+        <input
+          inputMode="decimal"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 text-lg font-bold text-ink"
+          disabled={busy}
+        />
+      </label>
+      {same && <p className="text-[13px] text-slate">Pick two different chains.</p>}
+      <Button onClick={move} disabled={busy || same || amt <= 0}>
+        {busy ? "Moving…" : `Move ${symbol}`}
+      </Button>
+      {note && <p className={`text-sm ${errored ? "text-alert" : "text-slate"}`}>{note}</p>}
+      <p className="text-[11px] text-slate/70">
+        Sends to your own address on the destination. Delivery is handled by Hyperbridge relayers
+        after the source transaction confirms.
+      </p>
     </Card>
   );
 }
