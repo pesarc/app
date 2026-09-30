@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Plus, X } from "@/components/icons";
 import { CURRENCIES, SEND_CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
 import { LiveRate } from "./LiveRate";
+import { Dropdown } from "./Dropdown";
 
 type Corridor = { from: CurrencyCode; to: CurrencyCode };
 
@@ -162,17 +163,12 @@ function CcySelect({
   options: readonly CurrencyCode[];
 }) {
   return (
-    <select
+    <Dropdown
       value={value}
-      onChange={(e) => onChange(e.target.value as CurrencyCode)}
-      aria-label="Currency"
-      className="flex-1 min-w-0 rounded-lg border border-fog bg-white px-2 py-1.5 text-[13px] font-semibold text-ink outline-none"
-    >
-      {options.map((c) => (
-        <option key={c} value={c}>
-          {flagFor(c)} {c}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      ariaLabel="Currency"
+      className="flex-1 min-w-0"
+      options={options.map((c) => ({ value: c, label: `${flagFor(c)} ${c}` }))}
+    />
   );
 }
