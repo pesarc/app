@@ -30,12 +30,13 @@ function dotFor(key: string): string {
 function ChainMark({ label, chainKey }: { label: string; chainKey: string }) {
   const url = chainLogoUrlForLabel(label);
   if (!url) {
-    return <span className="w-4 h-4 rounded-full shrink-0" style={{ background: dotFor(chainKey) }} />;
+    return <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dotFor(chainKey) }} />;
   }
+  // As-is in a fixed box (no circular mask) so each brand mark keeps its shape.
   return (
-    <span className="w-4 h-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
+    <span className="w-5 h-5 shrink-0 flex items-center justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny chain logo */}
-      <img src={url} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
+      <img src={url} alt="" className="w-full h-full" style={{ objectFit: "contain" }} />
     </span>
   );
 }

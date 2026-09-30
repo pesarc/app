@@ -16,10 +16,12 @@ export type DropdownOption<T extends string> = {
 
 function OptIcon({ src }: { src?: string }) {
   if (!src) return null;
+  // Shown as-is (each brand mark keeps its own shape) in a fixed box so every
+  // option lines up — no circular mask that would crop square/hex logos.
   return (
-    <span className="w-4 h-4 rounded-full overflow-hidden shrink-0 flex items-center justify-center">
+    <span className="w-5 h-5 shrink-0 flex items-center justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element -- tiny chain logo */}
-      <img src={src} alt="" width={16} height={16} style={{ objectFit: "contain" }} />
+      <img src={src} alt="" className="w-full h-full" style={{ objectFit: "contain" }} />
     </span>
   );
 }
