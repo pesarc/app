@@ -22,7 +22,14 @@ import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { svmTransfer } from "@pesarc/sdk/svm/write";
 import { stablecoinAddress } from "@pesarc/sdk/chain/stablecoin-registry";
 import { type BankDestination } from "./BankDetails";
-import { detectPhone, isSolanaAddress, recipientFromBank, recipientFromPhone } from "./helpers";
+import {
+  detectPhone,
+  isSolanaAddress,
+  isWalletAddress,
+  recipientFromAddress,
+  recipientFromBank,
+  recipientFromPhone,
+} from "./helpers";
 import type { Step, SendResult } from "./types";
 
 export function useSendState() {
@@ -57,7 +64,11 @@ export function useSendState() {
     const ccy = (sp.get("ccy") || "").toUpperCase();
     const name = sp.get("name") || undefined;
     const amt = sp.get("amount");
-    if (method === "bank") {
+    if (isWalletAddress(to)) {
+      setRecipient(recipientFromAddress(to));
+      setPayout("wallet");
+      setRecipientAddress(to);
+    } else if (method === "bank") {
       const dest: BankDestination = { bankCode: sp.get("bank") || "", accountNumber: to, accountName: name };
       setBankDest(dest);
       setPayout("bank");
