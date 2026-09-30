@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import SwapTabs from "@/components/app/swap/SwapTabs";
 
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function SwapPage() {
-  return <SwapTabs />;
+  // SwapTabs reads ?tab= via useSearchParams, which needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <SwapTabs />
+    </Suspense>
+  );
 }

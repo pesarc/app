@@ -4,12 +4,17 @@
 // hold), and move an asset across the chains you support. One segmented control
 // switches between them so it's all "swap" to the user.
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Segmented } from "@/components/app/ui";
 import SwapFlow from "./SwapFlow";
 import CrossChainBridge from "@/components/app/CrossChainBridge";
 
 export default function SwapTabs() {
-  const [tab, setTab] = useState<"currencies" | "crosschain">("currencies");
+  // Let other surfaces (the agent's "Open Cross-chain" hand-off) deep-link
+  // straight to the cross-chain view with ?tab=crosschain.
+  const params = useSearchParams();
+  const initial = params.get("tab") === "crosschain" ? "crosschain" : "currencies";
+  const [tab, setTab] = useState<"currencies" | "crosschain">(initial);
 
   return (
     <div>

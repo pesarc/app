@@ -11,15 +11,16 @@ export function parseAmount(text: string): number {
 
 export const EXAMPLES = [
   "Send 50,000 naira to Ghana",
+  "Earn on 100 USDC",
   "Buy 1GB of MTN data for 08031234567",
-  "Pay 5k Ikeja electricity, meter 04123456789",
-  "Create a market: will USD/NGN cross ₦2,000 by June?",
+  "Stake 20 on Yes for USD/NGN",
+  "How much am I earning?",
 ];
 
 export const GREETING: Msg = {
   role: "agent",
   text:
-    "Hi, I'm Pesarc's agent. Tell me what to send between naira, cedis and shillings and I'll settle it peer-to-peer in local currency, buy airtime, data or pay an electricity bill, or spin up a prediction market. Type it or tap the mic and speak. Try an example below.",
+    "Hi, I'm Pesarc's agent. Tell me what you need in plain words: send money between naira, cedis and shillings, put money into savings or take it out, buy airtime, data or pay an electricity bill, cash out to your bank, or place a prediction. I'll show my work and always ask before I move anything. Type it or tap the mic and speak.",
 };
 
 export const HISTORY_KEY = "pesarc.agent.threads";

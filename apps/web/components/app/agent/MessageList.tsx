@@ -3,36 +3,78 @@
 import { RefObject, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, ExternalLink, Sparkles, BarChart3, FileText } from "@/components/icons";
+import { Check, ExternalLink, Sparkles, BarChart3, FileText, Bot } from "@/components/icons";
 import { Card } from "@/components/app/ui";
 import type { AgentDraft } from "@pesarc/sdk/agent/run";
 import type { Msg } from "./types";
 import { UploadPreview } from "./UploadPreview";
 import { ConsentCard } from "./ConsentCard";
 import { Receipt } from "./Receipt";
+import { RichText } from "./RichText";
 
-const THINKING_STEPS = [
-  "Reading your request",
-  "Checking the live rate",
-  "Preparing it for you",
-];
+const DEFAULT_STEPS = ["Reading what you need", "Checking today's rate", "Getting your options ready"];
 
-/** A calm "thinking" indicator that steps through what the agent is doing. */
-function Thinking() {
-  const [i, setI] = useState(0);
+/** A branded "agent at work" trace: a checklist that ticks through the real
+ *  stages of the action (understand, match, settle, pay out), so the user can
+ *  watch it work. Steps advance on a cadence and hold on the last until the
+ *  result arrives. */
+function Thinking({ steps, activeStep }: { steps?: string[]; activeStep?: number }) {
+  const list = steps && steps.length ? steps : DEFAULT_STEPS;
+  // Server-driven index (SSE) when given; otherwise advance on a local timer.
+  const driven = typeof activeStep === "number";
+  const [timed, setTimed] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setI((n) => Math.min(n + 1, THINKING_STEPS.length - 1)), 1100);
+    if (driven) return;
+    setTimed(0);
+    const id = setInterval(() => setTimed((n) => Math.min(n + 1, list.length - 1)), 1200);
     return () => clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [driven, list.join("|")]);
+  const i = driven ? Math.min(activeStep!, list.length - 1) : timed;
+
   return (
     <div className="flex justify-start">
-      <Card className="rounded-2xl rounded-bl-sm px-4 py-3 inline-flex items-center gap-2.5">
-        <span className="flex gap-1" aria-hidden>
-          <span className="w-1.5 h-1.5 rounded-full bg-sky animate-bounce [animation-delay:-0.2s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-sky animate-bounce [animation-delay:-0.1s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-sky animate-bounce" />
-        </span>
-        <span className="text-[13.5px] font-medium text-slate">{THINKING_STEPS[i]}…</span>
+      <Card className="rounded-2xl rounded-bl-sm px-4 py-3 w-full sm:w-auto sm:min-w-[260px]">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky/15 text-sky">
+            <Bot className="h-3.5 w-3.5" />
+          </span>
+          <span className="text-[12px] font-bold text-harbor">Pesarc is on it</span>
+        </div>
+        <ul className="space-y-1.5">
+          {list.map((step, idx) => {
+            const done = idx < i;
+            const active = idx === i;
+            return (
+              <li key={idx} className="flex items-center gap-2 text-[13px]">
+                <span className="flex w-4 justify-center" aria-hidden>
+                  {done ? (
+                    <Check className="h-3.5 w-3.5 text-harbor" strokeWidth={2.5} />
+                  ) : active ? (
+                    <span className="flex gap-0.5">
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-sky [animation-delay:-0.2s]" />
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-sky [animation-delay:-0.1s]" />
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-sky" />
+                    </span>
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate/25" />
+                  )}
+                </span>
+                <span
+                  className={
+                    done
+                      ? "text-slate"
+                      : active
+                        ? "font-semibold text-ink"
+                        : "text-slate/40"
+                  }
+                >
+                  {step}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </Card>
     </div>
   );
@@ -41,12 +83,16 @@ function Thinking() {
 export function MessageList({
   msgs,
   busy,
+  thinking,
+  thinkingStep,
   endRef,
   onConfirm,
   onDecline,
 }: {
   msgs: Msg[];
   busy: boolean;
+  thinking?: string[];
+  thinkingStep?: number;
   endRef: RefObject<HTMLDivElement>;
   onConfirm: (index: number, draft: AgentDraft) => void;
   onDecline: (index: number) => void;
@@ -82,7 +128,7 @@ export function MessageList({
           >
             <div className="max-w-[90%] w-full sm:w-auto">
               <Card className="rounded-2xl rounded-bl-sm px-4 py-3 text-[15px] text-ink">
-                {m.text}
+                <RichText text={m.text} />
 
                 {m.draft && (
                   <ConsentCard
@@ -150,13 +196,21 @@ export function MessageList({
                     <Check className="w-3.5 h-3.5" /> Open Bills
                   </Link>
                 )}
+                {m.crossChainUrl && (
+                  <Link
+                    href={m.crossChainUrl}
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-sky text-white text-xs font-bold px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Open Cross-chain
+                  </Link>
+                )}
                 {m.upload && <UploadPreview upload={m.upload} />}
               </Card>
             </div>
           </motion.div>
         ),
       )}
-      {busy && <Thinking />}
+      {busy && <Thinking steps={thinking} activeStep={thinkingStep} />}
       <div ref={endRef} />
     </div>
   );
