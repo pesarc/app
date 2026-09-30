@@ -2,7 +2,9 @@
 // stock purchase, a market stake, or an Earn deposit — the amount is shown in
 // the instrument/market's native currency and the equivalent in the chosen
 // stablecoin (cross-FX via midMarketRate); a real swap routes it to the
-// underlying collateral. No dollar in the path unless you pick cUSD.
+// underlying collateral. No dollar in the path unless you pick a USD stablecoin.
+// USD-class stablecoins use their real names (USDC now; USDT/USDPY once their
+// testnet token addresses are wired into the chain registry).
 
 import { CURRENCIES, type CurrencyCode } from "./money";
 
@@ -14,7 +16,9 @@ export type Stablecoin = {
 };
 
 export const STABLECOINS: Stablecoin[] = [
-  { symbol: "cUSD", currency: "USD", name: "USD stablecoin", flag: "🇺🇸" },
+  { symbol: "USDC", currency: "USD", name: "USD Coin", flag: "🇺🇸" },
+  { symbol: "USDT", currency: "USD", name: "Tether USD", flag: "🇺🇸" },
+  { symbol: "PYUSD", currency: "USD", name: "PayPal USD", flag: "🇺🇸" },
   { symbol: "cNGN", currency: "NGN", name: "Naira stablecoin", flag: "🇳🇬" },
   { symbol: "cKES", currency: "KES", name: "Shilling stablecoin", flag: "🇰🇪" },
   { symbol: "cGHS", currency: "GHS", name: "Cedi stablecoin", flag: "🇬🇭" },

@@ -2,7 +2,8 @@
 // The flow: approve USDC -> depositForBurn on the source (user's wallet) ->
 // Circle attests -> relayer mints on the destination (see /api/bridge/relay).
 import { defineChain, pad, type Chain } from "viem";
-import { CCTP_MAINNET, type CctpMainnetChain } from "./mainnet";
+import { type CctpChain } from "./mainnet";
+import { cctpChains, type CctpNetwork } from "./network";
 
 // minFinalityThreshold selects the transfer speed. Standard is free and settles
 // at hard finality (~13-19 min on most chains); Fast pays a small maxFee and
@@ -63,12 +64,13 @@ export function quoteFast(amountIn: bigint, bps: number): BridgeQuote {
 export async function fetchFee(
   src: number,
   dst: number,
+  network: CctpNetwork = "mainnet",
 ): Promise<{ fastBps: number | null; standardBps: number }> {
   try {
     const res = await fetch("/api/bridge/fee", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ src, dst }),
+      body: JSON.stringify({ src, dst, network }),
     });
     const j = (await res.json()) as { ok: boolean; fastBps?: number | null; standardBps?: number };
     if (!j.ok) return { fastBps: null, standardBps: 0 };
@@ -79,8 +81,8 @@ export async function fetchFee(
 }
 
 /** A viem Chain for a CCTP EVM entry, so a walletClient can target it. */
-export function viemChainFor(c: CctpMainnetChain): Chain {
-  const rpc = process.env[c.rpcEnv] || defaultRpc(c.key);
+export function viemChainFor(c: CctpChain): Chain {
+  const rpc = process.env[c.rpcEnv] || defaultRpc(c.chainId as number);
   return defineChain({
     id: c.chainId as number,
     name: c.label,
@@ -93,28 +95,38 @@ export function viemChainFor(c: CctpMainnetChain): Chain {
   });
 }
 
-function explorerBase(c: CctpMainnetChain): string {
+function explorerBase(c: CctpChain): string {
   // Derive from the tx formatter's prefix.
   return c.explorerTx("").replace(/\/tx\/$/, "");
 }
 
-// Public RPC fallbacks when the *_RPC_URL env isn't set. Override in prod.
-function defaultRpc(key: string): string {
-  switch (key) {
-    case "ethereum": return "https://ethereum-rpc.publicnode.com";
-    case "arbitrum": return "https://arb1.arbitrum.io/rpc";
-    case "base": return "https://mainnet.base.org";
-    case "optimism": return "https://mainnet.optimism.io";
-    case "polygon": return "https://polygon-rpc.com";
-    case "avalanche": return "https://api.avax.network/ext/bc/C/rpc";
-    case "arc": return "https://rpc.mainnet.arc.io";
+// Public RPC fallbacks (by EVM chain id, so mainnet + testnet never collide)
+// when the *_RPC_URL env isn't set. Override in prod.
+function defaultRpc(chainId: number): string {
+  switch (chainId) {
+    // Mainnet
+    case 1: return "https://ethereum-rpc.publicnode.com";
+    case 42161: return "https://arb1.arbitrum.io/rpc";
+    case 8453: return "https://mainnet.base.org";
+    case 10: return "https://mainnet.optimism.io";
+    case 137: return "https://polygon-rpc.com";
+    case 43114: return "https://api.avax.network/ext/bc/C/rpc";
+    case 5042: return "https://rpc.mainnet.arc.io";
+    // Testnet
+    case 11155111: return "https://ethereum-sepolia-rpc.publicnode.com";
+    case 421614: return "https://sepolia-rollup.arbitrum.io/rpc";
+    case 84532: return "https://sepolia.base.org";
+    case 11155420: return "https://sepolia.optimism.io";
+    case 80002: return "https://rpc-amoy.polygon.technology";
+    case 43113: return "https://api.avax-test.network/ext/bc/C/rpc";
+    case 5042002: return "https://rpc.testnet.arc.io";
     default: return "";
   }
 }
 
-/** EVM CCTP chains only (Phase 1 flow — Solana lands next). */
-export function evmBridgeChains(): CctpMainnetChain[] {
-  return Object.values(CCTP_MAINNET).filter((c) => c.kind === "evm");
+/** EVM CCTP chains for a network (Solana/Algorand cross-chain stay mainnet). */
+export function evmBridgeChains(network: CctpNetwork = "mainnet"): CctpChain[] {
+  return Object.values(cctpChains(network)).filter((c) => c.kind === "evm");
 }
 
 export type RelayResult =
@@ -137,6 +149,7 @@ export async function relayMint(input: {
   /** EVM 0x hash or a Solana base58 signature. */
   burnTx: string;
   dstKey: string;
+  network?: CctpNetwork;
 }): Promise<RelayResult> {
   const res = await fetch("/api/bridge/relay", {
     method: "POST",

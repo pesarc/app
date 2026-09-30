@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, Share2 } from "@/components/icons";
 import { ACCOUNT, ALIAS } from "@pesarc/sdk/account";
+import { AddressText } from "@/components/app/AddressText";
 import { CURRENCIES } from "@pesarc/sdk/money";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
@@ -142,7 +143,7 @@ export default function ReceivePage() {
                   Account · {chainLabel()}
                 </div>
                 <div className="font-mono text-sm text-ink/80 break-all">
-                  {address}
+                  <AddressText address={address} />
                 </div>
               </div>
             )

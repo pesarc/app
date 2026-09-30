@@ -2,8 +2,9 @@
 
 import { STABLECOINS } from "@pesarc/sdk/stablecoins";
 import { currencyName } from "@pesarc/sdk/money";
+import { Dropdown } from "./Dropdown";
 
-/** A pill row for choosing which stablecoin funds an action (buy/stake/deposit). */
+/** A styled dropdown for choosing which stablecoin funds an action (buy/stake/deposit). */
 export function StablecoinSelect({
   value,
   onChange,
@@ -16,24 +17,16 @@ export function StablecoinSelect({
   return (
     <div>
       <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2">{label}</div>
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {STABLECOINS.map((s) => {
-          const active = s.symbol === value;
-          return (
-            <button
-              key={s.symbol}
-              onClick={() => onChange(s.symbol)}
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-bold transition-colors ${
-                active
-                  ? "bg-sky-tint/50 border-sky text-sky-deep"
-                  : "bg-snow border-fog text-harbor hover:border-slate/50"
-              }`}
-            >
-              <span>{s.flag}</span> {currencyName(s.currency)}
-            </button>
-          );
-        })}
-      </div>
+      <Dropdown
+        value={value}
+        onChange={onChange}
+        ariaLabel={label}
+        options={STABLECOINS.map((s) => ({
+          value: s.symbol,
+          label: `${s.flag}  ${currencyName(s.currency)}`,
+          hint: s.symbol,
+        }))}
+      />
     </div>
   );
 }

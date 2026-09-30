@@ -56,6 +56,13 @@ const nextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
+  // /corridor was the standalone manual local-currency settlement screen. Its
+  // job is now covered by /send (cross-border send), /swap (currency swap) and
+  // the agent, all of which sit on the same intent-matcher engine. Keep old
+  // links alive by sending them to /send instead of 404ing.
+  async redirects() {
+    return [{ source: "/corridor", destination: "/send", permanent: true }];
+  },
   webpack: (config) => {
     // Ignore optional Privy Solana deps we don't use — they only warn in dev but
     // hard-fail a production `next build`. memo: Privy's funding plugin, whose
@@ -66,6 +73,14 @@ const nextConfig = {
       "@solana-program/memo": false,
       "@farcaster/mini-app-solana": false,
     };
+    // Silence the harmless "Critical dependency: the request of a dependency is
+    // an expression" warnings from viem 2.56's `tempo` chain, which pulls in ox's
+    // dynamic-require module. The build succeeds; the warning is just noise.
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /node_modules\/\.pnpm\/ox@.*tempo/ },
+      { message: /Critical dependency: the request of a dependency is an expression/ },
+    ];
     return config;
   },
 };

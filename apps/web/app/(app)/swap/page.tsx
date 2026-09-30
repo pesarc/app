@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import SwapFlow from "@/components/app/swap/SwapFlow";
+import SwapTabs from "@/components/app/swap/SwapTabs";
 
 export const metadata: Metadata = {
   title: "Swap",
-  description: "Swap one of your currencies into another at the live rate, in a couple of taps.",
+  description: "Swap one currency into another, or move an asset across the chains you support.",
 };
 
 export default function SwapPage() {
-  return <SwapFlow />;
+  return <SwapTabs />;
 }

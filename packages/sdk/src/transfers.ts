@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { getSql } from "./db";
 
 // Account scoping comes from the verified Privy identity (lib/api/auth.ts).
@@ -154,7 +155,9 @@ async function recordToFile(
     await fs.mkdir(path.dirname(file), { recursive: true });
     const row: TransferRow = {
       ...input,
-      id: `${Date.now()}`,
+      // Unique even for rows written in the same millisecond (a batch write with
+      // `${Date.now()}` collided and produced duplicate React keys in the feed).
+      id: randomUUID(),
       account,
       createdAt: new Date().toISOString(),
     };
