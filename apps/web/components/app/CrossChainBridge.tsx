@@ -17,7 +17,9 @@ import {
   HYPER_ELIGIBLE_SYMBOLS,
   hasHyperRoute,
   hyperEndpoints,
+  hyperTokenFor,
 } from "@pesarc/sdk/chain/hyperbridge/registry";
+import { chainByKey } from "@pesarc/sdk/chain/registry";
 import { hyperSend } from "@pesarc/sdk/chain/hyperbridge/send";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
@@ -92,24 +94,24 @@ const BAL_ABI = [
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
 ] as const;
 
-/** The smart wallet's balance of `token` on an arbitrary source chain (not the
- *  active chain), so cross-chain shows how much you actually hold on the FROM
+/** The smart wallet's balance of `token` on an arbitrary chain (not necessarily
+ *  the active one), so cross-chain shows how much you actually hold on the FROM
  *  chain. Works for testnet and mainnet — it reads that chain's own RPC. */
 function useTokenBalanceOn(
   token: `0x${string}` | undefined,
-  src: { chainId: number | string } & Record<string, unknown>,
+  viemChain: { rpcUrls: { default: { http: readonly string[] } } } | undefined,
+  rpcUrl: string | undefined,
   owner?: string,
 ): { amount?: number; loading: boolean } {
   const [state, setState] = useState<{ amount?: number; loading: boolean }>({ loading: false });
   useEffect(() => {
-    if (!token || !owner) {
+    if (!token || !owner || !viemChain || !rpcUrl) {
       setState({ loading: false });
       return;
     }
     let alive = true;
     setState({ loading: true });
-    const chain = viemChainFor(src as never);
-    const pub = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
+    const pub = createPublicClient({ chain: viemChain as never, transport: http(rpcUrl) });
     Promise.all([
       pub.readContract({ address: token, abi: BAL_ABI, functionName: "balanceOf", args: [owner as `0x${string}`] }),
       pub.readContract({ address: token, abi: BAL_ABI, functionName: "decimals" }).catch(() => 6),
@@ -119,9 +121,9 @@ function useTokenBalanceOn(
     return () => {
       alive = false;
     };
-    // src is keyed by chainId; re-read only when the token/owner/chain changes.
+    // rpcUrl identifies the chain; re-read only when token/owner/chain change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, owner, src.chainId]);
+  }, [token, owner, rpcUrl]);
   return state;
 }
 
@@ -173,9 +175,11 @@ export default function CrossChainBridge() {
   };
   const amountIn = amount ? parseUsdc(amount) : 0n;
   // Real balance of the selected coin on the FROM chain (USDC on the CCTP rail).
+  const srcEvm = src.kind === "evm" ? viemChainFor(src as never) : undefined;
   const srcBal = useTokenBalanceOn(
     coin === "USDC" ? (src.usdc as `0x${string}`) : undefined,
-    src as never,
+    srcEvm,
+    srcEvm?.rpcUrls?.default?.http?.[0],
     smart.address,
   );
   // EVM->Solana can't use native CCTP here (no on-Solana mint) — route via LI.FI.
@@ -729,6 +733,12 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
   // In-app (AA) is possible when the smart wallet is ready on the source chain.
   const canAA = smart.ready && Boolean(smart.address) && activeEvm.chain.id === fromId;
 
+  // Your real balance of this coin on the FROM chain (underlying on the home
+  // chain, the HFT on a remote chain).
+  const fromCfg = chainByKey(HYPER_CHAIN_KEY[fromId] ?? "");
+  const holdToken = hyperTokenFor(hyperNet, symbol, fromId);
+  const fromBal = useTokenBalanceOn(holdToken, fromCfg?.chain, fromCfg?.rpcUrl, smart.address);
+
   if (!live) {
     return (
       <Card className="mt-4 p-4">
@@ -801,6 +811,22 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
           className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 text-lg font-bold text-ink"
           disabled={busy}
         />
+        <div className="mt-1 flex items-center justify-between text-[11px] font-normal">
+          <span className="text-slate">
+            {!smart.address
+              ? "Sign in to see your balance"
+              : fromBal.loading
+                ? "Checking balance…"
+                : fromBal.amount !== undefined
+                  ? `Balance ${fromBal.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${symbol}`
+                  : ""}
+          </span>
+          {fromBal.amount ? (
+            <button type="button" className="font-bold text-sky" onClick={() => setAmount(String(fromBal.amount))} disabled={busy}>
+              Max
+            </button>
+          ) : null}
+        </div>
       </label>
       {same && <p className="text-[13px] text-slate">Pick two different chains.</p>}
       <Button onClick={move} disabled={busy || same || amt <= 0}>
