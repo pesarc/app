@@ -9,7 +9,7 @@ import { User, Building2, PiggyBank, Gauge, ArrowRight } from "@/components/icon
 import { usePersona, homeFor, type Persona } from "@pesarc/sdk/persona";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
-import { COUNTRIES } from "@pesarc/sdk/countries";
+import { SUPPORTED_COUNTRIES } from "@pesarc/sdk/countries";
 import { LogoMark } from "@/components/app/Logo";
 import { site } from "@pesarc/sdk/site";
 
@@ -124,7 +124,7 @@ function CountryStep({ onPick }: { onPick: (code: string) => void }) {
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {COUNTRIES.map((c) => (
+          {SUPPORTED_COUNTRIES.map((c) => (
             <button
               key={c.code}
               onClick={() => onPick(c.code)}

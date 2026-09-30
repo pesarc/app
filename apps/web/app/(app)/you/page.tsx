@@ -31,7 +31,7 @@ import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePersona, type Persona } from "@pesarc/sdk/persona";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
-import { SEND_CURRENCIES, CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
+import { SUPPORTED_CURRENCIES, CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { Segmented } from "@/components/app/ui";
 
@@ -189,7 +189,7 @@ export default function YouPage() {
             The currency you send in, set once, no picking every time.
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {SEND_CURRENCIES.map((code: CurrencyCode) => {
+            {SUPPORTED_CURRENCIES.map((code: CurrencyCode) => {
               const active = code === sendCurrency;
               return (
                 <button

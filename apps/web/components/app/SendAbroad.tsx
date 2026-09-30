@@ -8,16 +8,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, X } from "@/components/icons";
-import { CURRENCIES, SEND_CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
+import { CURRENCIES, SUPPORTED_CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
 import { LiveRate } from "./LiveRate";
 import { Dropdown } from "./Dropdown";
 
 type Corridor = { from: CurrencyCode; to: CurrencyCode };
 
+// Seeded with corridors we actually settle (USD leg + a live African rate).
 const DEFAULTS: Corridor[] = [
-  { from: "GBP", to: "NGN" },
   { from: "USD", to: "NGN" },
-  { from: "GBP", to: "KES" },
+  { from: "USD", to: "GHS" },
+  { from: "USD", to: "KES" },
 ];
 
 // v2 stores the FULL list (not just extras) so any corridor — including the
@@ -75,7 +76,7 @@ export default function SendAbroad() {
 
   const remove = (c: Corridor) => persist(all.filter((p) => keyOf(p) !== keyOf(c)));
 
-  const opts = SEND_CURRENCIES;
+  const opts = SUPPORTED_CURRENCIES;
 
   return (
     <>
