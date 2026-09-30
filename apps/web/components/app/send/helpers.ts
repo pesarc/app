@@ -56,9 +56,36 @@ export function isSolanaAddress(a: string): boolean {
   return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a.trim());
 }
 
-/** True for any supported wallet address (EVM or Solana). */
+/** True for a plausible Algorand (base32, 58 chars) address. */
+export function isAlgorandAddress(a: string): boolean {
+  return /^[A-Z2-7]{58}$/.test(a.trim());
+}
+
+/** The rail an address belongs to, by format. */
+export function addressRail(a: string): "evm" | "solana" | "algorand" | null {
+  const s = a.trim();
+  if (isEvmAddress(s)) return "evm";
+  if (isAlgorandAddress(s)) return "algorand";
+  if (isSolanaAddress(s)) return "solana";
+  return null;
+}
+
+/** True for a wallet address we can actually send on today (EVM or Solana). */
 export function isWalletAddress(a: string): boolean {
   return isEvmAddress(a) || isSolanaAddress(a);
+}
+
+/** True when the EVM address has bytecode (i.e. it's a contract, not a wallet). */
+export async function isEvmContract(address: string): Promise<boolean> {
+  try {
+    const { activeChain, publicClientFor } = await import("@pesarc/sdk/chain/registry");
+    const code = await publicClientFor(activeChain()).getBytecode({
+      address: address as `0x${string}`,
+    });
+    return Boolean(code && code !== "0x");
+  } catch {
+    return false;
+  }
 }
 
 /** A recipient that is a raw on-chain wallet address. EVM goes through the local-
