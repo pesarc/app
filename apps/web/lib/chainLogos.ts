@@ -17,8 +17,12 @@ export const CHAIN_LOGO: Record<string, string> = {
   Polygon: "polygon-icon-primary-purple_w6psna",
 };
 
+// e_trim strips each source's surrounding padding first, so marks that ship with
+// lots of whitespace (Arbitrum, Polygon) end up the same visual size as the rest.
+const DEFAULT_TRANSFORM = "e_trim/w_64,h_64,c_fit,f_auto,q_auto";
+
 /** Cloudinary delivery URL for a chain logo, or "" when we have none. */
-export function chainLogoUrl(key: string, transform = "f_auto,q_auto,w_64,h_64,c_fit"): string {
+export function chainLogoUrl(key: string, transform = DEFAULT_TRANSFORM): string {
   const id = CHAIN_LOGO[key];
   if (!id) return "";
   return `https://res.cloudinary.com/${CLOUD}/image/upload/${transform}/${id}`;
@@ -37,6 +41,7 @@ export function chainLogoKey(label: string): string {
   if (l.includes("arc")) return "Arc";
   if (l.includes("solana")) return "Solana";
   if (l.includes("algorand")) return "Algorand";
+  if (l.includes("avalanche") || l.includes("fuji")) return "Avalanche";
   if (l.includes("ethereum") || l.includes("sepolia")) return "Ethereum";
   return "";
 }
