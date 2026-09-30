@@ -37,6 +37,7 @@ import {
   Clock01Icon,
   Copy01Icon,
   Coins01Icon,
+  Download04Icon,
   DropletsIcon,
   ExternalLinkIcon,
   GaugeIcon,
@@ -150,6 +151,7 @@ export const ChevronRight = make(ChevronRightIcon);
 export const Clock = make(Clock01Icon);
 export const Coins = make(Coins01Icon);
 export const Copy = make(Copy01Icon);
+export const Download = make(Download04Icon);
 export const Droplets = make(DropletsIcon);
 export const ExternalLink = make(ExternalLinkIcon);
 export const Gauge = make(GaugeIcon);

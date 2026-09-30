@@ -80,6 +80,8 @@ export type AgentReceipt = {
   lines: { label: string; value: string }[];
   reference?: string;
   proofUrl?: string;
+  /** On-chain transaction hash for the action, when it has one. */
+  txHash?: string;
   settlements?: Array<{ kind: string; url: string }>;
 };
 
@@ -672,6 +674,7 @@ async function execTransfer(
         status: didSettle ? "settled" : "pending",
         lines,
         proofUrl: explorerTxUrl(chain, submitTx),
+        txHash: submitTx,
         settlements: outcome.settled.map((s) => ({ kind: s.kind, url: explorerTxUrl(chain, s.tx) })),
       },
     };
