@@ -19,6 +19,8 @@ export type FeedItem = {
   timestamp?: number;
   chainKey?: string;
   chainLabel?: string;
+  /** true = testnet chain, false = mainnet, undefined = not chain-tagged (bank). */
+  testnet?: boolean;
   explorer?: string;
   statusLabel?: string;
 };
@@ -64,6 +66,7 @@ export function useActivity(): { items: FeedItem[]; loading: boolean; live: bool
           timestamp: a.timestamp,
           chainKey: a.chainKey,
           chainLabel: a.chainLabel,
+          testnet: a.testnet,
           explorer: a.explorer,
         }));
         const bankItems: FeedItem[] = (payouts ?? []).map((p) => ({
