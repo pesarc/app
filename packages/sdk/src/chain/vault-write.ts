@@ -98,3 +98,20 @@ export async function evmVaultRedeem(
 export function evmVaultReady(sender: BatchSender | null | undefined, vault?: string): boolean {
   return Boolean(sender?.ready && sender.address && vault && /^0x[0-9a-fA-F]{40}$/.test(vault));
 }
+
+// The deployed CorridorVault per chain. Literal NEXT_PUBLIC refs so Next inlines
+// them into the client bundle (a dynamic process.env[key] would not inline).
+const VAULTS: Record<string, string | undefined> = {
+  arc: process.env.NEXT_PUBLIC_ARC_CORRIDOR_VAULT,
+  "arc-testnet": process.env.NEXT_PUBLIC_ARC_TESTNET_CORRIDOR_VAULT,
+  base: process.env.NEXT_PUBLIC_BASE_CORRIDOR_VAULT,
+  "base-sepolia": process.env.NEXT_PUBLIC_BASE_SEPOLIA_CORRIDOR_VAULT,
+  arbitrum: process.env.NEXT_PUBLIC_ARBITRUM_CORRIDOR_VAULT,
+  "arbitrum-sepolia": process.env.NEXT_PUBLIC_ARB_SEPOLIA_CORRIDOR_VAULT,
+};
+
+/** The CorridorVault address configured for a chain, if any. */
+export function corridorVaultFor(chainKey?: string): `0x${string}` | undefined {
+  const v = chainKey ? VAULTS[chainKey] : undefined;
+  return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? (v as `0x${string}`) : undefined;
+}
