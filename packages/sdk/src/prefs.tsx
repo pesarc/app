@@ -30,6 +30,10 @@ type Ctx = {
   /** Identity verification status (KYC). */
   kyc: KycStatus;
   setKyc: (s: KycStatus) => void;
+  /** The user's self-custody Algorand address (public only — the recovery phrase
+   *  is shown once at creation and never stored by us). null until created. */
+  algoAddress: string | null;
+  setAlgoAddress: (addr: string | null) => void;
   /** True once persisted prefs have loaded (avoids onboarding flashes). */
   ready: boolean;
 };
@@ -38,11 +42,13 @@ const PrefsContext = createContext<Ctx | null>(null);
 const KEY = "pesarc.send-currency";
 const KYC_KEY = "pesarc.kyc";
 const COUNTRY_KEY = "pesarc.country";
+const ALGO_KEY = "pesarc.algo.address";
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const [sendCurrency, setState] = useState<CurrencyCode>(ACCOUNT.currency);
   const [country, setCountryState] = useState<string | null>(null);
   const [kyc, setKycState] = useState<KycStatus>("unverified");
+  const [algoAddress, setAlgoAddressState] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -55,10 +61,22 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       if (c) setCountryState(c);
       const k = window.localStorage.getItem(KYC_KEY);
       if (k === "verified" || k === "pending" || k === "unverified") setKycState(k);
+      const a = window.localStorage.getItem(ALGO_KEY);
+      if (a) setAlgoAddressState(a);
     } catch {
       /* ignore */
     }
     setReady(true);
+  }, []);
+
+  const setAlgoAddress = useCallback((addr: string | null) => {
+    setAlgoAddressState(addr);
+    try {
+      if (addr) window.localStorage.setItem(ALGO_KEY, addr);
+      else window.localStorage.removeItem(ALGO_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const setSendCurrency = useCallback((c: CurrencyCode) => {
@@ -94,7 +112,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PrefsContext.Provider
-      value={{ sendCurrency, setSendCurrency, country, setCountry, kyc, setKyc, ready }}
+      value={{ sendCurrency, setSendCurrency, country, setCountry, kyc, setKyc, algoAddress, setAlgoAddress, ready }}
     >
       {children}
     </PrefsContext.Provider>

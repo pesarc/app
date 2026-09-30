@@ -24,6 +24,7 @@ import {
   Landmark,
   Wallet,
 } from "@/components/icons";
+import AlgorandWallet from "@/components/app/AlgorandWallet";
 import { countryByCode, BVN_COUNTRIES } from "@pesarc/sdk/countries";
 import { site } from "@pesarc/sdk/site";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
@@ -124,6 +125,14 @@ export default function YouPage() {
           />
         )}
       </Section>
+
+      {/* Wallets — self-custody address the user owns. */}
+      <div className="mb-4">
+        <div className="px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-slate">
+          Wallets
+        </div>
+        <AlgorandWallet />
+      </div>
 
       {/* Preferences */}
       <Section title="Preferences">
