@@ -17,7 +17,12 @@ import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
 import { parseSwapIntent } from "./swap-intent";
+import { parseEarnIntent } from "./earn-intent";
+import { parseStakeIntent } from "./stake-intent";
 import { emitStep, type OnProgress } from "./progress";
+import { POOLS, poolApy, findPool, type Pool } from "../earn";
+import { deposit as earnDeposit, withdraw as earnWithdraw, listPositions } from "../earn-positions";
+import { toMarket } from "../catalog-map";
 import { fetchAggregatedBalance } from "../chain/aggregateBalance";
 import { fetchOnchainActivity } from "../chain/history";
 import { getBankAccount } from "../bank";
@@ -25,7 +30,7 @@ import { createPayout } from "../payouts";
 import { sendReference } from "../reference";
 import { getBillsAdapter, findOperator, type BillCategory, type MeterType } from "../bills";
 import { recordTransfer } from "../transfers";
-import { createCatalog } from "../catalog";
+import { createCatalog, listCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
 import { activeChain, type EvmChainConfig } from "../chain/registry";
@@ -71,11 +76,19 @@ export type AgentDraft =
       method: "bank" | "mobile_money";
       beneficiary: string;
       label: string;
+    }
+  | {
+      type: "earn";
+      action: "deposit" | "withdraw";
+      poolId: string;
+      poolName: string;
+      amount?: number;
+      apy: number;
     };
 
 /** A completed action, rendered as a receipt by the surface. */
 export type AgentReceipt = {
-  kind: "transfer" | "bill" | "payout";
+  kind: "transfer" | "bill" | "payout" | "earn";
   title: string;
   status: "settled" | "pending" | "done";
   lines: { label: string; value: string }[];
@@ -120,6 +133,49 @@ function fmt(n: number): string {
 /** A chain's label without the network suffix, for compact table cells. */
 function plainChain(label: string): string {
   return label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
+}
+
+/** Pick an Earn pool for a deposit request: by named currency corridor, then by
+ *  explicit pool mention, else the low-risk stable reserve. */
+function resolvePool(query: string): Pool {
+  const q = query.toLowerCase();
+  const byCurrency: [RegExp, string][] = [
+    [/\b(ngn|naira)\b/, "usd-ngn-hub"],
+    [/\b(kes|shilling)\b/, "usd-kes"],
+    [/\b(ghs|cedi)\b/, "eur-ghs"],
+    [/\b(gbp|pound|sterling)\b/, "gbp-ngn"],
+  ];
+  for (const [re, id] of byCurrency) if (re.test(q)) return findPool(id) ?? POOLS[0];
+  const named = POOLS.find((p) => q.includes(p.id) || q.includes(p.corridor.toLowerCase()));
+  return named ?? findPool("usdc-stable") ?? POOLS[0];
+}
+
+/** Among a user's held positions, the one the query names, if any. */
+function resolveHeldPool<T extends { poolId: string }>(query: string, positions: T[]): T | undefined {
+  const q = query.toLowerCase();
+  return positions.find((pos) => {
+    const p = findPool(pos.poolId);
+    return p && (q.includes(p.id) || q.includes(p.corridor.toLowerCase()));
+  });
+}
+
+/** Best market match for a free-text query, by shared meaningful words. */
+function matchMarket<T extends { question: string }>(markets: T[], query: string): T | null {
+  const words = (s: string) => new Set(s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
+  const q = words(query);
+  if (!q.size) return markets[0] ?? null;
+  let best: T | null = null;
+  let bestScore = 0;
+  for (const m of markets) {
+    const mw = words(m.question);
+    let score = 0;
+    for (const w of q) if (mw.has(w)) score++;
+    if (score > bestScore) {
+      bestScore = score;
+      best = m;
+    }
+  }
+  return bestScore > 0 ? best : null;
 }
 
 function billVerb(category: string): string {
@@ -284,6 +340,102 @@ export async function runAgentTurn(
     return execBill(draft, account);
   }
 
+  // Earn: put money to work in a corridor pool, take it out, or report what it's
+  // earning. Earn is a tracked ledger (no wallet signature), so the agent acts on
+  // it directly. Deposit/withdraw move money and draft for consent; positions is
+  // read-only. Checked before cash-out so "withdraw from savings" isn't a bank
+  // withdrawal.
+  const earn = parseEarnIntent(message);
+  if (earn) {
+    if (earn.action === "positions") {
+      try {
+        const positions = await listPositions(account);
+        if (!positions.length) {
+          return {
+            ok: true,
+            matched: false,
+            reply:
+              "You don't have any savings yet. Say something like **earn on 100 USDC** and I'll put it to work in a corridor pool.",
+          };
+        }
+        let principalSum = 0;
+        let yieldSum = 0;
+        const rows = positions
+          .map((p) => {
+            const pool = findPool(p.poolId);
+            const apy = pool ? poolApy(pool) : 0;
+            principalSum += p.principal;
+            yieldSum += (p.principal * apy) / 100;
+            return `| ${pool?.corridor ?? p.poolId} | $${fmt(p.principal)} | ${apy.toFixed(1)}% |`;
+          })
+          .join("\n");
+        const reply = [
+          `You have **$${fmt(principalSum)}** earning, about **$${fmt(yieldSum)}/yr** at current rates.`,
+          "",
+          "| Pool | Balance | APY |",
+          "| --- | --- | --- |",
+          rows,
+        ].join("\n");
+        return { ok: true, matched: false, reply };
+      } catch {
+        return { ok: false, reply: "I couldn't read your savings just now. Try again shortly." };
+      }
+    }
+
+    if (earn.action === "withdraw") {
+      const positions = await listPositions(account).catch(() => []);
+      if (!positions.length) {
+        return { ok: true, needsInput: true, reply: "You don't have anything in savings to withdraw yet." };
+      }
+      const target = resolveHeldPool(earn.query, positions) ?? positions[0];
+      const pool = findPool(target.poolId);
+      const draft: AgentDraft = {
+        type: "earn",
+        action: "withdraw",
+        poolId: target.poolId,
+        poolName: pool?.corridor ?? "savings",
+        apy: pool ? poolApy(pool) : 0,
+      };
+      if (preview) {
+        return {
+          ok: true,
+          reply: `I'll withdraw your **$${fmt(target.principal)}** from ${draft.poolName} back to your balance. Confirm to withdraw.`,
+          draft,
+        };
+      }
+      return execEarn(draft, account);
+    }
+
+    // Deposit.
+    const pool = resolvePool(earn.query);
+    const apy = poolApy(pool);
+    if (!earn.amount) {
+      return {
+        ok: true,
+        needsInput: true,
+        reply: `How much would you like to put into **${pool.corridor}** (earning about ${apy.toFixed(1)}% a year)?`,
+      };
+    }
+    const draft: AgentDraft = {
+      type: "earn",
+      action: "deposit",
+      poolId: pool.id,
+      poolName: pool.corridor,
+      amount: earn.amount,
+      apy,
+    };
+    if (preview) {
+      const yr = (earn.amount * apy) / 100;
+      return {
+        ok: true,
+        understood: `Earn ${fmt(earn.amount)} in ${pool.corridor}`,
+        reply: `I'll put **$${fmt(earn.amount)}** into **${pool.corridor}**, earning about **${apy.toFixed(1)}% a year** (about $${fmt(yr)}). You can withdraw anytime. Confirm to start earning.`,
+        draft,
+      };
+    }
+    return execEarn(draft, account);
+  }
+
   // Cash out to the user's linked bank: settle on Arc, then pay out fiat via the
   // ramp partner (Paystack in prod). Money moves, so preview drafts it for consent.
   const cashout = parseCashoutIntent(message);
@@ -413,6 +565,58 @@ export async function runAgentTurn(
     };
   }
 
+  // Market stake ("stake 20 on Yes for USD/NGN"). Signing a stake needs the
+  // user's smart wallet (in the browser), so the agent finds the market and hands
+  // off to the Markets stake sheet to sign in-app. Read-only here, no consent.
+  const stake = parseStakeIntent(message);
+  if (stake) {
+    const markets = await listCatalog("markets")
+      .then((items) => items.map((it, i) => toMarket(it.data, i)).filter((m): m is NonNullable<typeof m> => Boolean(m)))
+      .catch(() => []);
+    const match = matchMarket(markets, stake.query);
+    if (!match) {
+      if (markets.length) {
+        const list = markets
+          .slice(0, 5)
+          .map((mk) => `- ${mk.question}`)
+          .join("\n");
+        return {
+          ok: true,
+          matched: false,
+          reply: `I couldn't pin that to a live market. Here's what's live now:\n\n${list}\n\nOpen Markets to place your stake.`,
+          marketsUrl: "/markets",
+        };
+      }
+      return {
+        ok: true,
+        matched: false,
+        reply:
+          "No markets are live yet. Want me to create one? Try **create a market: will USD/NGN close above 1,600 in December?**",
+      };
+    }
+    const amt = stake.amount ? `**$${fmt(stake.amount)}** on ` : "";
+    const sideLabel = stake.side === "yes" ? "Yes" : "No";
+    const reply = [
+      `Ready to stake ${amt}**${sideLabel}**:`,
+      "",
+      "| | |",
+      "| --- | --- |",
+      `| **Market** | ${match.question} |`,
+      `| **Side** | ${sideLabel} |`,
+      ...(stake.amount ? [`| **Stake** | $${fmt(stake.amount)} |`] : []),
+      "",
+      "Placing a bet is signed by you. Tap **Open Markets** to review and sign it in-app.",
+    ].join("\n");
+    const q = new URLSearchParams({ stake: match.id, side: stake.side });
+    return {
+      ok: true,
+      matched: false,
+      understood: `Stake ${sideLabel} on ${match.question}`,
+      reply,
+      marketsUrl: `/markets?${q.toString()}`,
+    };
+  }
+
   // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is
   // active (Arc by default), signed by that chain's agent key. Without an agent
   // key or the LLM we still understand and reply (demo mode).
@@ -486,6 +690,7 @@ export async function runAgentExecute(
 ): Promise<AgentTurnResult> {
   if (draft.type === "bill") return execBill(draft, account, onProgress);
   if (draft.type === "payout") return execPayout(draft, account, onProgress);
+  if (draft.type === "earn") return execEarn(draft, account, onProgress);
   const chain = activeChain();
   if (!evmAgentReady(chain)) {
     return { ok: false, reply: "The agent isn't set up to settle on this network yet." };
@@ -559,6 +764,76 @@ async function execPayout(
       ok: false,
       reply: e instanceof Error ? `Cash out failed: ${e.message.slice(0, 140)}` : "Cash out failed.",
     };
+  }
+}
+
+/** Execute a consented Earn action against the tracked corridor-pool ledger. */
+async function execEarn(
+  draft: Extract<AgentDraft, { type: "earn" }>,
+  account: string,
+  onProgress?: OnProgress,
+): Promise<AgentTurnResult> {
+  try {
+    emitStep(onProgress, "earn", 0);
+    if (draft.action === "deposit") {
+      const amount = draft.amount ?? 0;
+      emitStep(onProgress, "earn", 1);
+      const principal = await earnDeposit(account, draft.poolId, amount);
+      emitStep(onProgress, "earn", 2);
+      const yr = (amount * draft.apy) / 100;
+      recordTransfer(
+        {
+          direction: "sent",
+          counterparty: `Earn · ${draft.poolName}`,
+          counterpartyHandle: draft.poolId,
+          sendAmount: amount,
+          sendCurrency: "USD",
+          receiveAmount: amount,
+          receiveCurrency: "USD",
+          payout: "earn",
+          reference: `EARN-${draft.poolId}`,
+        },
+        account,
+      ).catch(() => {});
+      return {
+        ok: true,
+        matched: false,
+        reply: `Done. **$${fmt(amount)}** is now earning in **${draft.poolName}** at about ${draft.apy.toFixed(1)}% a year (about $${fmt(yr)}). Your balance there is $${fmt(principal)}. You can withdraw anytime.`,
+        receipt: {
+          kind: "earn",
+          title: "Added to savings",
+          status: "done",
+          lines: [
+            { label: "Pool", value: draft.poolName },
+            { label: "Deposited", value: `$${fmt(amount)}` },
+            { label: "APY", value: `${draft.apy.toFixed(1)}%` },
+            { label: "Projected / yr", value: `$${fmt(yr)}` },
+          ],
+          reference: `EARN-${draft.poolId}`,
+        },
+      };
+    }
+    // Withdraw.
+    emitStep(onProgress, "earn", 1);
+    const ok = await earnWithdraw(account, draft.poolId);
+    emitStep(onProgress, "earn", 2);
+    if (!ok) return { ok: false, reply: "I couldn't find that savings position to withdraw." };
+    return {
+      ok: true,
+      matched: false,
+      reply: `Done. I withdrew everything from **${draft.poolName}** back to your balance.`,
+      receipt: {
+        kind: "earn",
+        title: "Withdrew from savings",
+        status: "done",
+        lines: [
+          { label: "Pool", value: draft.poolName },
+          { label: "Status", value: "Withdrawn" },
+        ],
+      },
+    };
+  } catch {
+    return { ok: false, reply: "That savings action didn't go through. Try again in a moment." };
   }
 }
 

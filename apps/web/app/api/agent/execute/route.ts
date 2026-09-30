@@ -40,6 +40,14 @@ const draftSchema = z.discriminatedUnion("type", [
     beneficiary: z.string().max(120),
     label: z.string().max(80),
   }),
+  z.object({
+    type: z.literal("earn"),
+    action: z.enum(["deposit", "withdraw"]),
+    poolId: z.string().min(1).max(40),
+    poolName: z.string().max(60),
+    amount: z.number().positive().max(1e12).optional(),
+    apy: z.number().nonnegative().max(1000),
+  }),
 ]);
 
 const schema = z.object({ draft: draftSchema });

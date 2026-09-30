@@ -13,6 +13,7 @@ export const AGENT_STEPS: Record<string, string[]> = {
   transfer: ["Placing your transfer on-chain", "Matching and settling in local currency", "Finishing up"],
   payout: ["Settling your funds", "Sending to your bank", "Confirming the payout"],
   bill: ["Reaching your provider", "Sending it through", "Confirming"],
+  earn: ["Opening your savings pool", "Moving your funds", "Confirming"],
   // Client-side traces (fast, timer-driven).
   understand: ["Reading what you need", "Checking today's rate", "Getting your options ready"],
   upload: ["Reading your file", "Drafting each payout", "Getting them ready to review"],
