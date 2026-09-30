@@ -14,6 +14,8 @@ export type Msg =
       pending?: boolean;
       marketsUrl?: string;
       billsUrl?: string;
+      /** Deep link to the Cross-chain screen for a recognized cross-chain move. */
+      crossChainUrl?: string;
       /** A drafted bulk action parsed from an uploaded file (read + draft only). */
       upload?: ParsedUpload;
       /** A money-moving action the agent drafted, awaiting the user's consent. */

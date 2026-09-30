@@ -16,6 +16,7 @@ import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
+import { parseSwapIntent } from "./swap-intent";
 import { fetchAggregatedBalance } from "../chain/aggregateBalance";
 import { fetchOnchainActivity } from "../chain/history";
 import { getBankAccount } from "../bank";
@@ -93,6 +94,8 @@ export type AgentTurnResult = {
   billPaid?: boolean;
   marketsUrl?: string;
   billsUrl?: string;
+  /** Deep link to the Cross-chain screen, prefilled for a recognized move. */
+  crossChainUrl?: string;
   understood?: string;
   intent?: { from: string; to: string; amount: number; recipient: string };
   submitTx?: string;
@@ -109,6 +112,11 @@ const TOLERANCE = 0.03;
 
 function fmt(n: number): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+/** A chain's label without the network suffix, for compact table cells. */
+function plainChain(label: string): string {
+  return label.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || label;
 }
 
 function billVerb(category: string): string {
@@ -137,20 +145,31 @@ function ruleReply(message: string): AgentTurnResult {
       : /nigeria/i.test(message)
         ? "Nigeria"
         : "";
-  if (!amt) {
+  // A recognizable local-currency send: reflect exactly what I understood.
+  if (amt && (cur || dest)) {
     return {
       ok: true,
       matched: false,
-      reply:
-        "Tell me an amount and where to send — e.g. “send 50,000 naira to Ghana” — and I'll settle it peer-to-peer in local currency.",
+      reply: `Got it. I'd settle **${Number(amt).toLocaleString()} ${cur || "in local currency"}**${
+        dest ? ` to **${dest}**` : ""
+      }, peer-to-peer in local currency. (Demo mode: set the agent key to execute this on-chain.)`,
     };
   }
+  // Anything I couldn't place: show what I can actually do, formatted, so the
+  // reply is never a dead end.
   return {
     ok: true,
     matched: false,
-    reply: `Got it — I'd settle ${Number(amt).toLocaleString()} ${cur}${
-      dest ? ` to ${dest}` : ""
-    } peer-to-peer in local currency. (Demo mode — set LLM_API_KEY and the agent key to execute this on-chain.)`,
+    reply: [
+      "I'm not sure what to do with that yet. Here's what I can help with:",
+      "",
+      "- **Send money** across borders, e.g. `send 50,000 naira to Ghana`",
+      "- **Move an asset across chains**, e.g. `swap 10 USDC from Arc to Base`",
+      "- **Check your balance** or **recent activity**",
+      "- **Pay a bill**: airtime, data or electricity",
+      "- **Cash out** to your linked bank",
+      "- **Create a prediction market**",
+    ].join("\n"),
   };
 }
 
@@ -316,12 +335,19 @@ export async function runAgentTurn(
             : "You don't hold any stablecoins yet on the chains I read. Add money to get started.",
         };
       }
-      const top = holdings
-        .slice(0, 6)
-        .map((h) => `${fmt(h.amount)} ${h.symbol} on ${h.chainLabel.replace(/\s*(mainnet|testnet|sepolia|devnet)\s*/gi, "").trim() || h.chainLabel}`)
-        .join("; ");
+      const rows = holdings
+        .slice(0, 12)
+        .map((h) => `| ${fmt(h.amount)} | ${h.symbol} | ${plainChain(h.chainLabel)} |`)
+        .join("\n");
       const who = balAsk.address ? "That wallet holds" : "You hold";
-      return { ok: true, matched: false, reply: `${who} about $${fmt(total)} across chains: ${top}.` };
+      const reply = [
+        `${who} about **$${fmt(total)}** across chains.`,
+        "",
+        "| Amount | Asset | Chain |",
+        "| --- | --- | --- |",
+        rows,
+      ].join("\n");
+      return { ok: true, matched: false, reply };
     } catch {
       return { ok: false, reply: "I couldn't read that balance on-chain just now. Try again shortly." };
     }
@@ -344,13 +370,44 @@ export async function runAgentTurn(
         return { ok: true, matched: false, reply: "No recent on-chain activity for that wallet yet." };
       }
       const lines = items
-        .map((a) => `${a.kind === "sent" ? "sent" : "received"} ${fmt(a.amount)} ${a.symbol} ${a.kind === "sent" ? "to" : "from"} ${a.counterparty}`)
-        .join("; ");
-      const who = actAsk.address ? "That wallet recently" : "You recently";
-      return { ok: true, matched: false, reply: `${who}: ${lines}.` };
+        .map(
+          (a) =>
+            `- **${a.kind === "sent" ? "Sent" : "Received"} ${fmt(a.amount)} ${a.symbol}** ${a.kind === "sent" ? "to" : "from"} \`${a.counterparty}\` · ${plainChain(a.chainLabel)}`,
+        )
+        .join("\n");
+      const who = actAsk.address ? "That wallet's recent activity:" : "Your recent activity:";
+      return { ok: true, matched: false, reply: `${who}\n\n${lines}` };
     } catch {
       return { ok: false, reply: "I couldn't read that wallet's activity just now. Try again shortly." };
     }
+  }
+
+  // Cross-chain move ("swap USDC on Arc to Base") — names two chains, so it's a
+  // bridge, not same-chain FX. Signing a cross-chain move needs the in-app smart
+  // wallet, which lives in the browser, so the agent understands it, lays it out
+  // clearly, and hands off to the Cross-chain screen to sign gaslessly in-app.
+  const swap = parseSwapIntent(message);
+  if (swap) {
+    const net = swap.testnet ? " (testnet)" : "";
+    const amountCell = swap.amount ? `**${fmt(swap.amount)} ${swap.token}**` : `**${swap.token}**`;
+    const reply = [
+      "Here's the cross-chain move I set up:",
+      "",
+      "| | |",
+      "| --- | --- |",
+      `| **Asset** | ${amountCell} |`,
+      `| **From** | ${swap.from}${net} |`,
+      `| **To** | ${swap.to}${net} |`,
+      "",
+      "Tap **Open Cross-chain** to review and sign it in-app. No wallet popup, gas is on us.",
+    ].join("\n");
+    return {
+      ok: true,
+      matched: false,
+      understood: `Move ${swap.token} ${swap.from} to ${swap.to}`,
+      reply,
+      crossChainUrl: "/swap?tab=crosschain",
+    };
   }
 
   // On-chain settlement — the web2 -> web3 bridge. Runs on whichever chain is

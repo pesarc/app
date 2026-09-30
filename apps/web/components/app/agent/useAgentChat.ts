@@ -114,6 +114,7 @@ export function useAgentChat() {
             settlements: data.settlements,
             marketsUrl: data.marketsUrl,
             billsUrl: data.billsUrl,
+            crossChainUrl: data.crossChainUrl,
             draft: data.draft,
             draftState: data.draft ? "pending" : undefined,
           },
