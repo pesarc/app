@@ -20,39 +20,47 @@ const DEFAULTS: Corridor[] = [
   { from: "GBP", to: "KES" },
 ];
 
-const STORE_KEY = "pesarc.corridors.v1";
+// v2 stores the FULL list (not just extras) so any corridor — including the
+// seeded ones — can be removed and stay removed.
+const STORE_KEY = "pesarc.corridors.v2";
+const LEGACY_KEY = "pesarc.corridors.v1";
 const flagFor = (c: CurrencyCode) => CURRENCIES[c]?.flag ?? "🌍";
 const keyOf = (c: Corridor) => `${c.from}-${c.to}`;
+const clean = (list: unknown): Corridor[] =>
+  Array.isArray(list) ? (list as Corridor[]).filter((c) => c && c.from && c.to) : [];
 
-function loadPinned(): Corridor[] {
+// First run seeds the defaults; after that the stored list is the source of
+// truth (an empty list means the user cleared them all — we don't re-seed).
+function loadCorridors(): Corridor[] {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Corridor[];
-    return Array.isArray(parsed) ? parsed.filter((c) => c && c.from && c.to) : [];
+    if (raw) return clean(JSON.parse(raw));
+    const legacy = clean(JSON.parse(localStorage.getItem(LEGACY_KEY) || "null"));
+    return [
+      ...DEFAULTS,
+      ...legacy.filter((c) => !DEFAULTS.some((d) => keyOf(d) === keyOf(c))),
+    ];
   } catch {
-    return [];
+    return [...DEFAULTS];
   }
 }
 
 export default function SendAbroad() {
-  const [pinned, setPinned] = useState<Corridor[]>([]);
+  const [all, setAll] = useState<Corridor[]>([]);
   const [adding, setAdding] = useState(false);
   const [from, setFrom] = useState<CurrencyCode>("USD");
   const [to, setTo] = useState<CurrencyCode>("GHS");
 
-  useEffect(() => setPinned(loadPinned()), []);
+  useEffect(() => setAll(loadCorridors()), []);
 
   const persist = (next: Corridor[]) => {
-    setPinned(next);
+    setAll(next);
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(next));
     } catch {
-      /* private mode / blocked storage — pins just won't persist */
+      /* private mode / blocked storage — edits just won't persist */
     }
   };
-
-  const all = [...DEFAULTS, ...pinned.filter((p) => !DEFAULTS.some((d) => keyOf(d) === keyOf(p)))];
 
   const add = () => {
     if (from === to) return;
@@ -61,12 +69,11 @@ export default function SendAbroad() {
       setAdding(false);
       return;
     }
-    persist([...pinned, c]);
+    persist([...all, c]);
     setAdding(false);
   };
 
-  const remove = (c: Corridor) => persist(pinned.filter((p) => keyOf(p) !== keyOf(c)));
-  const isPinned = (c: Corridor) => pinned.some((p) => keyOf(p) === keyOf(c));
+  const remove = (c: Corridor) => persist(all.filter((p) => keyOf(p) !== keyOf(c)));
 
   const opts = SEND_CURRENCIES;
 
@@ -85,15 +92,13 @@ export default function SendAbroad() {
             key={keyOf(c)}
             className="relative flex-none w-[168px] bg-snow border border-fog rounded-card p-4 shadow-card-flat"
           >
-            {isPinned(c) && (
-              <button
-                onClick={() => remove(c)}
-                aria-label={`Remove ${c.from} to ${c.to}`}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/[0.04] text-slate flex items-center justify-center hover:bg-black/[0.08]"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <button
+              onClick={() => remove(c)}
+              aria-label={`Remove ${c.from} to ${c.to}`}
+              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/[0.04] text-slate flex items-center justify-center hover:bg-black/[0.08]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
             <div className="flex items-center gap-1.5 mb-3">
               <span className="text-xl">{flagFor(c.from)}</span>
               <svg width="34" height="14" viewBox="0 0 34 14" fill="none">
