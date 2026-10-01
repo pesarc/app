@@ -91,9 +91,9 @@ async function paystackAssign(
     });
     const j = (await res.json()) as { status?: boolean; message?: string };
     if (j.status) return { ok: true, email };
-    return { ok: false, error: j.message || "Paystack declined the request." };
+    return { ok: false, error: j.message || "The payout provider declined the request." };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Paystack request failed." };
+    return { ok: false, error: e instanceof Error ? e.message : "The payout request failed." };
   }
 }
 

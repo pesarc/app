@@ -56,7 +56,7 @@ export function getQuote(input: QuoteInput): Quote {
 
   // Small transfers settle optimistically via matched flows; larger ones bridge.
   const matched = sendAmount <= 250;
-  const route = matched ? "CoW match · optimistic credit" : "Circle CCTP V2 Fast";
+  const route = matched ? "Instant netting · optimistic credit" : "Fast cross-chain";
   const etaSeconds = payout === "wallet" ? 8 : matched ? 15 : 30;
 
   // Legacy remittance comparison (PRD: ~8.78% Sub-Saharan average).
