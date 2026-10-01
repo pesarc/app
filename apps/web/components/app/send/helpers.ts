@@ -88,8 +88,9 @@ export async function isEvmContract(address: string): Promise<boolean> {
   }
 }
 
-/** A recipient that is a raw on-chain wallet address. EVM goes through the local-
- *  currency corridor; Solana receives USDC directly. */
+/** A recipient that is a raw on-chain wallet address. Both EVM and Solana wallets
+ *  receive the actual token the sender holds (USDC/USD) directly — a plain
+ *  transfer, not the local-currency corridor swap. */
 export function recipientFromAddress(addr: string): Recipient {
   const a = addr.trim();
   const solana = isSolanaAddress(a) && !isEvmAddress(a);
@@ -99,9 +100,14 @@ export function recipientFromAddress(addr: string): Recipient {
     handle: a,
     country: solana ? "Solana wallet" : "On-chain wallet",
     flag: solana ? "◎" : "🔗",
-    receiveCurrency: solana ? "USD" : "NGN",
+    receiveCurrency: "USD",
     initialsColor: "#6b4ef0",
   };
+}
+
+/** True when a recipient is a raw on-chain wallet address (vs contact/bank/phone). */
+export function isWalletRecipient(r: { id: string }): boolean {
+  return r.id.startsWith("wallet:");
 }
 
 export function savedToRecipient(s: SavedRecipient): Recipient {

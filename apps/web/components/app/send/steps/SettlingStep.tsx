@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check } from "@/components/icons";
+import { AlertCircle, Check } from "@/components/icons";
 import { type Recipient } from "@pesarc/sdk/account";
 import { formatMoney } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type Quote } from "@pesarc/sdk/quote";
+import { Button } from "@/components/app/ui";
 import type { SendResult } from "../types";
 
 export function SettlingStep({
@@ -12,12 +13,15 @@ export function SettlingStep({
   quote,
   executeReal,
   onDone,
+  onCancel,
 }: {
   recipient: Recipient;
   quote: Quote;
-  /** When present, performs a real gasless on-chain swap. */
+  /** When present, performs a real gasless on-chain send. */
   executeReal?: () => Promise<SendResult>;
   onDone: (result?: SendResult) => void;
+  /** Called when a real send fails — the user goes back, nothing is "sent". */
+  onCancel: () => void;
 }) {
   const payoutLabel =
     PAYOUT_METHODS.find((m) => m.id === quote.payout)?.label ?? "payout";
@@ -34,6 +38,7 @@ export function SettlingStep({
   );
 
   const [active, setActive] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,11 +53,14 @@ export function SettlingStep({
           setActive(3);
           onDone(result);
         })
-        .catch(() => {
-          // Never hard-fail the demo — fall back to a simulated success.
+        .catch((e: unknown) => {
+          // A real send failed — surface it, never fake success. Funds stay put.
           if (cancelled) return;
-          setActive(3);
-          onDone(undefined);
+          const msg =
+            (e as { shortMessage?: string; message?: string })?.shortMessage ||
+            (e as Error)?.message ||
+            "That transfer didn't go through.";
+          setError(msg);
         });
     } else {
       timers.push(setTimeout(() => setActive(1), 1100));
@@ -65,6 +73,22 @@ export function SettlingStep({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (error) {
+    return (
+      <div className="py-10 text-center">
+        <div className="mx-auto w-16 h-16 rounded-full bg-alert/10 flex items-center justify-center mb-5">
+          <AlertCircle className="w-8 h-8 text-alert" />
+        </div>
+        <h1 className="text-xl font-semibold text-ink mb-1">Transfer didn&apos;t go through</h1>
+        <p className="text-slate text-sm mb-1">Nothing was sent — your balance is unchanged.</p>
+        <p className="text-slate text-[13px] mb-7 px-6 break-words">{error}</p>
+        <Button size="lg" block onClick={onCancel}>
+          Go back
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
