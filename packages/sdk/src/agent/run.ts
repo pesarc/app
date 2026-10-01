@@ -16,7 +16,7 @@ import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
-import { parseSwapIntent } from "./swap-intent";
+import { parseSwapIntent, swapHandoffUrl } from "./swap-intent";
 import { parseEarnIntent } from "./earn-intent";
 import { parseStakeIntent } from "./stake-intent";
 import { emitStep, type OnProgress } from "./progress";
@@ -563,7 +563,10 @@ export async function runAgentTurn(
       matched: false,
       understood: `Move ${swap.token} ${swap.from} to ${swap.to}`,
       reply,
-      crossChainUrl: "/swap?tab=crosschain",
+      // Deep link pre-fills the move (coin, from, to, amount, network) so the
+      // user lands one tap from signing — the hand-off is only for the signature,
+      // which must come from the in-app smart wallet.
+      crossChainUrl: swapHandoffUrl(swap),
     };
   }
 

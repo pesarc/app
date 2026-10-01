@@ -85,3 +85,34 @@ export function parseSwapIntent(message: string): SwapIntent | null {
 
   return { amount, token, from, to, testnet };
 }
+
+// Friendly chain label -> the Cross-chain screen's own chain key (CCTP keys,
+// shared across testnet and mainnet). Only chains the bridge can pre-select are
+// here; anything else is left for the user to pick. Celo has no CCTP corridor.
+const CHAIN_KEY: Record<string, string> = {
+  Arc: "arc",
+  Base: "base",
+  Arbitrum: "arbitrum",
+  Polygon: "polygon",
+  Optimism: "optimism",
+  Avalanche: "avalanche",
+  Ethereum: "ethereum",
+};
+
+/**
+ * Deep link that lands the user on the Cross-chain screen with the move already
+ * filled in — coin, from, to, amount and network — so it's one tap to sign.
+ * Omits any field we can't map cleanly, so a partial intent still pre-fills what
+ * it can rather than carrying a bad value.
+ */
+export function swapHandoffUrl(intent: SwapIntent): string {
+  const p = new URLSearchParams({ tab: "crosschain" });
+  p.set("coin", intent.token);
+  const from = CHAIN_KEY[intent.from];
+  const to = CHAIN_KEY[intent.to];
+  if (from) p.set("from", from);
+  if (to) p.set("to", to);
+  if (intent.amount && intent.amount > 0) p.set("amount", String(intent.amount));
+  p.set("net", intent.testnet ? "testnet" : "mainnet");
+  return `/swap?${p.toString()}`;
+}

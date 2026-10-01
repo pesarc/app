@@ -11,8 +11,10 @@ import {
   Sparkles,
   TrendingUp,
 } from "@/components/icons";
-import { POOLS, poolApy, type Pool } from "@pesarc/sdk/earn";
+import { POOLS, poolApy, VAULT_POOL_ID, type Pool } from "@pesarc/sdk/earn";
 import { fetchLiveCorridorTvl, liveTvlAvailable } from "@pesarc/sdk/chain/livePool";
+import { fetchVaultSnapshot, type VaultSnapshot } from "@pesarc/sdk/chain/vault-read";
+import { chainByKey } from "@pesarc/sdk/chain/registry";
 import { authedFetch, authedPostJson } from "@pesarc/sdk/api/client";
 import { ACCOUNT } from "@pesarc/sdk/account";
 import { formatMoney, CURRENCIES } from "@pesarc/sdk/money";
@@ -53,7 +55,7 @@ function useLivePools(): Pool[] {
 
 export default function EarnFlow() {
   const { isAdvanced } = useUIMode();
-  const pools = useLivePools();
+  const basePools = useLivePools();
   const smart = useSmartWallet();
   const { chain } = useActiveEvmChain();
   const [positions, setPositions] = useState<Position[]>([]);
@@ -66,6 +68,37 @@ export default function EarnFlow() {
   const vault = corridorVaultFor(chain.key);
   const usdc = (chain.tokens as Record<string, `0x${string}`>)?.USD;
   const onChainEarn = Boolean(vault && usdc && smart.ready && smart.address);
+
+  // Read the live vault (TVL + the user's real position) so Earn shows the
+  // on-chain CorridorVault, not an illustrative venue. Re-reads when the chain,
+  // vault or wallet changes, and after a deposit/withdraw settles.
+  const [snap, setSnap] = useState<VaultSnapshot | null>(null);
+  const [snapTick, setSnapTick] = useState(0);
+  useEffect(() => {
+    const cfg = chainByKey(chain.key);
+    if (!vault || !cfg) {
+      setSnap(null);
+      return;
+    }
+    let ok = true;
+    fetchVaultSnapshot(cfg, vault, smart.address as `0x${string}` | undefined).then((s) => {
+      if (ok) setSnap(s);
+    });
+    return () => {
+      ok = false;
+    };
+  }, [chain.key, vault, smart.address, snapTick]);
+
+  // When the vault is live, overlay its pool with the real on-chain TVL and venue
+  // so the Earn list reflects the CorridorVault instead of an illustrative label.
+  const pools = useMemo(() => {
+    if (!onChainEarn || !snap) return basePools;
+    return basePools.map((p) =>
+      p.id === VAULT_POOL_ID
+        ? { ...p, venue: "Pesarc vault" as const, live: true, tvlUsd: snap.tvl }
+        : p,
+    );
+  }, [basePools, onChainEarn, snap]);
 
   // Positions are durable server-side records now — load the account's own.
   useEffect(() => {
@@ -90,6 +123,7 @@ export default function EarnFlow() {
       try {
         const hash = await evmVaultDeposit(smart, { vault: vault!, asset: usdc!, amount: principal });
         if (!hash) return;
+        setSnapTick((t) => t + 1); // re-read the vault so the position/TVL update
       } catch {
         return;
       }
@@ -111,6 +145,7 @@ export default function EarnFlow() {
       try {
         const hash = await evmVaultWithdraw(smart, { vault: vault!, amount: pos.principal });
         if (!hash) return;
+        setSnapTick((t) => t + 1); // re-read the vault so the position/TVL update
       } catch {
         return;
       }
@@ -140,6 +175,9 @@ export default function EarnFlow() {
         Put your money to work earning fees on a corridor. Bounded, insured
         risk — withdraw anytime.
       </p>
+
+      {/* Live on-chain vault readout — real TVL and the user's own position. */}
+      {onChainEarn && snap && <VaultStrip snap={snap} chainLabel={chain.label} />}
 
       {/* Active positions */}
       {positions.length > 0 && (
@@ -502,6 +540,37 @@ function PositionCard({
           Add
         </Button>
       </div>
+    </Card>
+  );
+}
+
+/* ---------------- Live vault strip ---------------- */
+
+function VaultStrip({ snap, chainLabel }: { snap: VaultSnapshot; chainLabel: string }) {
+  const usd = (n: number) =>
+    "$" + n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return (
+    <Card className="p-4 mb-7 border-sky/30">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-flex items-center gap-1 rounded-full bg-sky/10 text-sky-deep text-[10px] font-bold uppercase tracking-wide px-2 py-0.5">
+          <Radio className="w-3 h-3" /> Live vault
+        </span>
+        <span className="text-xs text-slate">Pesarc CorridorVault · {chainLabel}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-xs text-slate mb-0.5">Your vault balance</div>
+          <div className="text-2xl font-semibold text-ink numerals">{usd(snap.position)}</div>
+        </div>
+        <div>
+          <div className="text-xs text-slate mb-0.5">Pool size (TVL)</div>
+          <div className="text-2xl font-semibold text-ink numerals">{usd(snap.tvl)}</div>
+        </div>
+      </div>
+      <p className="mt-3 text-[11px] text-slate/80 leading-relaxed">
+        Read live from the vault contract. Your balance grows with the vault's
+        share price as the strategy earns; any headline rate is indicative.
+      </p>
     </Card>
   );
 }
