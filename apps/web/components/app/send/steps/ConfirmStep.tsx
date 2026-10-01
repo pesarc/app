@@ -4,21 +4,25 @@ import { formatMoney, formatNumber } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type Quote } from "@pesarc/sdk/quote";
 import { Avatar, Button, Card } from "@/components/app/ui";
 import { formatEta } from "../QuoteBreakdown";
+import { isWalletRecipient } from "../helpers";
 import { Row, StepNav } from "../shared";
 
 export function ConfirmStep({
   recipient,
   quote,
   advanced,
+  walletChainLabel,
   onBack,
   onSend,
 }: {
   recipient: Recipient;
   quote: Quote;
   advanced: boolean;
+  walletChainLabel?: string;
   onBack: () => void;
   onSend: () => void;
 }) {
+  const isWallet = isWalletRecipient(recipient);
   const payoutLabel =
     PAYOUT_METHODS.find((m) => m.id === quote.payout)?.label ?? "";
 
@@ -58,7 +62,16 @@ export function ConfirmStep({
               {recipient.name}
             </span>
           </Row>
-          <Row label="Payout">{`${recipient.flag} ${payoutLabel}`}</Row>
+          {isWallet ? (
+            <>
+              <Row label="Wallet">
+                <span className="font-mono text-[13px] break-all">{recipient.handle}</span>
+              </Row>
+              <Row label="Network">{`${recipient.flag} ${walletChainLabel ?? "On-chain"}`}</Row>
+            </>
+          ) : (
+            <Row label="Payout">{`${recipient.flag} ${payoutLabel}`}</Row>
+          )}
           <Row label="Arrives">~{formatEta(quote.etaSeconds)}</Row>
           {advanced && (
             <>
