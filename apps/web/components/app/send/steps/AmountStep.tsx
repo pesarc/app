@@ -6,6 +6,7 @@ import { CURRENCIES, formatMoney, type CurrencyCode } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type PayoutMethod, type Quote } from "@pesarc/sdk/quote";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button } from "@/components/app/ui";
+import { Dropdown } from "@/components/app/Dropdown";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import { QuoteBreakdown, formatEta } from "../QuoteBreakdown";
@@ -24,6 +25,11 @@ export function AmountStep({
   quote,
   advanced,
   walletChainLabel,
+  walletIsEvm,
+  destChainKey,
+  setDestChainKey,
+  destChainOptions,
+  sourceChainLabel,
   onBack,
   onNext,
 }: {
@@ -38,6 +44,11 @@ export function AmountStep({
   quote: Quote | null;
   advanced: boolean;
   walletChainLabel?: string;
+  walletIsEvm?: boolean;
+  destChainKey?: string;
+  setDestChainKey?: (k: string) => void;
+  destChainOptions?: { key: string; label: string }[];
+  sourceChainLabel?: string;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -190,6 +201,30 @@ export function AmountStep({
               <div className="text-[12.5px] font-medium text-slate font-mono truncate">{recipient.handle}</div>
             </div>
           </div>
+
+          {/* Destination chain. Same chain = a direct transfer; a different chain
+              moves USDC cross-chain (CCTP) straight to this address. */}
+          {walletIsEvm && setDestChainKey && (destChainOptions?.length ?? 0) > 0 && (
+            <div className="mt-2.5">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">
+                Deliver on
+              </label>
+              <Dropdown
+                value={destChainKey ?? ""}
+                onChange={setDestChainKey}
+                ariaLabel="Destination chain"
+                options={[
+                  { value: "", label: `${sourceChainLabel ?? "This chain"} (same chain)` },
+                  ...(destChainOptions ?? []).map((c) => ({ value: c.key, label: c.label })),
+                ]}
+              />
+              {destChainKey ? (
+                <p className="mt-1.5 text-[12px] font-medium text-slate">
+                  Moves cross-chain via Circle CCTP — arrives on {walletChainLabel}.
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
       ) : bankLocked ? (
         <div className="mb-5">
