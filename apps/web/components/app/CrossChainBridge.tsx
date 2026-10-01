@@ -10,46 +10,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createWalletClient, createPublicClient, custom, http, encodeFunctionData } from "viem";
-import { Button, Card, Segmented } from "@/components/app/ui";
+import { Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
-import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import { STABLECOINS } from "@pesarc/sdk/stablecoins";
-import {
-  HYPER_ELIGIBLE_SYMBOLS,
-  hasHyperRoute,
-  hyperEndpoints,
-  hyperTokenFor,
-} from "@pesarc/sdk/chain/hyperbridge/registry";
-import { chainByKey } from "@pesarc/sdk/chain/registry";
-import { hyperSend } from "@pesarc/sdk/chain/hyperbridge/send";
+import { HYPER_ELIGIBLE_SYMBOLS } from "@pesarc/sdk/chain/hyperbridge/registry";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import WormholeAlgorand from "@/components/app/bridge/WormholeAlgorand";
-
-// Hyperbridge chain id -> registry chain key, so picking a "From" can set the
-// active network — the embedded smart wallet signs on whichever chain is active.
-const HYPER_CHAIN_KEY: Record<number, string> = {
-  84532: "base-sepolia",
-  421614: "arbitrum-sepolia",
-  11155111: "sepolia",
-  11155420: "optimism-sepolia",
-  80002: "polygon-amoy",
-  8453: "base",
-  42161: "arbitrum",
-  10: "optimism",
-  137: "polygon",
-  1: "ethereum",
-};
-
-// USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
-// is live). One selector, the rail is picked for the user.
-const COIN_OPTS = [
-  { value: "USDC", label: "🇺🇸 USDC" },
-  ...HYPER_ELIGIBLE_SYMBOLS.map((s) => {
-    const meta = STABLECOINS.find((c) => c.symbol === s);
-    return { value: s, label: meta ? `${meta.flag} ${s}` : s };
-  }),
-];
+import HyperPanel from "@/components/app/bridge/HyperPanel";
+import CctpTransferCard from "@/components/app/bridge/CctpTransferCard";
+import { HYPER_CHAIN_KEY, useTokenBalanceOn } from "@/components/app/bridge/shared";
 import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi";
 import {
   cctpChains,
@@ -64,7 +34,6 @@ import {
   quoteFast,
   maxFeeFor,
   fetchFee,
-  formatUsdc,
   viemChainFor,
   evmBridgeChains,
   relayMint,
@@ -79,6 +48,16 @@ import {
   type LifiQuote,
 } from "@pesarc/sdk/chain/aggregator/lifi";
 
+// USDC rides the Circle rail; the other coins ride Hyperbridge (when their route
+// is live). One selector, the rail is picked for the user.
+const COIN_OPTS = [
+  { value: "USDC", label: "🇺🇸 USDC" },
+  ...HYPER_ELIGIBLE_SYMBOLS.map((s) => {
+    const meta = STABLECOINS.find((c) => c.symbol === s);
+    return { value: s, label: meta ? `${meta.flag} ${s}` : s };
+  }),
+];
+
 const SOLANA_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const isSolAddr = (s: string) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
 
@@ -89,44 +68,6 @@ function eth(): any {
   return typeof window !== "undefined" ? (window as any).ethereum : undefined;
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-const BAL_ABI = [
-  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
-] as const;
-
-/** The smart wallet's balance of `token` on an arbitrary chain (not necessarily
- *  the active one), so cross-chain shows how much you actually hold on the FROM
- *  chain. Works for testnet and mainnet — it reads that chain's own RPC. */
-function useTokenBalanceOn(
-  token: `0x${string}` | undefined,
-  viemChain: { rpcUrls: { default: { http: readonly string[] } } } | undefined,
-  rpcUrl: string | undefined,
-  owner?: string,
-): { amount?: number; loading: boolean } {
-  const [state, setState] = useState<{ amount?: number; loading: boolean }>({ loading: false });
-  useEffect(() => {
-    if (!token || !owner || !viemChain || !rpcUrl) {
-      setState({ loading: false });
-      return;
-    }
-    let alive = true;
-    setState({ loading: true });
-    const pub = createPublicClient({ chain: viemChain as never, transport: http(rpcUrl) });
-    Promise.all([
-      pub.readContract({ address: token, abi: BAL_ABI, functionName: "balanceOf", args: [owner as `0x${string}`] }),
-      pub.readContract({ address: token, abi: BAL_ABI, functionName: "decimals" }).catch(() => 6),
-    ])
-      .then(([b, d]) => alive && setState({ amount: Number(b) / 10 ** Number(d), loading: false }))
-      .catch(() => alive && setState({ loading: false }));
-    return () => {
-      alive = false;
-    };
-    // rpcUrl identifies the chain; re-read only when token/owner/chain change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, owner, rpcUrl]);
-  return state;
-}
 
 export default function CrossChainBridge() {
   // Testnet first: it's the safe default (mainnet moves real USDC) and matches how
@@ -509,6 +450,9 @@ export default function CrossChainBridge() {
     }
   }
 
+  const submitDisabled =
+    busy || srcKey === dstKey || amountIn <= 0n || (viaLifi && !isSolAddr(recipient.trim()));
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
@@ -551,174 +495,38 @@ export default function CrossChainBridge() {
       {coin === "USDC" && mode === "algorand" && !isTestnet && <WormholeAlgorand />}
 
       {coin === "USDC" && mode === "usdc" && (
-        <Card className="mt-4 flex flex-col gap-4 p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-xs font-bold text-slate mb-1">From</div>
-              <div className={busy ? "pointer-events-none opacity-60" : ""}>
-                <Dropdown
-                  ariaLabel="Source chain"
-                  value={srcKey}
-                  onChange={pickSrc}
-                  options={srcChains.map((c) => ({
-                    value: c.key,
-                    label: c.label,
-                    icon: chainLogoUrlForLabel(c.label),
-                  }))}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate mb-1">To</div>
-              <div className={busy ? "pointer-events-none opacity-60" : ""}>
-                <Dropdown
-                  ariaLabel="Destination chain"
-                  value={dstKey}
-                  onChange={setDstKey}
-                  options={dstChains.map((c) => ({
-                    value: c.key,
-                    label: c.label,
-                    icon: chainLogoUrlForLabel(c.label),
-                  }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          {!viaLifi && (
-            <div>
-              <span className="text-xs font-bold text-slate">Speed</span>
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSpeed("fast")}
-                  disabled={busy || fastBps == null}
-                  className={`rounded-xl border p-2 text-left text-xs transition ${
-                    speed === "fast" && fastBps != null
-                      ? "border-sky bg-sky-tint/40"
-                      : "border-fog bg-snow"
-                  } disabled:opacity-50`}
-                >
-                  <div className="font-bold text-ink">Fast</div>
-                  <div className="text-slate">
-                    {feeLoading ? "checking…" : fastBps == null ? "unavailable" : "Arrives in seconds"}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSpeed("standard")}
-                  disabled={busy}
-                  className={`rounded-xl border p-2 text-left text-xs transition ${
-                    speed === "standard" || fastBps == null
-                      ? "border-sky bg-sky-tint/40"
-                      : "border-fog bg-snow"
-                  }`}
-                >
-                  <div className="font-bold text-ink">Standard</div>
-                  <div className="text-slate">About 15 min, free</div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          <label className="text-xs font-bold text-slate">
-            Amount ({coin})
-            <input
-              inputMode="decimal"
-              placeholder="0.00"
-              className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 text-lg font-bold text-ink"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-              disabled={busy}
-            />
-            <div className="mt-1 flex items-center justify-between text-[11px] font-normal">
-              <span className="text-slate">
-                {!smart.address
-                  ? "Sign in to see your balance"
-                  : srcBal.loading
-                    ? "Checking balance…"
-                    : srcBal.amount !== undefined
-                      ? `Balance ${srcBal.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${coin} on ${src.label}`
-                      : ""}
-              </span>
-              {srcBal.amount ? (
-                <button
-                  type="button"
-                  className="font-bold text-sky"
-                  onClick={() => setAmount(String(srcBal.amount))}
-                  disabled={busy}
-                >
-                  Max
-                </button>
-              ) : null}
-            </div>
-          </label>
-
-          <label className="text-xs font-bold text-slate">
-            Recipient on {dst.label}{" "}
-            <span className="font-normal">
-              {dst.kind === "solana"
-                ? "(required, Solana address)"
-                : src.kind === "solana"
-                  ? "(required, destination address)"
-                  : "(optional, defaults to your address)"}
-            </span>
-            <input
-              placeholder={dst.kind === "solana" ? "Solana address…" : "0x…"}
-              className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 text-sm font-mono text-ink"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value.trim())}
-              disabled={busy}
-            />
-          </label>
-
-          {q && (
-            <div className="rounded-xl bg-black/[0.03] p-3 text-sm">
-              <Row k="You send" v={`${formatUsdc(q.amountIn)} USDC on ${src.label}`} />
-              <Row k="They receive" v={`${formatUsdc(q.amountOut)} USDC on ${dst.label}`} />
-              <Row k="Fee" v={feeLabel(q.feeUsdc)} />
-              <Row k="Arrives in" v={q.etaLabel} />
-            </div>
-          )}
-
-          {viaLifi && (
-            <div className="rounded-xl bg-black/[0.03] p-3 text-sm">
-              {lifiLoading && <p className="text-slate">Finding the best route…</p>}
-              {!lifiLoading && lifiQ && (
-                <>
-                  <Row k="You send" v={`${amount || "0"} USDC on ${src.label}`} />
-                  <Row k="They receive" v={`${(Number(lifiQ.toAmount) / 1e6).toFixed(2)} USDC on Solana`} />
-                  <Row k="Fee" v={`~$${(lifiQ.feeUSD + lifiQ.gasUSD).toFixed(2)}`} />
-                  <Row k="Arrives in" v={`~${Math.max(1, Math.round(lifiQ.durationSec / 60))} min`} />
-                </>
-              )}
-              {!lifiLoading && !lifiQ && (
-                <p className="text-slate">Enter a Solana address to see the details.</p>
-              )}
-            </div>
-          )}
-
-          <Button
-            onClick={run}
-            disabled={busy || srcKey === dstKey || amountIn <= 0n || (viaLifi && !isSolAddr(recipient.trim()))}
-          >
-            {busy ? "Moving…" : `Move to ${dst.label}`}
-          </Button>
-
-          {note && (
-            <p className={`text-sm ${phase === "error" ? "text-alert" : "text-slate"}`}>{note}</p>
-          )}
-          {burnTx && (
-            <a className="text-xs font-semibold text-sky-deep underline" href={src.explorerTx(burnTx)} target="_blank" rel="noreferrer">
-              View on {src.label} ↗
-            </a>
-          )}
-          {mintTx && (
-            <a className="text-xs font-semibold text-sky-deep underline" href={dst.explorerTx(mintTx)} target="_blank" rel="noreferrer">
-              View on {dst.label} ↗
-            </a>
-          )}
-        </Card>
+        <CctpTransferCard
+          coin={coin}
+          busy={busy}
+          srcKey={srcKey}
+          dstKey={dstKey}
+          pickSrc={pickSrc}
+          setDstKey={setDstKey}
+          srcChains={srcChains}
+          dstChains={dstChains}
+          src={src}
+          dst={dst}
+          viaLifi={viaLifi}
+          speed={speed}
+          setSpeed={setSpeed}
+          fastBps={fastBps}
+          feeLoading={feeLoading}
+          amount={amount}
+          setAmount={setAmount}
+          recipient={recipient}
+          setRecipient={setRecipient}
+          smartAddress={smart.address}
+          srcBal={srcBal}
+          q={q}
+          lifiLoading={lifiLoading}
+          lifiQ={lifiQ}
+          submitDisabled={submitDisabled}
+          onSubmit={run}
+          note={note}
+          isError={phase === "error"}
+          burnTx={burnTx}
+          mintTx={mintTx}
+        />
       )}
 
       {coin === "USDC" && (
@@ -728,189 +536,6 @@ export default function CrossChainBridge() {
             : "New to a route? Moving a small amount first is a smart way to check everything works."}
         </p>
       )}
-    </div>
-  );
-}
-
-// Non-USDC coins move over Hyperbridge. The rail is wired but each coin needs its
-// cross-chain contracts deployed before a route goes live; until then we say so
-// plainly rather than offer a move that can't settle.
-function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork }) {
-  const hyperNet = network === "testnet" ? "testnet" : "mainnet";
-  const live = hasHyperRoute(hyperNet, symbol);
-  const endpoints = hyperEndpoints(hyperNet, symbol);
-  const [fromId, setFromId] = useState(endpoints[0]?.chainId ?? 0);
-  const [toId, setToId] = useState(endpoints[1]?.chainId ?? 0);
-  const [amount, setAmount] = useState("");
-  const [recipient, setRecipient] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState("");
-  const [errored, setErrored] = useState(false);
-  const smart = useSmartWallet();
-  const { chain: activeEvm, setChainKey } = useActiveEvmChain();
-
-  // Picking a source chain makes it the active network, so the embedded smart
-  // wallet signs the move there — in-app and gasless, no MetaMask.
-  const pickFrom = (v: string) => {
-    const id = Number(v);
-    setFromId(id);
-    const key = HYPER_CHAIN_KEY[id];
-    if (key) setChainKey(key);
-  };
-  // In-app (AA) is possible when the smart wallet is ready on the source chain.
-  const canAA = smart.ready && Boolean(smart.address) && activeEvm.chain.id === fromId;
-
-  // Your real balance of this coin on the FROM chain (underlying on the home
-  // chain, the HFT on a remote chain).
-  const fromCfg = chainByKey(HYPER_CHAIN_KEY[fromId] ?? "");
-  const holdToken = hyperTokenFor(hyperNet, symbol, fromId);
-  const fromBal = useTokenBalanceOn(holdToken, fromCfg?.chain, fromCfg?.rpcUrl, smart.address);
-
-  if (!live) {
-    return (
-      <Card className="mt-4 p-4">
-        <div className="text-[15px] font-bold text-harbor">Moving {symbol} across chains</div>
-        <p className="mt-1.5 text-sm text-slate">
-          {symbol} cross-chain is coming soon. It rides a different rail from USDC and we are
-          finishing its setup. USDC can move across chains today.
-        </p>
-        <p className="mt-3 text-xs text-slate/70">
-          Want to change currency instead? Use the Currencies tab to swap {symbol} into USDC, then
-          move the USDC.
-        </p>
-      </Card>
-    );
-  }
-
-  const chainOpts = endpoints.map((e) => ({
-    value: String(e.chainId),
-    label: e.label,
-    icon: chainLogoUrlForLabel(e.label),
-  }));
-  const same = fromId === toId;
-  const amt = Number(amount) || 0;
-  // Optional external recipient. Empty = send to your own address on the
-  // destination; a valid 0x address sends there instead.
-  const toAddr = recipient.trim();
-  const recipientValid = toAddr === "" || /^0x[a-fA-F0-9]{40}$/.test(toAddr);
-  // AA always needs an explicit recipient (defaults to self); the injected path
-  // lets hyperSend default to the connected account when left blank.
-  const effRecipient = toAddr
-    ? (toAddr as `0x${string}`)
-    : canAA
-      ? (smart.address as `0x${string}`)
-      : undefined;
-
-  const move = async () => {
-    if (amt <= 0 || same || busy || !recipientValid) return;
-    setBusy(true);
-    setErrored(false);
-    setNote(canAA ? `Signing in-app and sending ${amount} ${symbol}…` : `Sending ${amount} ${symbol}…`);
-    try {
-      const tx = await hyperSend(
-        {
-          network: hyperNet,
-          symbol,
-          fromChainId: fromId,
-          toChainId: toId,
-          amount,
-          recipient: effRecipient,
-        },
-        canAA ? smart : undefined,
-      );
-      setNote(`Sent from the source chain. It will arrive once Hyperbridge relays it. Tx ${tx.slice(0, 10)}…`);
-    } catch (e: any) {
-      setErrored(true);
-      setNote(e?.shortMessage || e?.message?.split("\n")[0] || "That didn't go through. Try again.");
-    }
-    setBusy(false);
-  };
-
-  return (
-    <Card className="mt-4 p-4 flex flex-col gap-3">
-      <div className="text-[15px] font-bold text-harbor">Move {symbol} across chains</div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <div className="text-xs font-bold text-slate mb-1">From</div>
-          <Dropdown ariaLabel="Source chain" value={String(fromId)} onChange={pickFrom} options={chainOpts} />
-        </div>
-        <div>
-          <div className="text-xs font-bold text-slate mb-1">To</div>
-          <Dropdown ariaLabel="Destination chain" value={String(toId)} onChange={(v) => setToId(Number(v))} options={chainOpts} />
-        </div>
-      </div>
-      <label className="text-xs font-bold text-slate">
-        Amount ({symbol})
-        <input
-          inputMode="decimal"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-          className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 text-lg font-bold text-ink"
-          disabled={busy}
-        />
-        <div className="mt-1 flex items-center justify-between text-[11px] font-normal">
-          <span className="text-slate">
-            {!smart.address
-              ? "Sign in to see your balance"
-              : fromBal.loading
-                ? "Checking balance…"
-                : fromBal.amount !== undefined
-                  ? `Balance ${fromBal.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${symbol}`
-                  : ""}
-          </span>
-          {fromBal.amount ? (
-            <button type="button" className="font-bold text-sky" onClick={() => setAmount(String(fromBal.amount))} disabled={busy}>
-              Max
-            </button>
-          ) : null}
-        </div>
-      </label>
-      <label className="text-xs font-bold text-slate">
-        Recipient (optional)
-        <input
-          inputMode="text"
-          placeholder="0x… — defaults to your wallet"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value.trim())}
-          spellCheck={false}
-          className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 font-mono text-[13px] text-ink"
-          disabled={busy}
-        />
-        {!recipientValid && (
-          <span className="mt-1 block text-[11px] font-normal text-alert">
-            Enter a valid 0x wallet address, or leave blank to send to yourself.
-          </span>
-        )}
-      </label>
-      {same && <p className="text-[13px] text-slate">Pick two different chains.</p>}
-      <Button onClick={move} disabled={busy || same || amt <= 0 || !recipientValid}>
-        {busy ? "Moving…" : `Move ${symbol}`}
-      </Button>
-      {note && <p className={`text-sm ${errored ? "text-alert" : "text-slate"}`}>{note}</p>}
-      <p className="text-[11px] text-slate/70">
-        {canAA
-          ? "Signed in your Pesarc wallet, gasless — no pop-ups. "
-          : "You'll approve this in your connected wallet. "}
-        Sends to {toAddr ? "the recipient address" : "your own address"} on the destination;
-        delivery is handled by Hyperbridge relayers after the source transaction confirms.
-      </p>
-    </Card>
-  );
-}
-
-function feeLabel(v: bigint): string {
-  if (v === 0n) return "Free";
-  const usd = Number(v) / 1_000_000;
-  if (usd < 0.01) return `~$${usd.toFixed(4)}`;
-  return `${usd.toFixed(2)} USDC`;
-}
-
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex items-center justify-between py-0.5">
-      <span className="text-slate">{k}</span>
-      <span className="font-semibold text-ink">{v}</span>
     </div>
   );
 }
