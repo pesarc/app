@@ -25,6 +25,7 @@ import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { corridorVaultFor, evmVaultDeposit, evmVaultWithdraw } from "@pesarc/sdk/chain/vault-write";
+import AllocationBreakdown from "./AllocationBreakdown";
 import { Button, Card } from "@/components/app/ui";
 import { StablecoinSelect } from "@/components/app/StablecoinSelect";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
@@ -136,7 +137,7 @@ export default function EarnFlow() {
       return [...prev, { poolId, principal }];
     });
     // Mirror to the ledger for display (best-effort).
-    authedPostJson("/api/earn", { poolId, amount: principal }).catch(() => {});
+    authedPostJson("/api/earn", { poolId, amount: principal, chainKey: chain.key }).catch(() => {});
   };
 
   const withdraw = async (poolId: string) => {
@@ -178,6 +179,8 @@ export default function EarnFlow() {
 
       {/* Live on-chain vault readout — real TVL and the user's own position. */}
       {onChainEarn && snap && <VaultStrip snap={snap} chainLabel={chain.label} />}
+      {/* Where the pooled deposits are working across markets. */}
+      {onChainEarn && vault && <AllocationBreakdown vault={vault} chainKey={chain.key} />}
 
       {/* Active positions */}
       {positions.length > 0 && (
