@@ -12,6 +12,7 @@ import { ConsentCard } from "./ConsentCard";
 import { Receipt } from "./Receipt";
 import { RichText } from "./RichText";
 import { RouteCard } from "./RouteCard";
+import { StakeCard } from "./StakeCard";
 
 const DEFAULT_STEPS = ["Reading what you need", "Checking today's rate", "Getting your options ready"];
 
@@ -142,6 +143,8 @@ export function MessageList({
                 )}
 
                 {m.route && <RouteCard plan={m.route} />}
+
+                {m.stake && <StakeCard plan={m.stake} />}
 
                 {m.receipt && <Receipt receipt={m.receipt} />}
 

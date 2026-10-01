@@ -21,6 +21,20 @@ import { parseRouteIntent, routePlanReply, type RoutePlan } from "./route-intent
 export type { RoutePlan } from "./route-intent";
 import { parseEarnIntent } from "./earn-intent";
 import { parseStakeIntent } from "./stake-intent";
+import { fetchLiveMarkets } from "../markets.live";
+
+/** A drafted on-chain market stake the user confirms IN CHAT (no redirect). The
+ *  numeric marketId + collateral come from the LIVE on-chain market, so the stake
+ *  can't land in the wrong pool. The StakeCard signs it via the smart wallet. */
+export type StakePlan = {
+  marketId: number;
+  question: string;
+  side: "yes" | "no";
+  amount?: number;
+  /** Collateral token address from the live market. */
+  collateralToken: `0x${string}`;
+  chainKey?: string;
+};
 import { emitStep, type OnProgress } from "./progress";
 import { POOLS, poolApy, findPool, type Pool } from "../earn";
 import { deposit as earnDeposit, withdraw as earnWithdraw, listPositions } from "../earn-positions";
@@ -127,6 +141,8 @@ export type AgentTurnResult = {
   receipt?: AgentReceipt;
   /** A multi-hop cross-chain route the browser runs leg by leg. */
   route?: RoutePlan;
+  /** An on-chain market stake the user confirms + signs in chat (no redirect). */
+  stake?: StakePlan;
 };
 
 // Slippage the agent accepts vs the realized rate when it has one.
@@ -584,11 +600,45 @@ export async function runAgentTurn(
     };
   }
 
-  // Market stake ("stake 20 on Yes for USD/NGN"). Signing a stake needs the
-  // user's smart wallet (in the browser), so the agent finds the market and hands
-  // off to the Markets stake sheet to sign in-app. Read-only here, no consent.
+  // Market stake ("stake 20 on Yes for USD/NGN"). The agent lays it out and the
+  // user confirms + signs IN CHAT (no redirect). It prefers a REAL on-chain
+  // market — which carries the true numeric marketId + collateral — so the stake
+  // can never land in the wrong pool; the StakeCard shows the market for the user
+  // to affirm before signing.
   const stake = parseStakeIntent(message);
   if (stake) {
+    const liveRaw = await fetchLiveMarkets().catch(() => null);
+    const tradable = (liveRaw ?? [])
+      .filter((m) => m.question && m.status === 0 && m.collateral) // binary, Trading
+      .map((m) => ({ ...m, question: m.question as string }));
+    const liveMatch = matchMarket(tradable, stake.query);
+    if (liveMatch) {
+      const sideLabel = stake.side === "yes" ? "Yes" : "No";
+      const reply = [
+        `Ready to stake on **${sideLabel}**:`,
+        "",
+        `**${liveMatch.question}**`,
+        "",
+        "Check the market, side and amount below, then confirm here — I'll sign it in your wallet, gaslessly. No redirect.",
+      ].join("\n");
+      return {
+        ok: true,
+        matched: false,
+        understood: `Stake ${sideLabel} on ${liveMatch.question}`,
+        reply,
+        stake: {
+          marketId: liveMatch.id,
+          question: liveMatch.question,
+          side: stake.side,
+          amount: stake.amount,
+          collateralToken: liveMatch.collateral as `0x${string}`,
+          chainKey: opts.chainKey ?? activeChain().key,
+        },
+      };
+    }
+
+    // No live on-chain market matched — fall back to the catalog list (a market
+    // that isn't on-chain yet can't be staked in chat).
     const markets = await listCatalog("markets")
       .then((items) => items.map((it, i) => toMarket(it.data, i)).filter((m): m is NonNullable<typeof m> => Boolean(m)))
       .catch(() => []);
