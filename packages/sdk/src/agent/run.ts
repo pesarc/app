@@ -16,7 +16,7 @@ import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
-import { parseSwapIntent, swapHandoffUrl } from "./swap-intent";
+import { parseSwapIntent } from "./swap-intent";
 import { parseRouteIntent, routePlanReply, type RoutePlan } from "./route-intent";
 export type { RoutePlan } from "./route-intent";
 import { tryAgentCrossChain } from "./session-exec";
@@ -568,28 +568,30 @@ export async function runAgentTurn(
       return { ok: true, matched: true, understood: auto.understood, reply: auto.reply, receipt: auto.receipt };
     }
 
-    const net = swap.testnet ? " (testnet)" : "";
-    const amountCell = swap.amount ? `**${fmt(swap.amount)} ${swap.token}**` : `**${swap.token}**`;
+    // USDC rides CCTP, which the browser route runner can sign on ANY chain we
+    // support (Arc included) with the in-app smart wallet — gaslessly, no session
+    // key. So hand the UI a one-leg route it runs in place (tap Start -> sign ->
+    // settle), instead of navigating away to the Cross-chain screen.
+    if (swap.token === "USDC") {
+      const plan = { token: "USDC" as const, amount: swap.amount, chains: [swap.from, swap.to] };
+      const { reply, understood } = routePlanReply(plan);
+      return { ok: true, matched: false, understood, reply, route: plan };
+    }
+
+    // Everything else can't go cross-chain here: the rail is Circle CCTP, which is
+    // USDC-only. Say so and point to the same-chain swap to get USDC first, rather
+    // than a hand-off that can't settle.
     const reply = [
-      "Here's the cross-chain move I set up:",
+      `Moving **${swap.token}** across chains isn't supported yet — the cross-chain rail is Circle CCTP, which only moves **USDC**.`,
       "",
-      "| | |",
-      "| --- | --- |",
-      `| **Asset** | ${amountCell} |`,
-      `| **From** | ${swap.from}${net} |`,
-      `| **To** | ${swap.to}${net} |`,
-      "",
-      "Tap **Open Cross-chain** to review and sign it in-app. No wallet popup, gas is on us.",
+      `To do this: swap your ${swap.token} into USDC on the Currencies tab, then ask me to move the USDC from ${swap.from} to ${swap.to}.`,
     ].join("\n");
     return {
       ok: true,
       matched: false,
       understood: `Move ${swap.token} ${swap.from} to ${swap.to}`,
       reply,
-      // Deep link pre-fills the move (coin, from, to, amount, network) so the
-      // user lands one tap from signing — the hand-off is only for the signature,
-      // which must come from the in-app smart wallet.
-      crossChainUrl: swapHandoffUrl(swap),
+      crossChainUrl: "/swap?tab=currencies",
     };
   }
 
