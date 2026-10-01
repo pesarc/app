@@ -54,10 +54,17 @@ export function BankSelect({
 
   const selected = banks.find((b) => b.code === value);
 
+  // Token-based match: every word in the query must appear somewhere in the
+  // bank's name or code. So "gt bank" matches "Guaranty Trust Bank (GTBank)",
+  // "first" matches "First Bank", "058" matches by sort-code — substring-only
+  // matching missed all of these.
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return banks;
-    return banks.filter((b) => b.name.toLowerCase().includes(q) || b.code.toLowerCase().includes(q));
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return banks;
+    return banks.filter((b) => {
+      const hay = `${b.name} ${b.code}`.toLowerCase();
+      return tokens.every((t) => hay.includes(t));
+    });
   }, [banks, query]);
 
   return (
@@ -106,7 +113,9 @@ export function BankSelect({
           </div>
 
           <div role="listbox" className="max-h-56 overflow-auto py-1">
-            {filtered.length === 0 ? (
+            {banks.length === 0 ? (
+              <div className="px-3.5 py-4 text-center text-[13px] text-slate">Loading banks…</div>
+            ) : filtered.length === 0 ? (
               <div className="px-3.5 py-4 text-center text-[13px] text-slate">
                 No banks match &ldquo;{query}&rdquo;
               </div>
