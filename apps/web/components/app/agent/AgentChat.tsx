@@ -9,6 +9,7 @@ import { ArrowUp, Bot, Mic, Square, Paperclip, Plus } from "@/components/icons";
 import { EXAMPLES } from "./helpers";
 import { useAgentChat } from "./useAgentChat";
 import { MessageList } from "./MessageList";
+import SessionKeyGrant from "./SessionKeyGrant";
 
 export default function AgentChat() {
   const {
@@ -50,6 +51,11 @@ export default function AgentChat() {
             <Plus className="w-4 h-4" /> New
           </button>
         )}
+      </div>
+
+      {/* Agent session-key grant (testnet + flag only; hides itself otherwise). */}
+      <div className="mb-4">
+        <SessionKeyGrant />
       </div>
 
       <div className="flex-1">

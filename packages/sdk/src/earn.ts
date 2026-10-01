@@ -2,7 +2,12 @@
 // fees + FX spread + optional incentives — never interest on held balances
 // (PRD §6.2 / §5.2). Figures are illustrative.
 
-export type Venue = "Corridor pool" | "Aave" | "Mento";
+export type Venue = "Corridor pool" | "Aave" | "Mento" | "Pesarc vault";
+
+// The pool that maps to the on-chain CorridorVault when one is live for the
+// active chain: the USDC reserve. The Earn UI overlays this pool with the vault's
+// real TVL and venue, replacing the illustrative label.
+export const VAULT_POOL_ID = "usdc-stable";
 
 export type Pool = {
   id: string;
