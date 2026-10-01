@@ -9,6 +9,7 @@ import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { fetchOnchainActivity } from "@pesarc/sdk/chain/history";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { authedFetch } from "@pesarc/sdk/api/client";
 
 export type FeedItem = {
   id: string;
@@ -63,14 +64,17 @@ export function useActivity(): { items: FeedItem[]; loading: boolean; live: bool
     setLoading(true);
     Promise.all([
       // Authoritative on-chain record: every send we persisted (with tx hash).
-      fetch("/api/transfers")
+      // MUST be authedFetch — a plain fetch sends no Privy token, so the server
+      // scopes the caller to the shared "demo" bucket and returns seeded demo
+      // transactions instead of the signed-in user's real ones.
+      authedFetch("/api/transfers")
         .then((r) => r.json())
         .then((j) => (j?.ok ? (j.transfers as TransferRow[]) : []))
         .catch(() => []),
       // Live chain scan — best-effort, fills in anything not locally recorded
       // (e.g. inbound transfers). Often empty on testnet RPCs, hence the record above.
       fetchOnchainActivity(smart.address as `0x${string}`, 50).catch(() => []),
-      fetch("/api/payouts")
+      authedFetch("/api/payouts")
         .then((r) => r.json())
         .then((j) => (j?.ok ? (j.payouts as PayoutRow[]) : []))
         .catch(() => []),
