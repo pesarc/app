@@ -48,6 +48,9 @@ export type RouteRunner = {
   network: CctpNetwork;
   start: (plan: RoutePlan, network: CctpNetwork) => string | null;
   explorerTx: (cctpKey: string, tx: string) => string;
+  switchTo: (i: number) => void;
+  activeChainId: number;
+  walletReady: boolean;
 };
 
 function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
@@ -95,10 +98,20 @@ export function useRouteRunner(): RouteRunner {
       setStates(resolved.map((_, i) => ({ phase: i === 0 ? "switching" : "pending" })));
       setIdx(0);
       setStatus("running");
-      setChainKey(resolved[0].fromKey);
+      // Don't auto-switch the wallet's network — prompt the user to switch in-app
+      // (switchTo), then the leg signs once the wallet is ready on that chain.
       return null;
     },
-    [smart.address, setChainKey],
+    [smart.address],
+  );
+
+  /** User taps "Switch to <chain>" for the active leg — change the in-app network. */
+  const switchTo = useCallback(
+    (i: number) => {
+      const leg = legs[i];
+      if (leg) setChainKey(leg.fromKey);
+    },
+    [legs, setChainKey],
   );
 
   const sendLeg = useCallback(
@@ -144,8 +157,9 @@ export function useRouteRunner(): RouteRunner {
           if (r.ok) {
             patch(i, { mintTx: r.mintTx, phase: "done" });
             if (i + 1 < legs.length) {
+              // Next leg may be on another chain — prompt the user to switch
+              // (switchTo on their tap); don't auto-switch.
               patch(i + 1, { phase: "switching" });
-              setChainKey(legs[i + 1].fromKey);
               setIdx(i + 1);
             } else {
               setStatus("done");
@@ -161,7 +175,7 @@ export function useRouteRunner(): RouteRunner {
         setStatus("error");
       }
     },
-    [legs, network, states, patch, setChainKey],
+    [legs, network, states, patch],
   );
 
   // The driver: react to chain/wallet readiness and phase, acting once per step.
@@ -171,12 +185,11 @@ export function useRouteRunner(): RouteRunner {
     const ph = states[idx]?.phase;
     const key = `${idx}:${ph}`;
     if (ph === "switching") {
+      // Wait for the user to switch the network in-app (switchTo). No auto-switch.
       if (activeEvm.chain.id === leg.fromChainId && smart.ready && smart.address) {
         if (guard.current === key) return;
         guard.current = key;
         patch(idx, { phase: "sending" });
-      } else if (activeEvm.chain.id !== leg.fromChainId) {
-        setChainKey(leg.fromKey); // idempotent nudge until the provider catches up
       }
       return;
     }
@@ -184,15 +197,18 @@ export function useRouteRunner(): RouteRunner {
     guard.current = key;
     if (ph === "sending") void sendLeg(idx);
     else if (ph === "settling") void settleLeg(idx);
-  }, [status, idx, states, smart.ready, smart.address, activeEvm.chain.id, legs, patch, sendLeg, settleLeg, setChainKey]);
+  }, [status, idx, states, smart.ready, smart.address, activeEvm.chain.id, legs, patch, sendLeg, settleLeg]);
 
-  // Don't spin on "Switching network" forever. If the active chain hasn't become
-  // the source chain AND the in-app wallet isn't ready there within the window
-  // (e.g. that chain's gasless rails aren't up), fail the leg with a clear message
-  // instead of a hang. Keyed on the phase so it isn't reset by unrelated renders.
+  // After the user switches the network, don't spin forever waiting for the wallet
+  // to be ready on that chain: if it isn't ready within the window (e.g. that
+  // chain's gasless rails aren't up), fail the leg with a clear message instead of
+  // a hang. Only runs once the active chain IS the source (the user has switched);
+  // while we're still waiting for their tap there's no timeout.
   const activePhase = idx >= 0 ? states[idx]?.phase : undefined;
+  const preparing =
+    activePhase === "switching" && idx >= 0 && activeEvm.chain.id === legs[idx]?.fromChainId && !smart.ready;
   useEffect(() => {
-    if (status !== "running" || idx < 0 || activePhase !== "switching") return;
+    if (status !== "running" || !preparing) return;
     const t = setTimeout(() => {
       setStates((prev) =>
         prev[idx]?.phase === "switching"
@@ -201,7 +217,7 @@ export function useRouteRunner(): RouteRunner {
                 ? {
                     ...s,
                     phase: "error",
-                    note: `Couldn't get your in-app wallet ready on ${legs[idx]?.fromLabel ?? "that network"}. Switch to it first, then try again.`,
+                    note: `Your wallet isn't ready on ${legs[idx]?.fromLabel ?? "that network"} yet. Give it a moment, then try again.`,
                   }
                 : s,
             )
@@ -210,7 +226,7 @@ export function useRouteRunner(): RouteRunner {
       setStatus("error");
     }, 30_000);
     return () => clearTimeout(t);
-  }, [status, idx, activePhase, legs]);
+  }, [status, preparing, idx, legs]);
 
   const explorerTx = useCallback(
     (cctpKey: string, tx: string) => {
@@ -220,5 +236,17 @@ export function useRouteRunner(): RouteRunner {
     [network],
   );
 
-  return { status, legs, states, activeIdx: idx, network, start, explorerTx };
+  return {
+    status,
+    legs,
+    states,
+    activeIdx: idx,
+    network,
+    start,
+    explorerTx,
+    switchTo,
+    /** The in-app active chain id + wallet readiness, so the card can prompt a switch. */
+    activeChainId: activeEvm.chain.id,
+    walletReady: smart.ready,
+  };
 }
