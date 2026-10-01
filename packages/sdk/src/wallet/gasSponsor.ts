@@ -75,7 +75,11 @@ function arcSponsor(chainId: number): GasSponsor {
 
 /** Resolve the gas sponsor for a chain (registry key + numeric chain id). */
 export function getGasSponsor(chainKey: string, chainId = 5042): GasSponsor {
-  if (chainKey === "arc") return arcSponsor(chainId);
+  // Every Arc chain (mainnet "arc" AND testnet "arc-testnet") uses the ERC-7677
+  // SimpleAccount path — NOT Alchemy's EIP-7702. Matching only "arc" let Arc
+  // testnet fall through to the Alchemy branch, which then tried to sign an
+  // EIP-7702 authorization (unsupported by external wallets) on the Arc leg.
+  if (chainKey === "arc" || chainKey.startsWith("arc-")) return arcSponsor(chainId);
 
   const policyId = gasPolicyFor(chainKey);
   if (ALCHEMY_API_KEY && policyId) {

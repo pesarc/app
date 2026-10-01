@@ -158,7 +158,10 @@ export default function SessionKeyGrant() {
           </div>
           {!canGrant && (
             <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate">
-              <ShieldCheck className="w-3.5 h-3.5 text-sky shrink-0" /> Sign in with your in-app wallet to enable this.
+              <ShieldCheck className="w-3.5 h-3.5 text-sky shrink-0" />
+              {account
+                ? "Agent sends run on an Alchemy-sponsored testnet (e.g. Base or Arbitrum Sepolia). Switch network to enable — Arc isn't supported for session keys."
+                : "Sign in with your in-app wallet to enable this."}
             </p>
           )}
         </>
