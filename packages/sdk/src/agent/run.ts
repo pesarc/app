@@ -588,7 +588,7 @@ export async function runAgentTurn(
     // Everything else can't go cross-chain here: the rail is Circle CCTP, which is
     // USDC-only. Explain it in chat (no redirect) — the user can swap to USDC first.
     const reply = [
-      `Moving **${swap.token}** across chains isn't supported yet — the cross-chain rail is Circle CCTP, which only moves **USDC**.`,
+      `Moving **${swap.token}** across chains isn't supported yet — the cross-chain rail only moves **USDC**.`,
       "",
       `To do this: swap your ${swap.token} into USDC first, then ask me to move the USDC from ${swap.from} to ${swap.to} and I'll lay out the route for you to confirm here.`,
     ].join("\n");

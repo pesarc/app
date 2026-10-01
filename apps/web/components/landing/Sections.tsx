@@ -227,7 +227,7 @@ const NETWORKS = [
   "Algorand", "Polygon", "Avalanche", "Celo",
 ];
 const RAILS = [
-  "Paystack", "Flutterwave", "Bank transfer (NIP)", "Mobile money",
+  "Instant bank payout", "Card & wallet rails", "Bank transfer (NIP)", "Mobile money",
   "M-Pesa", "MTN MoMo", "GTBank", "Access Bank", "Zenith Bank",
 ];
 

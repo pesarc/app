@@ -42,7 +42,7 @@ const BANDS = [
   {
     lbl: "Ground · runtimes",
     title: "One core, two virtual machines",
-    body: "The same settlement core runs natively on EVM (Solidity) and SVM (Anchor). CCTP moves only residual value between them, so liquidity is never stranded on one chain.",
+    body: "The same settlement core runs natively on EVM (Solidity) and SVM (Anchor). The cross-chain layer moves only residual value between them, so liquidity is never stranded on one chain.",
     tint: "rgba(157,140,255,0.9)",
   },
 ];
