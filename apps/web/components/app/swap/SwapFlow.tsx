@@ -58,7 +58,9 @@ export default function SwapFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokenOpts]);
 
-  const bal = useLiveBalance(fromCcy);
+  // Balance of the SELECTED token (symbol), not the currency — USDT/PYUSD/USDC
+  // all share currency "USD" but are distinct tokens with distinct balances.
+  const bal = useLiveBalance(fromSym);
   const insufficient = bal.available && bal.amount !== undefined ? amount > bal.amount : false;
 
   // Real oracle rate for the pair when the corridor is live; indicative otherwise.
