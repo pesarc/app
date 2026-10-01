@@ -53,7 +53,7 @@ export function RouteCard({ plan }: { plan: RoutePlan }) {
       <div className="mb-3 flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-sky" />
         <span className="text-xs font-bold uppercase tracking-widest text-sky">
-          Route &middot; {plan.chains.length - 1} hops
+          Route &middot; {plan.chains.length - 1} {plan.chains.length - 1 === 1 ? "hop" : "hops"}
         </span>
       </div>
 
