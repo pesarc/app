@@ -137,7 +137,7 @@ export default function EarnFlow() {
       return [...prev, { poolId, principal }];
     });
     // Mirror to the ledger for display (best-effort).
-    authedPostJson("/api/earn", { poolId, amount: principal }).catch(() => {});
+    authedPostJson("/api/earn", { poolId, amount: principal, chainKey: chain.key }).catch(() => {});
   };
 
   const withdraw = async (poolId: string) => {
