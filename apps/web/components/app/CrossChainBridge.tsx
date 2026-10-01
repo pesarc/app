@@ -742,6 +742,7 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
   const [fromId, setFromId] = useState(endpoints[0]?.chainId ?? 0);
   const [toId, setToId] = useState(endpoints[1]?.chainId ?? 0);
   const [amount, setAmount] = useState("");
+  const [recipient, setRecipient] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [errored, setErrored] = useState(false);
@@ -788,9 +789,20 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
   }));
   const same = fromId === toId;
   const amt = Number(amount) || 0;
+  // Optional external recipient. Empty = send to your own address on the
+  // destination; a valid 0x address sends there instead.
+  const toAddr = recipient.trim();
+  const recipientValid = toAddr === "" || /^0x[a-fA-F0-9]{40}$/.test(toAddr);
+  // AA always needs an explicit recipient (defaults to self); the injected path
+  // lets hyperSend default to the connected account when left blank.
+  const effRecipient = toAddr
+    ? (toAddr as `0x${string}`)
+    : canAA
+      ? (smart.address as `0x${string}`)
+      : undefined;
 
   const move = async () => {
-    if (amt <= 0 || same || busy) return;
+    if (amt <= 0 || same || busy || !recipientValid) return;
     setBusy(true);
     setErrored(false);
     setNote(canAA ? `Signing in-app and sending ${amount} ${symbol}…` : `Sending ${amount} ${symbol}…`);
@@ -802,7 +814,7 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
           fromChainId: fromId,
           toChainId: toId,
           amount,
-          recipient: canAA ? (smart.address as `0x${string}`) : undefined,
+          recipient: effRecipient,
         },
         canAA ? smart : undefined,
       );
@@ -854,8 +866,25 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
           ) : null}
         </div>
       </label>
+      <label className="text-xs font-bold text-slate">
+        Recipient (optional)
+        <input
+          inputMode="text"
+          placeholder="0x… — defaults to your wallet"
+          value={recipient}
+          onChange={(e) => setRecipient(e.target.value.trim())}
+          spellCheck={false}
+          className="mt-1 w-full rounded-xl border border-fog bg-snow p-2 font-mono text-[13px] text-ink"
+          disabled={busy}
+        />
+        {!recipientValid && (
+          <span className="mt-1 block text-[11px] font-normal text-alert">
+            Enter a valid 0x wallet address, or leave blank to send to yourself.
+          </span>
+        )}
+      </label>
       {same && <p className="text-[13px] text-slate">Pick two different chains.</p>}
-      <Button onClick={move} disabled={busy || same || amt <= 0}>
+      <Button onClick={move} disabled={busy || same || amt <= 0 || !recipientValid}>
         {busy ? "Moving…" : `Move ${symbol}`}
       </Button>
       {note && <p className={`text-sm ${errored ? "text-alert" : "text-slate"}`}>{note}</p>}
@@ -863,8 +892,8 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
         {canAA
           ? "Signed in your Pesarc wallet, gasless — no pop-ups. "
           : "You'll approve this in your connected wallet. "}
-        Sends to your own address on the destination; delivery is handled by Hyperbridge relayers
-        after the source transaction confirms.
+        Sends to {toAddr ? "the recipient address" : "your own address"} on the destination;
+        delivery is handled by Hyperbridge relayers after the source transaction confirms.
       </p>
     </Card>
   );

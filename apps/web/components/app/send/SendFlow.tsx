@@ -35,6 +35,11 @@ export default function SendFlow() {
     executeReal,
     reset,
     walletChainLabel,
+    walletIsEvm,
+    destChainKey,
+    setDestChainKey,
+    destChainOptions,
+    sourceChainLabel,
   } = useSendState();
 
   return (
@@ -74,6 +79,11 @@ export default function SendFlow() {
             quote={quote}
             advanced={isAdvanced}
             walletChainLabel={walletChainLabel}
+            walletIsEvm={walletIsEvm}
+            destChainKey={destChainKey}
+            setDestChainKey={setDestChainKey}
+            destChainOptions={destChainOptions}
+            sourceChainLabel={sourceChainLabel}
             onBack={() => setStep("recipient")}
             onNext={() => setStep("confirm")}
           />
