@@ -22,7 +22,9 @@ import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { svmTransfer } from "@pesarc/sdk/svm/write";
-import { stablecoinAddress } from "@pesarc/sdk/chain/stablecoin-registry";
+import { stablecoinAddress, registryChainKey } from "@pesarc/sdk/chain/stablecoin-registry";
+import { evmBridgeChains } from "@pesarc/sdk/chain/cctp/bridge";
+import { selectAdapter, type CrossSendRequest } from "@pesarc/sdk/chain/crosschain";
 import { type BankDestination } from "./BankDetails";
 import {
   detectPhone,
@@ -54,6 +56,8 @@ export function useSendState() {
   const [bankDest, setBankDest] = useState<BankDestination | null>(null);
   // Destination wallet address for a "wallet" payout (send to any wallet).
   const [recipientAddress, setRecipientAddress] = useState<string>();
+  // Destination chain for a cross-chain wallet send ("" / source chain = same-chain).
+  const [destChainKey, setDestChainKey] = useState<string>("");
   const [txHash, setTxHash] = useState<string>();
   const [payoutTxHash, setPayoutTxHash] = useState<string>();
   const [actualReceive, setActualReceive] = useState<number>();
@@ -96,6 +100,30 @@ export function useSendState() {
   const walletIsSolana = payout === "wallet" && !!recipientAddress && isSolanaAddress(recipientAddress);
   const walletIsEvm = payout === "wallet" && !!recipientAddress && isEvmAddress(recipientAddress);
 
+  // Cross-chain: an EVM wallet send where the chosen destination chain differs
+  // from the active (source) chain. USDC moves via the crosschain router (CCTP),
+  // delivered straight to the recipient on the destination chain.
+  const network = activeChain.testnet ? "testnet" : "mainnet";
+  const srcCctpKey = registryChainKey(activeChain.key);
+  const bridgeChains = useMemo(() => evmBridgeChains(network), [network]);
+  const isCrossChain = walletIsEvm && destChainKey !== "" && destChainKey !== srcCctpKey;
+  const crossReq: CrossSendRequest | null = useMemo(() => {
+    if (!isCrossChain || !recipientAddress) return null;
+    const dest = bridgeChains.find((c) => c.key === destChainKey);
+    if (!dest || dest.chainId == null) return null;
+    return {
+      token: "USDC",
+      fromChainKey: activeChain.key,
+      fromChainId: activeChain.chain.id,
+      toChainKey: dest.key,
+      toChainId: dest.chainId,
+      amount: amountStr || "0",
+      recipient: recipientAddress as `0x${string}`,
+      network,
+    };
+  }, [isCrossChain, recipientAddress, bridgeChains, destChainKey, activeChain.key, activeChain.chain.id, amountStr, network]);
+  const crossAdapter = crossReq ? selectAdapter(crossReq) : null;
+
   // Live = a real on-chain send is possible right now. Three real paths today:
   //  • Fiat corridor: USD→cNGN gasless swap on the hub pool (NGN recipients).
   //  • EVM wallet: a direct transfer of the token held on the ACTIVE chain.
@@ -110,9 +138,21 @@ export function useSendState() {
     payout !== "wallet" &&
     recipient?.receiveCurrency === "NGN";
   const walletEvmLive =
-    mode === "live" && authenticated && smart.ready && !isSvm && walletIsEvm && Boolean(usdToken);
+    mode === "live" &&
+    authenticated &&
+    smart.ready &&
+    !isSvm &&
+    walletIsEvm &&
+    !isCrossChain &&
+    Boolean(usdToken);
   const walletSolLive = mode === "live" && authenticated && walletIsSolana && Boolean(solana);
-  const live = fiatLive || walletEvmLive || walletSolLive;
+  const walletCrossLive =
+    mode === "live" &&
+    authenticated &&
+    smart.ready &&
+    !isSvm &&
+    Boolean(crossAdapter && crossAdapter.kind === "programmatic");
+  const live = fiatLive || walletEvmLive || walletSolLive || walletCrossLive;
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
@@ -160,8 +200,23 @@ export function useSendState() {
       const sig = await svmTransfer(solana, { mint, to: recipientAddress, amount, decimals: 6 });
       return { tx: sig, received: amount };
     }
-    // Send to an EVM wallet: a direct transfer of the token held on the active
-    // chain, straight to the recipient (no corridor swap, no ramp escrow).
+    // Cross-chain wallet send: burn on the source chain with the recipient as the
+    // mint target, then poll until the destination settles. Funds go straight to
+    // the recipient on the destination chain — no intermediate.
+    if (isCrossChain && crossReq && crossAdapter) {
+      const { sourceTx } = await crossAdapter.execute(crossReq, smart);
+      const deadline = Date.now() + 15 * 60_000;
+      while (Date.now() < deadline) {
+        const s = await crossAdapter.settle(crossReq, sourceTx);
+        if (s.ok) return { tx: sourceTx, payoutTx: s.destTx, received: amount };
+        if (!s.pending && s.error) throw new Error(s.error);
+        await new Promise((r) => setTimeout(r, 15_000));
+      }
+      // Timed out polling — the burn landed and the funds are in transit (safe).
+      return { tx: sourceTx, received: amount };
+    }
+    // Send to an EVM wallet on the SAME chain: a direct transfer of the token held
+    // on the active chain, straight to the recipient (no swap, no ramp escrow).
     if (walletIsEvm && recipientAddress) {
       if (!usdToken) throw new Error("No USDC is configured on this chain to send.");
       return sendTokenDirect(smart, usdToken, recipientAddress as `0x${string}`, amount);
@@ -169,7 +224,18 @@ export function useSendState() {
     // Otherwise the fiat corridor: USD→cNGN swap, the cNGN goes to the ramp escrow
     // for the off-chain payout leg.
     return executeCorridorSend(smart, amount, RAMP_ESCROW);
-  }, [smart, solana, amount, walletIsSolana, walletIsEvm, recipientAddress, usdToken]);
+  }, [
+    smart,
+    solana,
+    amount,
+    walletIsSolana,
+    walletIsEvm,
+    recipientAddress,
+    usdToken,
+    isCrossChain,
+    crossReq,
+    crossAdapter,
+  ]);
 
   const reset = () => {
     setStep("recipient");
@@ -178,6 +244,7 @@ export function useSendState() {
     setPayout("bank");
     setBankDest(null);
     setRecipientAddress(undefined);
+    setDestChainKey("");
     setTxHash(undefined);
     setActualReceive(undefined);
   };
@@ -207,7 +274,18 @@ export function useSendState() {
     live,
     executeReal,
     reset,
-    /** Chain a wallet send will go out on (for the amount/confirm summaries). */
-    walletChainLabel: walletIsSolana ? "Solana" : activeChain.label,
+    /** Chain the funds will LAND on (dest for cross-chain, else the active chain). */
+    walletChainLabel: walletIsSolana
+      ? "Solana"
+      : (isCrossChain && bridgeChains.find((c) => c.key === destChainKey)?.label) || activeChain.label,
+    /** Wallet (EVM) send controls for choosing a destination chain. */
+    walletIsEvm,
+    destChainKey,
+    setDestChainKey,
+    sourceChainLabel: activeChain.label,
+    destChainOptions: bridgeChains
+      .filter((c) => c.key !== srcCctpKey)
+      .map((c) => ({ key: c.key, label: c.label })),
+    isCrossChain,
   };
 }
