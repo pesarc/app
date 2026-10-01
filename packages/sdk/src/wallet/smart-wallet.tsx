@@ -39,6 +39,13 @@ export type SmartWallet = {
   ) => Promise<string | undefined>;
   /** Gasless batched calls (e.g. approve + swap in one user op). */
   sendCalls: (calls: Call[]) => Promise<string | undefined>;
+  /** Grant a scoped session key (Alchemy path only). Returns the on-chain grant
+   *  context to hand to the server. Undefined when the wallet can't grant. */
+  grantSession?: (params: {
+    key: { publicKey: `0x${string}`; type: "secp256k1" };
+    permissions: unknown;
+    expirySec: number;
+  }) => Promise<{ context: `0x${string}` }>;
 };
 
 const noop: SmartWallet = {
@@ -162,6 +169,22 @@ export function LiveSmartWalletProvider({
     [sendCalls]
   );
 
+  // Session-key grant runs only on the Alchemy path (it's an Alchemy wallet-apis
+  // feature). Scopes/caps are decided server-side; this just signs the grant.
+  const grantSession = useCallback(
+    async (params: { key: { publicKey: `0x${string}`; type: "secp256k1" }; permissions: unknown; expirySec: number }) => {
+      if (!alchemyClient || !signer?.address) throw new Error("Session keys need the Alchemy wallet path.");
+      const res = await alchemyClient.grantPermissions({
+        account: signer.address as `0x${string}`,
+        expirySec: params.expirySec,
+        key: params.key,
+        permissions: params.permissions,
+      } as never);
+      return { context: res.context as `0x${string}` };
+    },
+    [alchemyClient, signer]
+  );
+
   const value = useMemo<SmartWallet>(
     () => ({
       ready: Boolean(client),
@@ -169,8 +192,9 @@ export function LiveSmartWalletProvider({
       error,
       sendErc20,
       sendCalls,
+      grantSession: alchemyClient ? grantSession : undefined,
     }),
-    [client, signer, error, sendErc20, sendCalls]
+    [client, signer, error, sendErc20, sendCalls, alchemyClient, grantSession]
   );
 
   return (
