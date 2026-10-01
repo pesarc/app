@@ -229,10 +229,16 @@ function RecipientRow({
   onSelect,
 }: {
   r: Recipient;
-  onSelect: (r: Recipient) => void;
+  onSelect: (r: Recipient, opts?: { payout?: PayoutMethod; address?: string }) => void;
 }) {
+  // A saved/recent recipient whose handle is an on-chain address is a WALLET send:
+  // route it as such (payout "wallet" + the address) so it goes straight to the
+  // transfer, not the bank/mobile payout path.
+  const walletOpts = isWalletAddress(r.handle)
+    ? { payout: "wallet" as PayoutMethod, address: r.handle }
+    : undefined;
   return (
-    <button onClick={() => onSelect(r)} className="w-full">
+    <button onClick={() => onSelect(r, walletOpts)} className="w-full">
       <Card className="flex items-center gap-3 p-3.5 hover:border-sky/40 hover:shadow-pop-sm transition">
         <Avatar initials={initials(r.name)} color={r.initialsColor} />
         <div className="text-left flex-1 min-w-0">

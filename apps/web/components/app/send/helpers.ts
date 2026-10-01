@@ -105,9 +105,12 @@ export function recipientFromAddress(addr: string): Recipient {
   };
 }
 
-/** True when a recipient is a raw on-chain wallet address (vs contact/bank/phone). */
-export function isWalletRecipient(r: { id: string }): boolean {
-  return r.id.startsWith("wallet:");
+/** True when a recipient is a raw on-chain wallet address (vs contact/bank/phone).
+ *  Also detects a SAVED/recent wallet recipient, whose id is "saved-…" but whose
+ *  handle is the on-chain address — otherwise re-selecting a wallet from Recent
+ *  would wrongly show the bank "Payout to" selector and misroute the send. */
+export function isWalletRecipient(r: { id: string; handle?: string }): boolean {
+  return r.id.startsWith("wallet:") || (!!r.handle && isWalletAddress(r.handle));
 }
 
 export function savedToRecipient(s: SavedRecipient): Recipient {

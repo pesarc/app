@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { erc20Abi } from "@pesarc/abi";
 import { useSmartWallet } from "../wallet/smartWallet";
 import { useActiveEvmChain } from "./activeChain";
+import { tokenByCode } from "./evm-settle";
 import { publicClientFor } from "./registry";
 
 export type LiveBalance = {
@@ -28,7 +29,10 @@ export type LiveBalance = {
 export function useLiveBalance(code: string = "USD"): LiveBalance {
   const smart = useSmartWallet();
   const { chain } = useActiveEvmChain();
-  const token = chain.tokens[code.toUpperCase() as keyof typeof chain.tokens] as `0x${string}` | undefined;
+  // Resolve by SYMBOL via tokenByCode, not just chain.tokens[currency]. USDT and
+  // PYUSD both map to currency "USD" and would otherwise read the USDC balance;
+  // tokenByCode resolves each distinct token's real address from the registry.
+  const token = tokenByCode(chain, code)?.address as `0x${string}` | undefined;
   const owner = smart.address;
 
   const [state, setState] = useState<{ loading: boolean; amount?: number; symbol?: string; error?: string }>({ loading: false });
