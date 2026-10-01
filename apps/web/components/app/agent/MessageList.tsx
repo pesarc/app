@@ -11,6 +11,7 @@ import { UploadPreview } from "./UploadPreview";
 import { ConsentCard } from "./ConsentCard";
 import { Receipt } from "./Receipt";
 import { RichText } from "./RichText";
+import { RouteCard } from "./RouteCard";
 
 const DEFAULT_STEPS = ["Reading what you need", "Checking today's rate", "Getting your options ready"];
 
@@ -139,6 +140,8 @@ export function MessageList({
                     onCancel={() => onDecline(i)}
                   />
                 )}
+
+                {m.route && <RouteCard plan={m.route} />}
 
                 {m.receipt && <Receipt receipt={m.receipt} />}
 
