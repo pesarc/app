@@ -185,16 +185,23 @@ export function LiveSmartWalletProvider({
     [alchemyClient, signer]
   );
 
+  // The address the user actually holds funds at and sends from. On the Alchemy
+  // path (EIP-7702) the smart account IS the signer's EOA. On the ERC-7677 path
+  // (Arc) it's a counterfactual SimpleAccount with a DIFFERENT address, so we must
+  // report that one — otherwise balances, activity and "where to deposit" all read
+  // the empty EOA instead of the real account.
+  const smartAddress = (erc7677Client?.address ?? signer?.address) as `0x${string}` | undefined;
+
   const value = useMemo<SmartWallet>(
     () => ({
       ready: Boolean(client),
-      address: signer?.address as `0x${string}` | undefined,
+      address: smartAddress,
       error,
       sendErc20,
       sendCalls,
       grantSession: alchemyClient ? grantSession : undefined,
     }),
-    [client, signer, error, sendErc20, sendCalls, alchemyClient, grantSession]
+    [client, smartAddress, error, sendErc20, sendCalls, alchemyClient, grantSession]
   );
 
   return (
