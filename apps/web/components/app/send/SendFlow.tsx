@@ -40,6 +40,9 @@ export default function SendFlow() {
     setDestChainKey,
     destChainOptions,
     sourceChainLabel,
+    sendToken,
+    setSendToken,
+    sendTokenOptions,
   } = useSendState();
 
   return (
@@ -84,6 +87,9 @@ export default function SendFlow() {
             setDestChainKey={setDestChainKey}
             destChainOptions={destChainOptions}
             sourceChainLabel={sourceChainLabel}
+            sendToken={sendToken}
+            setSendToken={setSendToken}
+            sendTokenOptions={sendTokenOptions}
             onBack={() => setStep("recipient")}
             onNext={() => setStep("confirm")}
           />
