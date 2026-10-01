@@ -19,7 +19,6 @@ import { parseCashoutIntent } from "./cashout-intent";
 import { parseSwapIntent } from "./swap-intent";
 import { parseRouteIntent, routePlanReply, type RoutePlan } from "./route-intent";
 export type { RoutePlan } from "./route-intent";
-import { tryAgentCrossChain } from "./session-exec";
 import { parseEarnIntent } from "./earn-intent";
 import { parseStakeIntent } from "./stake-intent";
 import { emitStep, type OnProgress } from "./progress";
@@ -555,23 +554,15 @@ export async function runAgentTurn(
   }
 
   // Cross-chain move ("swap USDC on Arc to Base") — names two chains, so it's a
-  // bridge, not same-chain FX. Signing a cross-chain move needs the in-app smart
-  // wallet, which lives in the browser, so the agent understands it, lays it out
-  // clearly, and hands off to the Cross-chain screen to sign gaslessly in-app.
+  // bridge. The agent NEVER auto-sends it: it preps the path, shows the exact
+  // tokens + chains, and the user gives explicit consent IN CHAT (the route card's
+  // confirm) before anything signs. Execution then runs in place via the in-app
+  // smart wallet — gaslessly, no wallet pop-up, no redirect to another page.
   const swap = parseSwapIntent(message);
   if (swap) {
-    // Autonomous path (testnet + flag + a granted session key): the agent signs
-    // and sends the move itself, gaslessly. Any miss falls through to the
-    // pre-filled hand-off below — never a dead end.
-    const auto = await tryAgentCrossChain(myWallet as `0x${string}` | undefined, opts.chainKey, swap).catch(() => null);
-    if (auto) {
-      return { ok: true, matched: true, understood: auto.understood, reply: auto.reply, receipt: auto.receipt };
-    }
-
-    // USDC rides CCTP, which the browser route runner can sign on ANY chain we
-    // support (Arc included) with the in-app smart wallet — gaslessly, no session
-    // key. So hand the UI a one-leg route it runs in place (tap Start -> sign ->
-    // settle), instead of navigating away to the Cross-chain screen.
+    // USDC rides CCTP, which the browser route runner signs on ANY chain we
+    // support (Arc included). Hand the UI a one-leg route it lays out for review
+    // and runs IN CHAT once the user confirms — never auto-executed.
     if (swap.token === "USDC") {
       const plan = { token: "USDC" as const, amount: swap.amount, chains: [swap.from, swap.to] };
       const { reply, understood } = routePlanReply(plan);
@@ -579,19 +570,17 @@ export async function runAgentTurn(
     }
 
     // Everything else can't go cross-chain here: the rail is Circle CCTP, which is
-    // USDC-only. Say so and point to the same-chain swap to get USDC first, rather
-    // than a hand-off that can't settle.
+    // USDC-only. Explain it in chat (no redirect) — the user can swap to USDC first.
     const reply = [
       `Moving **${swap.token}** across chains isn't supported yet — the cross-chain rail is Circle CCTP, which only moves **USDC**.`,
       "",
-      `To do this: swap your ${swap.token} into USDC on the Currencies tab, then ask me to move the USDC from ${swap.from} to ${swap.to}.`,
+      `To do this: swap your ${swap.token} into USDC first, then ask me to move the USDC from ${swap.from} to ${swap.to} and I'll lay out the route for you to confirm here.`,
     ].join("\n");
     return {
       ok: true,
       matched: false,
       understood: `Move ${swap.token} ${swap.from} to ${swap.to}`,
       reply,
-      crossChainUrl: "/swap?tab=currencies",
     };
   }
 

@@ -53,9 +53,20 @@ export function RouteCard({ plan }: { plan: RoutePlan }) {
       <div className="mb-3 flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-sky" />
         <span className="text-xs font-bold uppercase tracking-widest text-sky">
-          Route &middot; {plan.chains.length - 1} {plan.chains.length - 1 === 1 ? "hop" : "hops"}
+          Confirm swap &middot; {plan.chains.length - 1} {plan.chains.length - 1 === 1 ? "hop" : "hops"}
         </span>
       </div>
+
+      {/* Exactly what will move — the user affirms this is correct before signing. */}
+      {!started && (
+        <div className="mb-3 rounded-xl bg-white/70 px-3 py-2.5">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-slate">You&apos;re swapping</div>
+          <div className="text-[15px] font-bold text-harbor">
+            {plan.amount ? `${plan.amount} ` : ""}USDC &middot; {plan.chains[0]} <ArrowRight className="inline h-3.5 w-3.5 text-slate" /> {plan.chains[plan.chains.length - 1]}
+          </div>
+          <div className="mt-0.5 text-[12px] text-slate">Check the token, amount and chains are correct, then confirm.</div>
+        </div>
+      )}
 
       {/* Planned path */}
       <div className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -88,7 +99,7 @@ export function RouteCard({ plan }: { plan: RoutePlan }) {
             <p className="mb-2 text-[12px] font-semibold text-alert">Live moves real USDC across every hop.</p>
           )}
           <Button onClick={begin} block>
-            Start route
+            Confirm &amp; swap
           </Button>
           {err && <p className="mt-2 text-[13px] text-alert">{err}</p>}
         </>
