@@ -22,6 +22,19 @@ export type LinkedBankAccount = {
   createdAt: string;
 };
 
+/**
+ * A PAYOUT bank — the user's real bank account money is cashed out TO (distinct
+ * from the deposit DVA above, which money comes IN to). A Paystack transfer needs
+ * the bank's transfer code + the NUBAN, so the agent off-ramp pays out here. Set
+ * once (via the Send flow's bank picker, which resolves the name), reused by the
+ * agent's confirm-gated cash-out.
+ */
+export type PayoutBank = {
+  bankCode: string;
+  accountNumber: string; // 10-digit NUBAN
+  accountName: string; // verified holder name (Paystack), or what the user entered
+};
+
 /** Which real provider is configured, if any. Creation stays stubbed until wired. */
 export function bankProvider(): "paystack" | "flutterwave" | null {
   if (process.env.PAYSTACK_SECRET_KEY) return "paystack";
@@ -347,5 +360,97 @@ async function writeToFile(account: string, linked: LinkedBankAccount): Promise<
     return true;
   } catch {
     return false;
+  }
+}
+
+/* ---- Payout bank (the account the agent cashes OUT to) ---- */
+
+let payoutSchemaReady: Promise<void> | null = null;
+function ensurePayoutSchema(sql: Sql): Promise<void> {
+  payoutSchemaReady ??= sql`
+    CREATE TABLE IF NOT EXISTS payout_banks (
+      account        text PRIMARY KEY,
+      bank_code      text NOT NULL,
+      account_number text NOT NULL,
+      account_name   text NOT NULL,
+      updated_at     timestamptz NOT NULL DEFAULT now()
+    )
+  `.then(() => undefined);
+  return payoutSchemaReady;
+}
+
+function payoutFilePath() {
+  return path.join(process.cwd(), ".data", "payout-banks.json");
+}
+
+/** The caller's saved payout bank, or null. */
+export async function getPayoutBank(account = DEMO_ACCOUNT): Promise<PayoutBank | null> {
+  if (hasNeon()) {
+    try {
+      const sql = getSql();
+      await ensurePayoutSchema(sql);
+      const rows = await sql`SELECT * FROM payout_banks WHERE account = ${account} LIMIT 1`;
+      const r = (rows as Record<string, unknown>[])[0];
+      if (r) {
+        return {
+          bankCode: String(r.bank_code),
+          accountNumber: String(r.account_number),
+          accountName: String(r.account_name),
+        };
+      }
+      return null;
+    } catch {
+      /* fall through to file */
+    }
+  }
+  try {
+    const all = JSON.parse(await fs.readFile(payoutFilePath(), "utf8")) as Record<string, PayoutBank>;
+    return all[account] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Save/replace the caller's payout bank. Validates shape; never stores a BVN. */
+export async function setPayoutBank(account: string, pb: PayoutBank): Promise<{ ok: boolean; error?: string }> {
+  if (!/^\d{10}$/.test(pb.accountNumber)) return { ok: false, error: "Enter a valid 10-digit account number." };
+  if (!pb.bankCode.trim()) return { ok: false, error: "Pick a bank." };
+  const clean: PayoutBank = {
+    bankCode: pb.bankCode.trim(),
+    accountNumber: pb.accountNumber.trim(),
+    accountName: (pb.accountName || "Account holder").slice(0, 64),
+  };
+  if (hasNeon()) {
+    try {
+      const sql = getSql();
+      await ensurePayoutSchema(sql);
+      await sql`
+        INSERT INTO payout_banks (account, bank_code, account_number, account_name)
+        VALUES (${account}, ${clean.bankCode}, ${clean.accountNumber}, ${clean.accountName})
+        ON CONFLICT (account) DO UPDATE SET
+          bank_code = EXCLUDED.bank_code,
+          account_number = EXCLUDED.account_number,
+          account_name = EXCLUDED.account_name,
+          updated_at = now()
+      `;
+      return { ok: true };
+    } catch {
+      /* fall through to file */
+    }
+  }
+  try {
+    const file = payoutFilePath();
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    let all: Record<string, PayoutBank> = {};
+    try {
+      all = JSON.parse(await fs.readFile(file, "utf8")) as Record<string, PayoutBank>;
+    } catch {
+      /* new file */
+    }
+    all[account] = clean;
+    await fs.writeFile(file, JSON.stringify(all, null, 2), "utf8");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Could not save your payout bank." };
   }
 }
