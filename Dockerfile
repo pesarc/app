@@ -28,12 +28,19 @@ COPY packages/config/package.json packages/config/package.json
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY . .
+# Bust the build layer whenever the inlined NEXT_PUBLIC_* env changes. BuildKit
+# deliberately excludes --secret content from the cache key, so a changed
+# BUILD_DOTENV alone would NOT re-run the build and the old client bundle would be
+# reused. CI passes DOTENV_HASH = hashFiles('.env.ci'); referencing it in the
+# build RUN ties that layer's cache to the env contents.
+ARG DOTENV_HASH=0
 # pnpm re-verifies (and re-installs) deps before running any script by default —
 # skip it here, deps are already installed above, so `build` never re-hits the
 # registry. The root .env is mounted only for this step so NEXT_PUBLIC_* inline
 # into the client bundle; it is never written to a layer. Server env is read at run.
 RUN --mount=type=secret,id=dotenv,target=/app/.env \
     printf '\nverify-deps-before-run=false\n' >> .npmrc \
+ && echo "build for dotenv ${DOTENV_HASH}" \
  && pnpm --filter @pesarc/web build
 
 # ---- runner: minimal image, non-root ----
