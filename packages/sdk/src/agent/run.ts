@@ -16,7 +16,8 @@ import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
-import { parseSwapIntent } from "./swap-intent";
+import { parseSwapIntent, swapHandoffUrl } from "./swap-intent";
+import { tryAgentCrossChain } from "./session-exec";
 import { parseEarnIntent } from "./earn-intent";
 import { parseStakeIntent } from "./stake-intent";
 import { emitStep, type OnProgress } from "./progress";
@@ -545,6 +546,14 @@ export async function runAgentTurn(
   // clearly, and hands off to the Cross-chain screen to sign gaslessly in-app.
   const swap = parseSwapIntent(message);
   if (swap) {
+    // Autonomous path (testnet + flag + a granted session key): the agent signs
+    // and sends the move itself, gaslessly. Any miss falls through to the
+    // pre-filled hand-off below — never a dead end.
+    const auto = await tryAgentCrossChain(myWallet as `0x${string}` | undefined, opts.chainKey, swap).catch(() => null);
+    if (auto) {
+      return { ok: true, matched: true, understood: auto.understood, reply: auto.reply, receipt: auto.receipt };
+    }
+
     const net = swap.testnet ? " (testnet)" : "";
     const amountCell = swap.amount ? `**${fmt(swap.amount)} ${swap.token}**` : `**${swap.token}**`;
     const reply = [
@@ -563,7 +572,10 @@ export async function runAgentTurn(
       matched: false,
       understood: `Move ${swap.token} ${swap.from} to ${swap.to}`,
       reply,
-      crossChainUrl: "/swap?tab=crosschain",
+      // Deep link pre-fills the move (coin, from, to, amount, network) so the
+      // user lands one tap from signing — the hand-off is only for the signature,
+      // which must come from the in-app smart wallet.
+      crossChainUrl: swapHandoffUrl(swap),
     };
   }
 

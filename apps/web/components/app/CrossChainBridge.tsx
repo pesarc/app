@@ -7,7 +7,8 @@
 // exact same flow against Circle's sandbox attestation, so "Arc Sepolia -> Polygon
 // Amoy" can be dry-run with faucet USDC. Solana (LI.FI) and Algorand (Wormhole)
 // rails are mainnet-only; on testnet the picker is EVM CCTP corridors only.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createWalletClient, createPublicClient, custom, http, encodeFunctionData } from "viem";
 import { Button, Card, Segmented } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
@@ -173,6 +174,31 @@ export default function CrossChainBridge() {
     const key = c?.chainId ? HYPER_CHAIN_KEY[c.chainId] : undefined;
     if (key) setChainKey(key);
   };
+  // The agent (and any deep link) can pre-fill the move via query params so the
+  // user lands one tap from signing: ?coin=&from=&to=&amount=&net=. Applied once,
+  // only for values that are valid on the chosen network, so a stale link can't
+  // wedge the form.
+  const params = useSearchParams();
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current) return;
+    prefilled.current = true;
+    const net = params.get("net");
+    const chainsFor = net === "mainnet" || net === "testnet" ? cctpChains(net) : null;
+    if (net === "mainnet" || net === "testnet") setNetwork(net);
+    const coinP = params.get("coin");
+    if (coinP && COIN_OPTS.some((o) => o.value === coinP)) setCoin(coinP);
+    const look = chainsFor ?? chains;
+    const fromP = params.get("from");
+    if (fromP && look[fromP]) pickSrc(fromP);
+    const toP = params.get("to");
+    if (toP && look[toP]) setDstKey(toP);
+    const amtP = params.get("amount");
+    if (amtP && /^\d+(\.\d+)?$/.test(amtP)) setAmount(amtP);
+    // Run once on mount; pickSrc/chains are stable enough for a one-shot prefill.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
   const amountIn = amount ? parseUsdc(amount) : 0n;
   // Real balance of the selected coin on the FROM chain (USDC on the CCTP rail).
   const srcEvm = src.kind === "evm" ? viemChainFor(src as never) : undefined;

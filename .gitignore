@@ -16,3 +16,6 @@ docs/
 # Internal engineering standards + local Claude config — keep local, never publish
 /CLAUDE.md
 .claude/
+
+# Local runtime data (JSONL stores, catalog)
+.data/
