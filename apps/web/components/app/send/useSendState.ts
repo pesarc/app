@@ -25,6 +25,8 @@ import { svmTransfer } from "@pesarc/sdk/svm/write";
 import { stablecoinAddress, registryChainKey } from "@pesarc/sdk/chain/stablecoin-registry";
 import { evmBridgeChains } from "@pesarc/sdk/chain/cctp/bridge";
 import { selectAdapter, type CrossSendRequest } from "@pesarc/sdk/chain/crosschain";
+import { tokenByCode } from "@pesarc/sdk/chain/evm-settle";
+import { STABLECOINS } from "@pesarc/sdk/stablecoins";
 import { type BankDestination } from "./BankDetails";
 import {
   detectPhone,
@@ -49,6 +51,9 @@ export function useSendState() {
   // Active EVM chain: a wallet send delivers the token the user holds HERE.
   const { chain: activeChain } = useActiveEvmChain();
   const usdToken = activeChain.tokens?.USD as `0x${string}` | undefined;
+  // The token a WALLET send moves. Same-chain can send any held stablecoin; the
+  // cross-chain (CCTP) rail forces USDC. Default USDC.
+  const [sendToken, setSendToken] = useState("USDC");
   const [step, setStep] = useState<Step>("recipient");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [amountStr, setAmountStr] = useState("");
@@ -107,6 +112,18 @@ export function useSendState() {
   const srcCctpKey = registryChainKey(activeChain.key);
   const bridgeChains = useMemo(() => evmBridgeChains(network), [network]);
   const isCrossChain = walletIsEvm && destChainKey !== "" && destChainKey !== srcCctpKey;
+  // Tokens the active chain has wired, for the wallet send-token picker.
+  const sendTokenOptions = useMemo(
+    () =>
+      STABLECOINS.filter((s) => Boolean(tokenByCode(activeChain, s.symbol)?.address)).map((s) => ({
+        value: s.symbol,
+        label: `${s.flag} ${s.symbol}`,
+      })),
+    [activeChain],
+  );
+  // Cross-chain can only move USDC (CCTP); same-chain moves the picked token.
+  const effectiveSendToken = isCrossChain ? "USDC" : sendToken;
+  const sendTokenAddr = tokenByCode(activeChain, effectiveSendToken)?.address as `0x${string}` | undefined;
   const crossReq: CrossSendRequest | null = useMemo(() => {
     if (!isCrossChain || !recipientAddress) return null;
     const dest = bridgeChains.find((c) => c.key === destChainKey);
@@ -144,7 +161,7 @@ export function useSendState() {
     !isSvm &&
     walletIsEvm &&
     !isCrossChain &&
-    Boolean(usdToken);
+    Boolean(sendTokenAddr);
   const walletSolLive = mode === "live" && authenticated && walletIsSolana && Boolean(solana);
   const walletCrossLive =
     mode === "live" &&
@@ -215,11 +232,11 @@ export function useSendState() {
       // Timed out polling — the burn landed and the funds are in transit (safe).
       return { tx: sourceTx, received: amount };
     }
-    // Send to an EVM wallet on the SAME chain: a direct transfer of the token held
-    // on the active chain, straight to the recipient (no swap, no ramp escrow).
+    // Send to an EVM wallet on the SAME chain: a direct transfer of the PICKED
+    // token, straight to the recipient (no swap, no ramp escrow).
     if (walletIsEvm && recipientAddress) {
-      if (!usdToken) throw new Error("No USDC is configured on this chain to send.");
-      return sendTokenDirect(smart, usdToken, recipientAddress as `0x${string}`, amount);
+      if (!sendTokenAddr) throw new Error(`${effectiveSendToken} isn't available on this chain to send.`);
+      return sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount);
     }
     // Otherwise the fiat corridor: USD→cNGN swap, the cNGN goes to the ramp escrow
     // for the off-chain payout leg.
@@ -231,7 +248,8 @@ export function useSendState() {
     walletIsSolana,
     walletIsEvm,
     recipientAddress,
-    usdToken,
+    sendTokenAddr,
+    effectiveSendToken,
     isCrossChain,
     crossReq,
     crossAdapter,
@@ -245,6 +263,7 @@ export function useSendState() {
     setBankDest(null);
     setRecipientAddress(undefined);
     setDestChainKey("");
+    setSendToken("USDC");
     setTxHash(undefined);
     setActualReceive(undefined);
   };
@@ -287,5 +306,9 @@ export function useSendState() {
       .filter((c) => c.key !== srcCctpKey)
       .map((c) => ({ key: c.key, label: c.label })),
     isCrossChain,
+    /** Wallet send-token picker: which stablecoin a same-chain wallet send moves. */
+    sendToken: effectiveSendToken,
+    setSendToken,
+    sendTokenOptions,
   };
 }

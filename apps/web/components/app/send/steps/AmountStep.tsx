@@ -31,6 +31,9 @@ export function AmountStep({
   setDestChainKey,
   destChainOptions,
   sourceChainLabel,
+  sendToken,
+  setSendToken,
+  sendTokenOptions,
   onBack,
   onNext,
 }: {
@@ -50,20 +53,28 @@ export function AmountStep({
   setDestChainKey?: (k: string) => void;
   destChainOptions?: { key: string; label: string }[];
   sourceChainLabel?: string;
+  sendToken?: string;
+  setSendToken?: (s: string) => void;
+  sendTokenOptions?: { value: string; label: string }[];
   onBack: () => void;
   onNext: () => void;
 }) {
   const sendC = CURRENCIES[sendCurrency];
   const amount = parseFloat(amountStr) || 0;
-  // Live on-chain balance for the active network, with a demo fallback.
-  const live = useLiveBalance();
-  const bal = live.available && live.amount !== undefined ? live.amount : ACCOUNT.balance;
-  const insufficient = amount > bal;
-  // Recipient entered as a bank account: destination is already set/verified.
-  const bankLocked = recipient.id === "custom-bank";
   // Recipient is a raw on-chain wallet: destination (address + chain) is already
   // chosen, so there's no payout method to pick — show it, don't re-ask.
   const isWallet = isWalletRecipient(recipient);
+  // Balance of the token this send moves: the picked token for a wallet send,
+  // else the USD send currency. useLiveBalance resolves by symbol.
+  const live = useLiveBalance(isWallet && sendToken ? sendToken : sendCurrency);
+  const bal = live.available && live.amount !== undefined ? live.amount : ACCOUNT.balance;
+  const balDisplay =
+    isWallet && sendToken
+      ? `${bal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${sendToken}`
+      : formatMoney(bal, sendCurrency);
+  const insufficient = amount > bal;
+  // Recipient entered as a bank account: destination is already set/verified.
+  const bankLocked = recipient.id === "custom-bank";
   // A bank payout needs a usable bank destination before we can review.
   const bankReady = payout !== "bank" || bankDest !== null;
   const valid = amount > 0 && !insufficient && bankReady;
@@ -86,7 +97,7 @@ export function AmountStep({
             <span className="text-slate">Checking balance…</span>
           ) : (
             <>
-              {formatMoney(bal, sendCurrency)}
+              {balDisplay}
               {!live.available && <span className="ml-1 text-[11px] font-semibold text-slate">demo</span>}
             </>
           )}
@@ -122,7 +133,7 @@ export function AmountStep({
             </div>
             <div className={`mt-2 text-[12.5px] font-medium ${insufficient ? "text-white font-bold" : "text-white/55"}`}>
               {insufficient ? "Over your balance · " : "Balance "}
-              {formatMoney(bal, sendCurrency)}
+              {balDisplay}
             </div>
           </div>
 
@@ -197,14 +208,30 @@ export function AmountStep({
             </span>
             <div className="min-w-0">
               <div className="font-bold text-harbor text-[15px] truncate">
-                {amount > 0 ? `${sendC.symbol}${amount} ` : ""}on {walletChainLabel ?? "chain"}
+                {amount > 0 ? `${amount} ${sendToken ?? "USDC"} ` : ""}on {walletChainLabel ?? "chain"}
               </div>
               <div className="text-[12.5px] font-medium text-slate font-mono truncate">{recipient.handle}</div>
             </div>
           </div>
 
+          {/* Token to send — a same-chain wallet send can move any stablecoin you
+              hold; a cross-chain send is USDC only, so the picker hides then. */}
+          {walletIsEvm && setSendToken && !destChainKey && (sendTokenOptions?.length ?? 0) > 0 && (
+            <div className="mt-2.5">
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">
+                Token
+              </label>
+              <Dropdown
+                value={sendToken ?? "USDC"}
+                onChange={setSendToken}
+                ariaLabel="Token to send"
+                options={sendTokenOptions ?? []}
+              />
+            </div>
+          )}
+
           {/* Destination chain. Same chain = a direct transfer; a different chain
-              moves USDC cross-chain (CCTP) straight to this address. */}
+              moves USDC straight to this address. */}
           {walletIsEvm && setDestChainKey && (destChainOptions?.length ?? 0) > 0 && (
             <div className="mt-2.5">
               <label className="block text-[11px] font-bold uppercase tracking-widest text-slate mb-1.5">
@@ -229,7 +256,7 @@ export function AmountStep({
               />
               {destChainKey ? (
                 <p className="mt-1.5 text-[12px] font-medium text-slate">
-                  Moves cross-chain via Circle CCTP — arrives on {walletChainLabel}.
+                  Moves cross-chain — arrives on {walletChainLabel}.
                 </p>
               ) : null}
             </div>
