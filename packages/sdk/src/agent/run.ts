@@ -28,7 +28,7 @@ import { deposit as earnDeposit, withdraw as earnWithdraw, listPositions } from 
 import { toMarket } from "../catalog-map";
 import { fetchAggregatedBalance } from "../chain/aggregateBalance";
 import { fetchOnchainActivity } from "../chain/history";
-import { getBankAccount } from "../bank";
+import { getBankAccount, getPayoutBank } from "../bank";
 import { createPayout } from "../payouts";
 import { sendReference } from "../reference";
 import { getBillsAdapter, findOperator, type BillCategory, type MeterType } from "../bills";
@@ -738,9 +738,22 @@ async function execPayout(
   account: string,
   onProgress?: OnProgress,
 ): Promise<AgentTurnResult> {
+  // Prefer the user's saved PAYOUT bank (has a transfer code -> real Paystack
+  // transfer). Fall back to the deposit account only if no payout bank is set.
+  const payoutBank = await getPayoutBank(account);
   const bank = await getBankAccount(account);
-  if (!bank || bank.status !== "active") {
-    return { ok: false, reply: "I couldn't find an active bank account to pay out to. Link one first." };
+  const dest = payoutBank
+    ? {
+        bankName: "your bank",
+        accountName: payoutBank.accountName,
+        accountNumber: payoutBank.accountNumber,
+        bankCode: payoutBank.bankCode as string | undefined,
+      }
+    : bank && bank.status === "active"
+      ? { bankName: bank.bankName, accountName: bank.accountName, accountNumber: bank.accountNumber, bankCode: undefined }
+      : null;
+  if (!dest) {
+    return { ok: false, reply: "I couldn't find a bank to pay out to. Add a payout bank first, then ask me again." };
   }
   try {
     emitStep(onProgress, "payout", 0);
@@ -749,19 +762,20 @@ async function execPayout(
     const payout = await createPayout(
       {
         reference,
-        beneficiary: bank.accountName,
+        beneficiary: dest.accountName,
         method: "bank",
         amountNgn: draft.amountNgn,
-        accountName: bank.accountName,
-        accountNumber: bank.accountNumber,
+        accountName: dest.accountName,
+        accountNumber: dest.accountNumber,
+        bankCode: dest.bankCode,
       },
       account,
     );
     recordTransfer(
       {
         direction: "sent",
-        counterparty: `${bank.bankName} (${bank.accountName})`,
-        counterpartyHandle: bank.accountNumber,
+        counterparty: `${dest.bankName} (${dest.accountName})`,
+        counterpartyHandle: dest.accountNumber,
         sendAmount: draft.amountNgn,
         sendCurrency: "NGN",
         receiveAmount: draft.amountNgn,
@@ -775,17 +789,17 @@ async function execPayout(
     emitStep(onProgress, "payout", 2);
     const naira = `₦${fmt(draft.amountNgn)}`;
     const paid = payout.status === "paid";
-    const last4 = bank.accountNumber.slice(-4);
+    const last4 = dest.accountNumber.slice(-4);
     return {
       ok: true,
       matched: false,
-      reply: `Done — I'm paying out ${naira} to your ${bank.bankName} account ending ${last4}. Reference ${reference}${paid ? ", paid" : `, ${payout.status}`}.`,
+      reply: `Done — I'm paying out ${naira} to ${dest.bankName} account ending ${last4}. Reference ${reference}${paid ? ", paid" : `, ${payout.status}`}.`,
       receipt: {
         kind: "payout",
         title: "Cash out to bank",
         status: paid ? "done" : "pending",
         lines: [
-          { label: "To", value: `${bank.bankName} ••${last4}` },
+          { label: "To", value: `${dest.bankName} ••${last4}` },
           { label: "Amount", value: naira },
           { label: "Status", value: payout.status },
         ],

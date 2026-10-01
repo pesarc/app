@@ -25,6 +25,7 @@ import {
   Wallet,
 } from "@/components/icons";
 import AlgorandWallet from "@/components/app/AlgorandWallet";
+import PayoutBankPanel from "@/components/app/bank/PayoutBankPanel";
 import { countryByCode, BVN_COUNTRIES } from "@pesarc/sdk/countries";
 import { site } from "@pesarc/sdk/site";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
@@ -124,6 +125,11 @@ export default function YouPage() {
             ok
           />
         )}
+      </Section>
+
+      {/* Payout bank — the real account cash-outs (and the agent) send money to. */}
+      <Section title="Cash out">
+        <PayoutBankPanel />
       </Section>
 
       {/* Wallets — self-custody address the user owns. */}
