@@ -137,6 +137,22 @@ export function RouteCard({ plan }: { plan: RoutePlan }) {
                     {st.note && <span className="text-alert">{st.note}</span>}
                   </div>
                 )}
+                {/* This hop is on another chain: prompt the user to switch their
+                    in-app network, then it signs once the wallet is ready there. */}
+                {i === runner.activeIdx && st.phase === "switching" && (
+                  runner.activeChainId !== leg.fromChainId ? (
+                    <div className="mt-2 pl-6">
+                      <Button onClick={() => runner.switchTo(i)}>Switch to {leg.fromLabel}</Button>
+                      <p className="mt-1 text-[12px] text-slate">
+                        Change your network to {leg.fromLabel} to sign this hop in your wallet.
+                      </p>
+                    </div>
+                  ) : !runner.walletReady ? (
+                    <p className="mt-1.5 pl-6 text-[12px] text-slate">
+                      Getting your wallet ready on {leg.fromLabel}…
+                    </p>
+                  ) : null
+                )}
               </li>
             );
           })}
