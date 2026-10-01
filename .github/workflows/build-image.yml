@@ -61,6 +61,13 @@ jobs:
             ${{ steps.img.outputs.ref }}:${{ github.sha }}
           secret-files: |
             dotenv=.env.ci
+          # Ties the build layer's cache to the inlined env: when BUILD_DOTENV
+          # changes this hash changes and the Next build re-runs. BuildKit keeps
+          # --secret content out of the cache key, so without this a changed
+          # BUILD_DOTENV would silently reuse the old client bundle. See the
+          # Dockerfile's ARG DOTENV_HASH.
+          build-args: |
+            DOTENV_HASH=${{ hashFiles('.env.ci') }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
