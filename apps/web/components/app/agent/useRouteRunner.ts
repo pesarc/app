@@ -186,6 +186,32 @@ export function useRouteRunner(): RouteRunner {
     else if (ph === "settling") void settleLeg(idx);
   }, [status, idx, states, smart.ready, smart.address, activeEvm.chain.id, legs, patch, sendLeg, settleLeg, setChainKey]);
 
+  // Don't spin on "Switching network" forever. If the active chain hasn't become
+  // the source chain AND the in-app wallet isn't ready there within the window
+  // (e.g. that chain's gasless rails aren't up), fail the leg with a clear message
+  // instead of a hang. Keyed on the phase so it isn't reset by unrelated renders.
+  const activePhase = idx >= 0 ? states[idx]?.phase : undefined;
+  useEffect(() => {
+    if (status !== "running" || idx < 0 || activePhase !== "switching") return;
+    const t = setTimeout(() => {
+      setStates((prev) =>
+        prev[idx]?.phase === "switching"
+          ? prev.map((s, j) =>
+              j === idx
+                ? {
+                    ...s,
+                    phase: "error",
+                    note: `Couldn't get your in-app wallet ready on ${legs[idx]?.fromLabel ?? "that network"}. Switch to it first, then try again.`,
+                  }
+                : s,
+            )
+          : prev,
+      );
+      setStatus("error");
+    }, 30_000);
+    return () => clearTimeout(t);
+  }, [status, idx, activePhase, legs]);
+
   const explorerTx = useCallback(
     (cctpKey: string, tx: string) => {
       const c = cctpChains(network)[cctpKey];
