@@ -140,6 +140,7 @@ export function useAgentChat() {
             marketsUrl: data.marketsUrl,
             billsUrl: data.billsUrl,
             crossChainUrl: data.crossChainUrl,
+            route: data.route,
             draft: data.draft,
             draftState: data.draft ? "pending" : undefined,
           },
