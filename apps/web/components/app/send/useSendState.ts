@@ -14,16 +14,19 @@ import { useUIMode } from "@pesarc/sdk/ui-mode";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
-import { TEST_RECIPIENT, RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
+import { RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
 import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
+import { sendTokenDirect } from "@pesarc/sdk/chain/sendDirect";
 import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
+import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { svmTransfer } from "@pesarc/sdk/svm/write";
 import { stablecoinAddress } from "@pesarc/sdk/chain/stablecoin-registry";
 import { type BankDestination } from "./BankDetails";
 import {
   detectPhone,
+  isEvmAddress,
   isSolanaAddress,
   isWalletAddress,
   recipientFromAddress,
@@ -41,6 +44,9 @@ export function useSendState() {
   // Solana selected → the EVM smart-wallet execution must not run; the flow
   // falls to its demo/simulated path (real execution stays on the EVM/Arc leg).
   const { isSvm } = useActiveNetwork();
+  // Active EVM chain: a wallet send delivers the token the user holds HERE.
+  const { chain: activeChain } = useActiveEvmChain();
+  const usdToken = activeChain.tokens?.USD as `0x${string}` | undefined;
   const [step, setStep] = useState<Step>("recipient");
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [amountStr, setAmountStr] = useState("");
@@ -86,17 +92,27 @@ export function useSendState() {
 
   const amount = parseFloat(amountStr) || 0;
 
-  // Live = a real on-chain gasless swap is possible right now. The swap targets
-  // the cNGN hub pool, so the real execution only runs for NGN recipients today;
-  // other corridors quote live off the oracle but settle via the simulated path
-  // until their pool/netting execution ships (lift this gate then).
-  const live =
+  // Classify a wallet (on-chain address) destination by its rail.
+  const walletIsSolana = payout === "wallet" && !!recipientAddress && isSolanaAddress(recipientAddress);
+  const walletIsEvm = payout === "wallet" && !!recipientAddress && isEvmAddress(recipientAddress);
+
+  // Live = a real on-chain send is possible right now. Three real paths today:
+  //  • Fiat corridor: USD→cNGN gasless swap on the hub pool (NGN recipients).
+  //  • EVM wallet: a direct transfer of the token held on the ACTIVE chain.
+  //  • Solana wallet: a direct SPL USDC transfer on devnet.
+  // Everything else quotes live but settles via the simulated path for now.
+  const fiatLive =
     mode === "live" &&
     authenticated &&
     smart.ready &&
     CONTRACTS_READY &&
     !isSvm &&
+    payout !== "wallet" &&
     recipient?.receiveCurrency === "NGN";
+  const walletEvmLive =
+    mode === "live" && authenticated && smart.ready && !isSvm && walletIsEvm && Boolean(usdToken);
+  const walletSolLive = mode === "live" && authenticated && walletIsSolana && Boolean(solana);
+  const live = fiatLive || walletEvmLive || walletSolLive;
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
@@ -138,19 +154,22 @@ export function useSendState() {
   // money) — the fiat leg is orchestrated off-chain from there.
   const executeReal = useCallback(async (): Promise<SendResult> => {
     // Send to a Solana wallet: a direct SPL USDC transfer on devnet.
-    if (payout === "wallet" && recipientAddress && isSolanaAddress(recipientAddress) && solana) {
+    if (walletIsSolana && solana && recipientAddress) {
       const mint = stablecoinAddress("USDC", "solana", "testnet");
       if (!mint) throw new Error("USDC is not configured on Solana devnet.");
       const sig = await svmTransfer(solana, { mint, to: recipientAddress, amount, decimals: 6 });
       return { tx: sig, received: amount };
     }
-    // Otherwise the EVM local-currency corridor (to a wallet, or the ramp escrow).
-    const payoutTo =
-      payout === "wallet"
-        ? ((recipientAddress || TEST_RECIPIENT) as `0x${string}` | "")
-        : RAMP_ESCROW;
-    return executeCorridorSend(smart, amount, payoutTo);
-  }, [smart, solana, amount, payout, recipientAddress]);
+    // Send to an EVM wallet: a direct transfer of the token held on the active
+    // chain, straight to the recipient (no corridor swap, no ramp escrow).
+    if (walletIsEvm && recipientAddress) {
+      if (!usdToken) throw new Error("No USDC is configured on this chain to send.");
+      return sendTokenDirect(smart, usdToken, recipientAddress as `0x${string}`, amount);
+    }
+    // Otherwise the fiat corridor: USD→cNGN swap, the cNGN goes to the ramp escrow
+    // for the off-chain payout leg.
+    return executeCorridorSend(smart, amount, RAMP_ESCROW);
+  }, [smart, solana, amount, walletIsSolana, walletIsEvm, recipientAddress, usdToken]);
 
   const reset = () => {
     setStep("recipient");
@@ -188,5 +207,7 @@ export function useSendState() {
     live,
     executeReal,
     reset,
+    /** Chain a wallet send will go out on (for the amount/confirm summaries). */
+    walletChainLabel: walletIsSolana ? "Solana" : activeChain.label,
   };
 }

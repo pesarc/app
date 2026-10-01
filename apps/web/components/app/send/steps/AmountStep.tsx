@@ -9,7 +9,7 @@ import { Button } from "@/components/app/ui";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import { QuoteBreakdown, formatEta } from "../QuoteBreakdown";
-import { flagFor } from "../helpers";
+import { flagFor, isWalletRecipient } from "../helpers";
 import { StepNav } from "../shared";
 
 export function AmountStep({
@@ -23,6 +23,7 @@ export function AmountStep({
   onBankChange,
   quote,
   advanced,
+  walletChainLabel,
   onBack,
   onNext,
 }: {
@@ -36,6 +37,7 @@ export function AmountStep({
   onBankChange: (v: BankDestination | null) => void;
   quote: Quote | null;
   advanced: boolean;
+  walletChainLabel?: string;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -47,6 +49,9 @@ export function AmountStep({
   const insufficient = amount > bal;
   // Recipient entered as a bank account: destination is already set/verified.
   const bankLocked = recipient.id === "custom-bank";
+  // Recipient is a raw on-chain wallet: destination (address + chain) is already
+  // chosen, so there's no payout method to pick — show it, don't re-ask.
+  const isWallet = isWalletRecipient(recipient);
   // A bank payout needs a usable bank destination before we can review.
   const bankReady = payout !== "bank" || bankDest !== null;
   const valid = amount > 0 && !insufficient && bankReady;
@@ -169,7 +174,24 @@ export function AmountStep({
       {/* Payout method. When the recipient IS a bank account (entered on the
           previous step), the destination is already set and verified, so we lock
           it and show a summary instead of re-asking. */}
-      {bankLocked ? (
+      {isWallet ? (
+        <div className="mb-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
+            Sending to
+          </p>
+          <div className="flex items-center gap-3 rounded-[18px] border border-fog bg-snow p-3.5">
+            <span className="w-9 h-9 rounded-full bg-sky-tint flex items-center justify-center text-[18px]">
+              {recipient.flag}
+            </span>
+            <div className="min-w-0">
+              <div className="font-bold text-harbor text-[15px] truncate">
+                {amount > 0 ? `${sendC.symbol}${amount} ` : ""}on {walletChainLabel ?? "chain"}
+              </div>
+              <div className="text-[12.5px] font-medium text-slate font-mono truncate">{recipient.handle}</div>
+            </div>
+          </div>
+        </div>
+      ) : bankLocked ? (
         <div className="mb-5">
           <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
             Paying to

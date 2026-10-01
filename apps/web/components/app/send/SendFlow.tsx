@@ -34,6 +34,7 @@ export default function SendFlow() {
     live,
     executeReal,
     reset,
+    walletChainLabel,
   } = useSendState();
 
   return (
@@ -72,6 +73,7 @@ export default function SendFlow() {
             onBankChange={setBankDest}
             quote={quote}
             advanced={isAdvanced}
+            walletChainLabel={walletChainLabel}
             onBack={() => setStep("recipient")}
             onNext={() => setStep("confirm")}
           />
@@ -82,6 +84,7 @@ export default function SendFlow() {
             recipient={recipient}
             quote={quote}
             advanced={isAdvanced}
+            walletChainLabel={walletChainLabel}
             onBack={() => setStep("amount")}
             onSend={() => setStep("settling")}
           />
@@ -98,6 +101,7 @@ export default function SendFlow() {
               setActualReceive(r?.received);
               setStep("success");
             }}
+            onCancel={() => setStep("confirm")}
           />
         )}
 
