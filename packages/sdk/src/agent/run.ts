@@ -17,6 +17,8 @@ import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
 import { parseSwapIntent, swapHandoffUrl } from "./swap-intent";
+import { parseRouteIntent, routePlanReply, type RoutePlan } from "./route-intent";
+export type { RoutePlan } from "./route-intent";
 import { tryAgentCrossChain } from "./session-exec";
 import { parseEarnIntent } from "./earn-intent";
 import { parseStakeIntent } from "./stake-intent";
@@ -124,6 +126,8 @@ export type AgentTurnResult = {
   draft?: AgentDraft;
   /** Confirm: the completed action. */
   receipt?: AgentReceipt;
+  /** A multi-hop cross-chain route the browser runs leg by leg. */
+  route?: RoutePlan;
 };
 
 // Slippage the agent accepts vs the realized rate when it has one.
@@ -538,6 +542,16 @@ export async function runAgentTurn(
     } catch {
       return { ok: false, reply: "I couldn't read that wallet's activity just now. Try again shortly." };
     }
+  }
+
+  // Multi-hop route ("route 5 USDC across Arc to Arbitrum to Base to Arc") —
+  // three or more chains, so it's a sequence of CCTP legs, not one hop. The agent
+  // plans it; the browser runs it leg by leg, signing each with the smart wallet
+  // and waiting for settlement between hops. Checked before the single-hop swap.
+  const route = parseRouteIntent(message);
+  if (route) {
+    const { reply, understood } = routePlanReply(route);
+    return { ok: true, matched: false, understood, reply, route };
   }
 
   // Cross-chain move ("swap USDC on Arc to Base") — names two chains, so it's a
