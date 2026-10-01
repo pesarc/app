@@ -7,6 +7,7 @@ import { PAYOUT_METHODS, type PayoutMethod, type Quote } from "@pesarc/sdk/quote
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
+import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import { QuoteBreakdown, formatEta } from "../QuoteBreakdown";
@@ -214,8 +215,16 @@ export function AmountStep({
                 onChange={setDestChainKey}
                 ariaLabel="Destination chain"
                 options={[
-                  { value: "", label: `${sourceChainLabel ?? "This chain"} (same chain)` },
-                  ...(destChainOptions ?? []).map((c) => ({ value: c.key, label: c.label })),
+                  {
+                    value: "",
+                    label: `${sourceChainLabel ?? "This chain"} (same chain)`,
+                    icon: sourceChainLabel ? chainLogoUrlForLabel(sourceChainLabel) : undefined,
+                  },
+                  ...(destChainOptions ?? []).map((c) => ({
+                    value: c.key,
+                    label: c.label,
+                    icon: chainLogoUrlForLabel(c.label),
+                  })),
                 ]}
               />
               {destChainKey ? (
