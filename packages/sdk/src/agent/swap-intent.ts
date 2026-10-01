@@ -30,6 +30,7 @@ const CHAINS: { name: string; re: RegExp }[] = [
   { name: "Avalanche", re: /\b(avalanche|avax)\b/ },
   { name: "Celo", re: /\bcelo\b/ },
   { name: "Ethereum", re: /\b(ethereum|mainnet eth|eth mainnet)\b/ },
+  { name: "Solana", re: /\b(solana|sol)\b/ },
 ];
 
 const TOKENS: { symbol: string; re: RegExp }[] = [
