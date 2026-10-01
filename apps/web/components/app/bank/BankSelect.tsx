@@ -59,12 +59,20 @@ export function BankSelect({
   // "first" matches "First Bank", "058" matches by sort-code — substring-only
   // matching missed all of these.
   const filtered = useMemo(() => {
-    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const q = query.trim().toLowerCase();
+    const tokens = q.split(/\s+/).filter(Boolean);
     if (!tokens.length) return banks;
-    return banks.filter((b) => {
+    const matches = banks.filter((b) => {
       const hay = `${b.name} ${b.code}`.toLowerCase();
       return tokens.every((t) => hay.includes(t));
     });
+    // Rank the most relevant first: name starts with the query, then name
+    // contains it, then the rest (matched only by code / a later token).
+    const rank = (name: string) => {
+      const n = name.toLowerCase();
+      return n.startsWith(q) ? 0 : n.includes(q) ? 1 : 2;
+    };
+    return matches.sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name));
   }, [banks, query]);
 
   return (
@@ -122,7 +130,7 @@ export function BankSelect({
             ) : (
               filtered.map((b) => (
                 <button
-                  key={b.code}
+                  key={`${b.code}-${b.name}`}
                   role="option"
                   aria-selected={b.code === value}
                   type="button"
