@@ -38,15 +38,36 @@ export async function listBanks(currency = "NGN"): Promise<Bank[]> {
   const key = paystackKey();
   if (!key || currency.toUpperCase() !== "NGN") return NG_BANKS;
   try {
-    const res = await fetch(
-      `https://api.paystack.co/bank?currency=${encodeURIComponent(currency)}&perPage=100`,
-      { headers: { authorization: `Bearer ${key}` }, cache: "no-store" },
-    );
-    if (!res.ok) return NG_BANKS;
-    const data = (await res.json()) as { data?: { name: string; code: string }[] };
-    const banks = (data.data ?? [])
-      .map((b) => ({ name: b.name, code: b.code }))
-      .filter((b) => b.name && b.code);
+    // Paginate — Nigeria has 200+ banks and the provider caps a page at 100, so a
+    // single page silently truncates the list (your bank wouldn't be searchable).
+    const raw: { name: string; code: string }[] = [];
+    for (let page = 1; page <= 6; page++) {
+      const res = await fetch(
+        `https://api.paystack.co/bank?currency=${encodeURIComponent(currency)}&perPage=100&page=${page}`,
+        { headers: { authorization: `Bearer ${key}` }, cache: "no-store" },
+      );
+      if (!res.ok) break;
+      const data = (await res.json()) as {
+        data?: { name: string; code: string }[];
+        meta?: { next?: number | null };
+      };
+      const batch = data.data ?? [];
+      raw.push(...batch);
+      if (!data.meta?.next || batch.length < 100) break;
+    }
+    // Dedupe by name (the provider returns several entries per bank, which is what
+    // made the picker show duplicates) and sort alphabetically.
+    const seen = new Set<string>();
+    const banks = raw
+      .filter((b) => b.name && b.code)
+      .map((b) => ({ name: String(b.name).trim(), code: String(b.code) }))
+      .filter((b) => {
+        const k = b.name.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
     return banks.length ? banks : NG_BANKS;
   } catch {
     return NG_BANKS;

@@ -40,7 +40,7 @@ export type Leg = {
   /** "svm" = Solana; "evm" = an EVM chain. */
   fromKind: "evm" | "svm";
   toKind: "evm" | "svm";
-  /** "cctp" = Circle burn+relay (EVM↔EVM, Solana→EVM); "lifi" = aggregator
+  /** "cctp" = burn+relay (EVM↔EVM, Solana→EVM); "lifi" = aggregator
    *  (EVM→Solana, which has no native Solana mint). */
   rail: "cctp" | "lifi";
   fromKey: string; // registry key (EVM) or the Solana network key
@@ -79,8 +79,8 @@ function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
     if (fromKind === "svm" && toKind === "svm") {
       return "Pick a different source and destination.";
     }
-    // Solana -> EVM = Circle CCTP; EVM -> Solana = aggregator (no native Solana
-    // mint); EVM -> EVM = Circle CCTP.
+    // Solana -> EVM = burn+relay; EVM -> Solana = aggregator (no native Solana
+    // mint); EVM -> EVM = burn+relay.
     const rail: "cctp" | "lifi" = toKind === "svm" ? "lifi" : "cctp";
     const fromCctp = CCTP[from];
     const toCctp = CCTP[to];

@@ -125,14 +125,12 @@ type Filters = {
 function FilterMenu({
   chains,
   tokens,
-  hasBank,
   hasBothNetworks,
   value,
   onChange,
 }: {
   chains: { key: string; label: string; testnet: boolean }[];
   tokens: string[];
-  hasBank: boolean;
   hasBothNetworks: boolean;
   value: Filters;
   onChange: (f: Filters) => void;
@@ -172,7 +170,7 @@ function FilterMenu({
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-slate mb-1.5">Show</div>
             <div className="flex flex-wrap gap-1.5">
-              {(["all", "onchain", ...(hasBank ? (["bank"] as const) : [])] as const).map((s) => (
+              {(["all", "onchain", "bank"] as const).map((s) => (
                 <button key={s} className={chip(value.source === s)} onClick={() => onChange({ ...value, source: s })}>
                   {s === "all" ? "All" : s === "onchain" ? "On-chain" : "Bank"}
                 </button>
@@ -249,7 +247,6 @@ export function ActivityList({ mode }: { mode: "home" | "full" }) {
     [items],
   );
   const tokens = useMemo(() => Array.from(new Set(items.map((i) => i.symbol))), [items]);
-  const hasBank = items.some((i) => i.source === "bank");
   const hasBothNetworks = items.some((i) => i.testnet === true) && items.some((i) => i.testnet === false);
 
   const filtered = items.filter(
@@ -276,7 +273,6 @@ export function ActivityList({ mode }: { mode: "home" | "full" }) {
         <FilterMenu
           chains={chains}
           tokens={tokens}
-          hasBank={hasBank}
           hasBothNetworks={hasBothNetworks}
           value={filters}
           onChange={(f) => {
