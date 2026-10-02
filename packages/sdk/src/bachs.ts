@@ -106,10 +106,15 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
             bank_code: input.bankCode,
           }),
         });
-        const dest = (await destRes.json()) as { id?: string; account_name?: string; message?: string };
+        const dest = (await destRes.json()) as {
+          id?: string;
+          account_name?: string;
+          detail?: string;
+          error_code?: string;
+        };
         if (!destRes.ok || !dest.id) {
           console.warn(
-            `[ramp:bachs] destination failed for ${input.reference}: ${dest?.message ?? destRes.status}`,
+            `[ramp:bachs] destination failed for ${input.reference}: ${dest?.detail ?? dest?.error_code ?? destRes.status}`,
           );
           return { partnerRef: localRef(), status: "initiated" };
         }
@@ -126,11 +131,16 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
             reference: input.reference,
           }),
         });
-        const pay = (await payRes.json()) as { id?: string; status?: string; message?: string };
+        const pay = (await payRes.json()) as {
+          id?: string;
+          status?: string;
+          detail?: string;
+          error_code?: string;
+        };
         const partnerRef = pay.id ?? input.reference;
         if (!payRes.ok || !pay.id) {
           console.warn(
-            `[ramp:bachs] payout failed for ${input.reference}: ${pay?.message ?? payRes.status}`,
+            `[ramp:bachs] payout failed for ${input.reference}: ${pay?.detail ?? pay?.error_code ?? payRes.status}`,
           );
           return { partnerRef, status: "initiated" };
         }
@@ -185,9 +195,9 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
           cache: "no-store",
           body: JSON.stringify({ account_number: accountNumber, bank_code: bankCode }),
         });
-        const data = (await res.json()) as { account_name?: string; message?: string };
+        const data = (await res.json()) as { account_name?: string; detail?: string; error_code?: string };
         if (!res.ok || !data.account_name) {
-          return { resolved: false, error: data.message || "Couldn't verify this account." };
+          return { resolved: false, error: data.detail || "Couldn't verify this account." };
         }
         return { resolved: true, accountName: data.account_name };
       } catch {
