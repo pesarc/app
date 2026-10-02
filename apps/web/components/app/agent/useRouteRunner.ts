@@ -14,6 +14,7 @@ import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi
 import { cctpChains, tokenMessengerV2, type CctpNetwork } from "@pesarc/sdk/chain/cctp/network";
 import { FINALITY, toBytes32, parseUsdc, quoteFast, maxFeeFor, fetchFee, relayMint, solanaRpc } from "@pesarc/sdk/chain/cctp/bridge";
 import { burnOnSolana, evmRecipient32 } from "@pesarc/sdk/svm/cctp";
+import { getLifiQuote, getLifiStatus, LIFI_SOLANA_CHAIN } from "@pesarc/sdk/chain/aggregator/lifi";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { useActiveNetwork, SOLANA_NETWORK_KEY } from "@pesarc/sdk/chain/activeNetwork";
@@ -21,6 +22,7 @@ import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import type { RoutePlan } from "@pesarc/sdk/agent/run";
 
 const ZERO32 = ("0x" + "0".repeat(64)) as `0x${string}`;
+const SOLANA_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Friendly label -> registry chain key (what sets the active chain), per network.
@@ -35,8 +37,12 @@ export type LegPhase = "pending" | "switching" | "sending" | "settling" | "done"
 export type Leg = {
   fromLabel: string;
   toLabel: string;
-  /** "svm" = Solana (burns with the Solana wallet); "evm" = an EVM chain. */
+  /** "svm" = Solana; "evm" = an EVM chain. */
   fromKind: "evm" | "svm";
+  toKind: "evm" | "svm";
+  /** "cctp" = burn+relay (EVM↔EVM, Solana→EVM); "lifi" = aggregator
+   *  (EVM→Solana, which has no native Solana mint). */
+  rail: "cctp" | "lifi";
   fromKey: string; // registry key (EVM) or the Solana network key
   fromCctp: string;
   toCctp: string;
@@ -68,12 +74,14 @@ function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
   for (let i = 0; i < chains.length - 1; i++) {
     const from = chains[i];
     const to = chains[i + 1];
-    // Moving TO Solana uses a different rail (not native CCTP) and isn't wired
-    // into this runner yet — only Solana -> EVM is supported here.
-    if (to === "Solana") {
-      return "Moving to Solana isn't supported here yet — I can move from Solana to an EVM chain.";
-    }
     const fromKind: "evm" | "svm" = from === "Solana" ? "svm" : "evm";
+    const toKind: "evm" | "svm" = to === "Solana" ? "svm" : "evm";
+    if (fromKind === "svm" && toKind === "svm") {
+      return "Pick a different source and destination.";
+    }
+    // Solana -> EVM = burn+relay; EVM -> Solana = aggregator (no native Solana
+    // mint); EVM -> EVM = burn+relay.
+    const rail: "cctp" | "lifi" = toKind === "svm" ? "lifi" : "cctp";
     const fromCctp = CCTP[from];
     const toCctp = CCTP[to];
     const fromKey = fromKind === "svm" ? SOLANA_NETWORK_KEY : REG[network][from];
@@ -84,6 +92,8 @@ function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
       fromLabel: from,
       toLabel: to,
       fromKind,
+      toKind,
+      rail,
       fromKey,
       fromCctp,
       toCctp,
@@ -191,6 +201,32 @@ export function useRouteRunner(): RouteRunner {
           return;
         }
 
+        // EVM -> Solana: no native Solana mint, so route via the aggregator. The
+        // smart wallet signs the approve + the route tx (gasless); the recipient
+        // is the user's Solana wallet. Settlement polls the aggregator's status.
+        if (leg.rail === "lifi") {
+          if (!smart.address) throw new Error("Sign in with your wallet to move funds.");
+          if (!solana?.address) throw new Error("Connect your Solana wallet to receive on Solana.");
+          const quote = await getLifiQuote({
+            fromChain: src.chainId as number,
+            toChain: LIFI_SOLANA_CHAIN,
+            fromToken: src.usdc as string,
+            toToken: SOLANA_USDC_MINT,
+            fromAmount: amountIn.toString(),
+            fromAddress: smart.address,
+            toAddress: solana.address,
+          });
+          const spender = quote.transactionRequest.to;
+          const value = quote.transactionRequest.value ? BigInt(quote.transactionRequest.value) : 0n;
+          const tx = await smart.sendCalls([
+            { to: src.usdc as `0x${string}`, data: encodeFunctionData({ abi: erc20ApproveAbi, functionName: "approve", args: [spender, amountIn] }) },
+            { to: quote.transactionRequest.to, data: quote.transactionRequest.data, value },
+          ]);
+          if (!tx) throw new Error("The transfer didn't go through.");
+          patch(i, { burnTx: tx, phase: "settling" });
+          return;
+        }
+
         const fee = await fetchFee(src.domain, dst.domain, network).catch(() => ({ fastBps: null as number | null }));
         const useFast = fee.fastBps != null;
         const maxFee = useFast ? maxFeeFor(amountIn, fee.fastBps as number) : 0n;
@@ -216,23 +252,39 @@ export function useRouteRunner(): RouteRunner {
   const settleLeg = useCallback(
     async (i: number) => {
       const leg = legs[i];
-      const src = cctpChains(network)[leg.fromCctp];
       const burnTx = states[i]?.burnTx;
       if (!burnTx) return;
+      // Advance to the next hop (prompting a switch) or finish.
+      const advance = () => {
+        if (i + 1 < legs.length) {
+          patch(i + 1, { phase: "switching" });
+          setIdx(i + 1);
+        } else {
+          setStatus("done");
+        }
+      };
       const deadline = Date.now() + 25 * 60_000;
       try {
+        if (leg.rail === "lifi") {
+          // EVM -> Solana: poll the aggregator until the Solana side lands.
+          while (Date.now() < deadline) {
+            const s = await getLifiStatus(burnTx, leg.fromChainId, LIFI_SOLANA_CHAIN);
+            if (s.status === "DONE") {
+              patch(i, { mintTx: s.receivingTx, phase: "done" });
+              advance();
+              return;
+            }
+            if (s.status === "FAILED") throw new Error(`That route didn't go through: ${s.substatus || "unknown"}`);
+            await sleep(15_000);
+          }
+          throw new Error("This is taking longer than usual. Your money left safely and will arrive shortly.");
+        }
+        const src = cctpChains(network)[leg.fromCctp];
         while (Date.now() < deadline) {
           const r = await relayMint({ srcDomain: src.domain, burnTx, dstKey: leg.toCctp, network });
           if (r.ok) {
             patch(i, { mintTx: r.mintTx, phase: "done" });
-            if (i + 1 < legs.length) {
-              // Next leg may be on another chain — prompt the user to switch
-              // (switchTo on their tap); don't auto-switch.
-              patch(i + 1, { phase: "switching" });
-              setIdx(i + 1);
-            } else {
-              setStatus("done");
-            }
+            advance();
             return;
           }
           if (!r.pending) throw new Error(r.error);
