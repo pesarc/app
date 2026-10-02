@@ -26,6 +26,7 @@ const CHAINS: { name: string; re: RegExp }[] = [
   { name: "Polygon", re: /\b(polygon|matic)\b/ },
   { name: "Avalanche", re: /\b(avalanche|avax)\b/ },
   { name: "Ethereum", re: /\b(ethereum|eth)\b/ },
+  { name: "Solana", re: /\b(solana|sol)\b/ },
 ];
 
 const MOVE_VERB = /\b(route|swap|move|bridge|send|hop|loop|cycle|across)\b/;

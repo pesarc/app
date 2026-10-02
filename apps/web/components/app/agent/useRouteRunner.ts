@@ -12,9 +12,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { encodeFunctionData } from "viem";
 import { tokenMessengerV2Abi, erc20ApproveAbi } from "@pesarc/sdk/chain/cctp/abi";
 import { cctpChains, tokenMessengerV2, type CctpNetwork } from "@pesarc/sdk/chain/cctp/network";
-import { FINALITY, toBytes32, parseUsdc, quoteFast, maxFeeFor, fetchFee, relayMint } from "@pesarc/sdk/chain/cctp/bridge";
+import { FINALITY, toBytes32, parseUsdc, quoteFast, maxFeeFor, fetchFee, relayMint, solanaRpc } from "@pesarc/sdk/chain/cctp/bridge";
+import { burnOnSolana, evmRecipient32 } from "@pesarc/sdk/svm/cctp";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { useActiveNetwork, SOLANA_NETWORK_KEY } from "@pesarc/sdk/chain/activeNetwork";
+import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import type { RoutePlan } from "@pesarc/sdk/agent/run";
 
 const ZERO32 = ("0x" + "0".repeat(64)) as `0x${string}`;
@@ -25,17 +28,19 @@ const REG: Record<CctpNetwork, Record<string, string>> = {
   testnet: { Arc: "arc-testnet", Base: "base-sepolia", Arbitrum: "arbitrum-sepolia", Optimism: "optimism-sepolia", Polygon: "polygon-amoy", Ethereum: "sepolia", Avalanche: "avalanche-fuji" },
   mainnet: { Arc: "arc", Base: "base", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Ethereum: "ethereum", Avalanche: "avalanche" },
 };
-// Friendly label -> CCTP network key (same across networks).
-const CCTP: Record<string, string> = { Arc: "arc", Base: "base", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Ethereum: "ethereum", Avalanche: "avalanche" };
+// Friendly label -> CCTP network key (same across networks). Solana is mainnet-only.
+const CCTP: Record<string, string> = { Arc: "arc", Base: "base", Arbitrum: "arbitrum", Optimism: "optimism", Polygon: "polygon", Ethereum: "ethereum", Avalanche: "avalanche", Solana: "solana" };
 
 export type LegPhase = "pending" | "switching" | "sending" | "settling" | "done" | "error";
 export type Leg = {
   fromLabel: string;
   toLabel: string;
-  fromKey: string; // registry key (active chain)
+  /** "svm" = Solana (burns with the Solana wallet); "evm" = an EVM chain. */
+  fromKind: "evm" | "svm";
+  fromKey: string; // registry key (EVM) or the Solana network key
   fromCctp: string;
   toCctp: string;
-  fromChainId: number;
+  fromChainId?: number; // EVM only; Solana has none
 };
 export type LegState = { phase: LegPhase; burnTx?: string; mintTx?: string; note?: string };
 export type RouteStatus = "idle" | "running" | "done" | "error";
@@ -49,23 +54,41 @@ export type RouteRunner = {
   start: (plan: RoutePlan, network: CctpNetwork) => string | null;
   explorerTx: (cctpKey: string, tx: string) => string;
   switchTo: (i: number) => void;
-  activeChainId: number;
-  walletReady: boolean;
+  needsSwitch: (i: number) => boolean;
+  sourceReady: (i: number) => boolean;
 };
 
 function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
+  // Any Solana hop is mainnet-only (no Solana CCTP on testnet).
+  if (chains.includes("Solana") && network !== "mainnet") {
+    return "Solana transfers run on mainnet. Switch to Live to route through Solana.";
+  }
   const book = cctpChains(network);
   const legs: Leg[] = [];
   for (let i = 0; i < chains.length - 1; i++) {
     const from = chains[i];
     const to = chains[i + 1];
-    const fromKey = REG[network][from];
+    // Moving TO Solana uses a different rail (not native CCTP) and isn't wired
+    // into this runner yet — only Solana -> EVM is supported here.
+    if (to === "Solana") {
+      return "Moving to Solana isn't supported here yet — I can move from Solana to an EVM chain.";
+    }
+    const fromKind: "evm" | "svm" = from === "Solana" ? "svm" : "evm";
     const fromCctp = CCTP[from];
     const toCctp = CCTP[to];
+    const fromKey = fromKind === "svm" ? SOLANA_NETWORK_KEY : REG[network][from];
     const src = fromCctp ? book[fromCctp] : undefined;
     const dst = toCctp ? book[toCctp] : undefined;
     if (!fromKey || !src || !dst) return `${from} to ${to} isn't available on ${network === "testnet" ? "testnet" : "mainnet"}.`;
-    legs.push({ fromLabel: from, toLabel: to, fromKey, fromCctp, toCctp, fromChainId: src.chainId as number });
+    legs.push({
+      fromLabel: from,
+      toLabel: to,
+      fromKind,
+      fromKey,
+      fromCctp,
+      toCctp,
+      fromChainId: fromKind === "evm" ? (src.chainId as number) : undefined,
+    });
   }
   return legs;
 }
@@ -73,6 +96,8 @@ function resolveLegs(chains: string[], network: CctpNetwork): Leg[] | string {
 export function useRouteRunner(): RouteRunner {
   const smart = useSmartWallet();
   const { chain: activeEvm, setChainKey } = useActiveEvmChain();
+  const activeNet = useActiveNetwork(); // isSvm + setNetwork(key) — for Solana legs
+  const solana = useSolanaSigner();
   const [legs, setLegs] = useState<Leg[]>([]);
   const [states, setStates] = useState<LegState[]>([]);
   const [idx, setIdx] = useState(-1);
@@ -84,6 +109,28 @@ export function useRouteRunner(): RouteRunner {
   const patch = useCallback((i: number, p: Partial<LegState>) => {
     setStates((prev) => prev.map((s, j) => (j === i ? { ...s, ...p } : s)));
   }, []);
+
+  // Per-leg: is the active network NOT this leg's source (needs a switch)? And is
+  // the source network active AND its wallet ready (can sign)? Solana legs key off
+  // isSvm + the Solana signer; EVM legs off the active chain id + the smart wallet.
+  const needsSwitch = useCallback(
+    (i: number): boolean => {
+      const leg = legs[i];
+      if (!leg) return false;
+      return leg.fromKind === "svm" ? !activeNet.isSvm : activeEvm.chain.id !== leg.fromChainId;
+    },
+    [legs, activeNet.isSvm, activeEvm.chain.id],
+  );
+  const sourceReady = useCallback(
+    (i: number): boolean => {
+      const leg = legs[i];
+      if (!leg) return false;
+      return leg.fromKind === "svm"
+        ? activeNet.isSvm && !!solana?.address
+        : activeEvm.chain.id === leg.fromChainId && smart.ready && !!smart.address;
+    },
+    [legs, activeNet.isSvm, solana?.address, activeEvm.chain.id, smart.ready, smart.address],
+  );
 
   const start = useCallback(
     (plan: RoutePlan, net: CctpNetwork): string | null => {
@@ -105,13 +152,16 @@ export function useRouteRunner(): RouteRunner {
     [smart.address],
   );
 
-  /** User taps "Switch to <chain>" for the active leg — change the in-app network. */
+  /** User taps "Switch to <chain>" for the active leg — change the in-app network.
+   *  Solana legs switch the whole network to Solana; EVM legs switch the chain. */
   const switchTo = useCallback(
     (i: number) => {
       const leg = legs[i];
-      if (leg) setChainKey(leg.fromKey);
+      if (!leg) return;
+      if (leg.fromKind === "svm") activeNet.setNetwork(SOLANA_NETWORK_KEY);
+      else setChainKey(leg.fromKey);
     },
-    [legs, setChainKey],
+    [legs, setChainKey, activeNet],
   );
 
   const sendLeg = useCallback(
@@ -122,6 +172,25 @@ export function useRouteRunner(): RouteRunner {
       const dst = book[leg.toCctp];
       try {
         const amountIn = amountRef.current;
+
+        // Solana source: burn USDC on Solana with the Solana wallet; the mint
+        // recipient is the user's own EVM smart account on the destination chain.
+        // Not gasless — the Solana wallet pays the (tiny) SOL fee.
+        if (leg.fromKind === "svm") {
+          if (!solana?.address) throw new Error("Connect your Solana wallet to sign this hop.");
+          if (!smart.address) throw new Error("Sign in with your EVM wallet to receive on the destination.");
+          const sig = await burnOnSolana(solana, solanaRpc(), {
+            amount: amountIn,
+            destinationDomain: dst.domain,
+            mintRecipient: evmRecipient32(smart.address),
+            maxFee: 0n,
+            minFinalityThreshold: FINALITY.standard,
+          });
+          if (!sig) throw new Error("The Solana burn didn't go through.");
+          patch(i, { burnTx: sig, phase: "settling" });
+          return;
+        }
+
         const fee = await fetchFee(src.domain, dst.domain, network).catch(() => ({ fastBps: null as number | null }));
         const useFast = fee.fastBps != null;
         const maxFee = useFast ? maxFeeFor(amountIn, fee.fastBps as number) : 0n;
@@ -141,7 +210,7 @@ export function useRouteRunner(): RouteRunner {
         setStatus("error");
       }
     },
-    [legs, network, smart, patch],
+    [legs, network, smart, solana, patch],
   );
 
   const settleLeg = useCallback(
@@ -181,12 +250,11 @@ export function useRouteRunner(): RouteRunner {
   // The driver: react to chain/wallet readiness and phase, acting once per step.
   useEffect(() => {
     if (status !== "running" || idx < 0 || idx >= legs.length) return;
-    const leg = legs[idx];
     const ph = states[idx]?.phase;
     const key = `${idx}:${ph}`;
     if (ph === "switching") {
       // Wait for the user to switch the network in-app (switchTo). No auto-switch.
-      if (activeEvm.chain.id === leg.fromChainId && smart.ready && smart.address) {
+      if (sourceReady(idx)) {
         if (guard.current === key) return;
         guard.current = key;
         patch(idx, { phase: "sending" });
@@ -197,7 +265,7 @@ export function useRouteRunner(): RouteRunner {
     guard.current = key;
     if (ph === "sending") void sendLeg(idx);
     else if (ph === "settling") void settleLeg(idx);
-  }, [status, idx, states, smart.ready, smart.address, activeEvm.chain.id, legs, patch, sendLeg, settleLeg]);
+  }, [status, idx, states, legs, patch, sendLeg, settleLeg, sourceReady]);
 
   // After the user switches the network, don't spin forever waiting for the wallet
   // to be ready on that chain: if it isn't ready within the window (e.g. that
@@ -205,8 +273,9 @@ export function useRouteRunner(): RouteRunner {
   // a hang. Only runs once the active chain IS the source (the user has switched);
   // while we're still waiting for their tap there's no timeout.
   const activePhase = idx >= 0 ? states[idx]?.phase : undefined;
-  const preparing =
-    activePhase === "switching" && idx >= 0 && activeEvm.chain.id === legs[idx]?.fromChainId && !smart.ready;
+  // "Preparing" = the source network is active (user has switched) but the wallet
+  // there isn't ready yet. Not while still awaiting their tap (needsSwitch).
+  const preparing = activePhase === "switching" && idx >= 0 && !needsSwitch(idx) && !sourceReady(idx);
   useEffect(() => {
     if (status !== "running" || !preparing) return;
     const t = setTimeout(() => {
@@ -245,8 +314,8 @@ export function useRouteRunner(): RouteRunner {
     start,
     explorerTx,
     switchTo,
-    /** The in-app active chain id + wallet readiness, so the card can prompt a switch. */
-    activeChainId: activeEvm.chain.id,
-    walletReady: smart.ready,
+    /** Per-leg: does the active network need switching, and is its wallet ready? */
+    needsSwitch,
+    sourceReady,
   };
 }
