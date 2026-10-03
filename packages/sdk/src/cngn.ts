@@ -213,6 +213,8 @@ function simRef(): string {
 export function cngnRampAdapter(): RampAdapter {
   return {
     name: "cngn",
+    // Nigeria only — cNGN settles NGN to a Nigerian NUBAN.
+    countries: ["NG"],
     // cNGN settles NGN to a Nigerian NUBAN — bank method, NGN corridor only.
     supports: (i) => i.method === "bank" && (i.currency ?? "NGN").toUpperCase() === "NGN",
     async initiate(input) {
