@@ -1,8 +1,12 @@
 // Bank directory + account-name resolution for the withdraw/payout step.
 //
-// Live via Paystack when PAYSTACK_SECRET_KEY is set (GET /bank, GET
-// /bank/resolve); otherwise a curated Nigerian bank list and a demo resolver
-// so the flow is fully usable without a provider account.
+// Follows the SAME partner that will move the money: the off-ramp partner picked
+// for this market (see ramp.ts) is asked for its own bank list / resolver first,
+// so the picker only ever shows banks that partner can actually pay into. Falls
+// back to Paystack (GET /bank, GET /bank/resolve) when configured, then to a
+// curated Nigerian list + demo resolver so the flow works with no partner at all.
+
+import { offRampAdapter } from "./ramp";
 
 export type Bank = { name: string; code: string };
 
@@ -34,7 +38,33 @@ function paystackKey(): string | undefined {
   return key && process.env.RAMP_PROVIDER !== "http" ? key : undefined;
 }
 
-export async function listBanks(currency = "NGN"): Promise<Bank[]> {
+/** Dedupe by name + sort A–Z (partners return several entries per bank). */
+function tidy(rows: { name: string; code: string }[]): Bank[] {
+  const seen = new Set<string>();
+  return rows
+    .filter((b) => b.name && b.code)
+    .map((b) => ({ name: String(b.name).trim(), code: String(b.code) }))
+    .filter((b) => {
+      const k = b.name.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function listBanks(currency = "NGN", country?: string): Promise<Bank[]> {
+  // Ask the market's off-ramp partner for its own directory first.
+  try {
+    const partner = await offRampAdapter(currency, country);
+    if (partner.listBanks) {
+      const list = await partner.listBanks(currency);
+      if (list && list.length) return tidy(list);
+    }
+  } catch {
+    /* fall through to Paystack / curated */
+  }
+
   const key = paystackKey();
   if (!key || currency.toUpperCase() !== "NGN") return NG_BANKS;
   try {
@@ -55,19 +85,7 @@ export async function listBanks(currency = "NGN"): Promise<Bank[]> {
       raw.push(...batch);
       if (!data.meta?.next || batch.length < 100) break;
     }
-    // Dedupe by name (the provider returns several entries per bank, which is what
-    // made the picker show duplicates) and sort alphabetically.
-    const seen = new Set<string>();
-    const banks = raw
-      .filter((b) => b.name && b.code)
-      .map((b) => ({ name: String(b.name).trim(), code: String(b.code) }))
-      .filter((b) => {
-        const k = b.name.toLowerCase();
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const banks = tidy(raw);
     return banks.length ? banks : NG_BANKS;
   } catch {
     return NG_BANKS;
@@ -83,7 +101,23 @@ export type ResolveResult = {
 export async function resolveAccount(
   accountNumber: string,
   bankCode: string,
+  currency = "NGN",
+  country?: string,
 ): Promise<ResolveResult> {
+  // Resolve against the market's partner first, so the verified name comes from
+  // the same place that will receive the payout.
+  try {
+    const partner = await offRampAdapter(currency, country);
+    if (partner.resolveAccount) {
+      const r = await partner.resolveAccount(accountNumber, bankCode);
+      // A clean verified/declined answer is authoritative; a transient reach
+      // error falls through to Paystack/demo rather than blocking the user.
+      if (r.resolved || (r.error && !/reach the bank/i.test(r.error))) return r;
+    }
+  } catch {
+    /* fall through to Paystack / demo */
+  }
+
   const key = paystackKey();
   // Demo mode: we can't verify the name, but the flow should still proceed.
   if (!key) return { resolved: false };
