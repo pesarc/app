@@ -21,9 +21,29 @@ import type { Bank } from "./banks";
 const SANDBOX_BASE = "https://sandbox-api.bachs.io";
 const LIVE_BASE = "https://api.bachs.io";
 
-/** Configured when a secret key is present. */
+/** Live (production) vs sandbox: BACHS_ENV wins ("live"|"sandbox"), else it
+ *  follows NODE_ENV (production => live). Drives which key/webhook secret to use. */
+export function bachsLive(): boolean {
+  const env = process.env.BACHS_ENV?.toLowerCase();
+  if (env === "live" || env === "production") return true;
+  if (env === "sandbox" || env === "test") return false;
+  return process.env.NODE_ENV === "production";
+}
+
+/** Resolve the Bachs secret key: an explicit BACHS_SECRET_KEY overrides, else the
+ *  live or sandbox key by environment. (The base URL still follows the key's own
+ *  sk_live_/sk_sandbox_ prefix, so a mismatched env can't hit the wrong host.) */
+export function bachsKey(): string | undefined {
+  return (
+    process.env.BACHS_SECRET_KEY ||
+    (bachsLive() ? process.env.BACHS_PROD_KEY : process.env.BACHS_TEST_KEY) ||
+    undefined
+  );
+}
+
+/** Configured when a secret key is resolvable for the current environment. */
 export function bachsConfigured(): boolean {
-  return Boolean(process.env.BACHS_SECRET_KEY);
+  return Boolean(bachsKey());
 }
 
 /** Live vs sandbox follows the key prefix; BACHS_BASE_URL overrides. */
