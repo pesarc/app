@@ -16,6 +16,7 @@ import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { RAMP_ESCROW } from "@pesarc/sdk/wallet/config";
 import { CONTRACTS_READY } from "@pesarc/sdk/chain/contracts";
+import { HUB_CHAIN_ID } from "@pesarc/sdk/chain/chains";
 import { executeCorridorSend } from "@pesarc/sdk/chain/sendCorridor";
 import { sendTokenDirect } from "@pesarc/sdk/chain/sendDirect";
 import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
@@ -146,14 +147,25 @@ export function useSendState() {
   //  • EVM wallet: a direct transfer of the token held on the ACTIVE chain.
   //  • Solana wallet: a direct SPL USDC transfer on devnet.
   // Everything else quotes live but settles via the simulated path for now.
+  // Cash-out is possible two ways: the corridor swap on the hub chain, or a
+  // direct USD transfer to the escrow on any chain where USDC exists (off-hub,
+  // e.g. Arc mainnet). Either makes a fiat payout live.
+  const usdcOnActiveChain = useMemo(
+    () =>
+      stablecoinAddress("USDC", registryChainKey(activeChain.key), network) as
+        | `0x${string}`
+        | undefined,
+    [activeChain.key, network],
+  );
+  const hubOnActiveChain = CONTRACTS_READY && activeChain.chain.id === HUB_CHAIN_ID;
   const fiatLive =
     mode === "live" &&
     authenticated &&
     smart.ready &&
-    CONTRACTS_READY &&
     !isSvm &&
     payout !== "wallet" &&
-    recipient?.receiveCurrency === "NGN";
+    recipient?.receiveCurrency === "NGN" &&
+    (hubOnActiveChain || Boolean(usdcOnActiveChain));
   const walletEvmLive =
     mode === "live" &&
     authenticated &&
@@ -238,9 +250,21 @@ export function useSendState() {
       if (!sendTokenAddr) throw new Error(`${effectiveSendToken} isn't available on this chain to send.`);
       return sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount);
     }
-    // Otherwise the fiat corridor: USD→cNGN swap, the cNGN goes to the ramp escrow
-    // for the off-chain payout leg.
-    return executeCorridorSend(smart, amount, RAMP_ESCROW);
+    // Otherwise the fiat cash-out on-chain leg. Two routes:
+    //  • Corridor (on the hub chain, pool wired): swap USD→cNGN and deposit the
+    //    cNGN into the ramp escrow, then the fiat partner pays out.
+    //  • Direct (off the hub — e.g. Arc mainnet with no pool, or forced via
+    //    NEXT_PUBLIC_CASHOUT_MODE=direct): send the USD stablecoin straight to the
+    //    escrow; the fiat partner pays NGN from there. Same off-chain payout leg.
+    const forceDirect = process.env.NEXT_PUBLIC_CASHOUT_MODE === "direct";
+    if (hubOnActiveChain && !forceDirect) {
+      return executeCorridorSend(smart, amount, RAMP_ESCROW);
+    }
+    if (!usdcOnActiveChain) throw new Error("USDC isn't available on this network to cash out.");
+    // The on-chain leg moves USD (not cNGN), so don't report `received` as the
+    // NGN figure — leave it unset so the payout + UI use the quote's NGN amount.
+    const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount);
+    return { tx: sent.tx };
   }, [
     smart,
     solana,
@@ -253,6 +277,8 @@ export function useSendState() {
     isCrossChain,
     crossReq,
     crossAdapter,
+    hubOnActiveChain,
+    usdcOnActiveChain,
   ]);
 
   const reset = () => {
