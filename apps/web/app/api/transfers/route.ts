@@ -19,6 +19,8 @@ const schema = z.object({
   reference: z.string().trim().min(1).max(40),
   flag: z.string().trim().max(8).optional(),
   txHash: z.string().trim().max(80).optional(),
+  chainKey: z.string().trim().max(40).optional(),
+  token: z.string().trim().max(12).optional(),
 });
 
 /** The caller's own transfers only — never a shared bucket for real users. */

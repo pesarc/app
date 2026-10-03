@@ -9,6 +9,7 @@ import { Button, Card } from "@/components/app/ui";
 import { authedPostJson } from "@pesarc/sdk/api/client";
 import { sendReference } from "@pesarc/sdk/reference";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { chainByKey, explorerTxUrl as explorerTxUrlOn } from "@pesarc/sdk/chain/registry";
 import { PayoutStatus } from "../PayoutStatus";
 import { type BankDestination } from "../BankDetails";
 import { formatEta } from "../QuoteBreakdown";
@@ -19,6 +20,8 @@ export function SuccessStep({
   quote,
   bankDest,
   txHash,
+  chainKey,
+  token,
   payoutTxHash,
   actualReceive,
   onAnother,
@@ -27,10 +30,24 @@ export function SuccessStep({
   quote: Quote;
   bankDest: BankDestination | null;
   txHash?: string;
+  /** App chain key the tx settled on (for the explorer link + record). */
+  chainKey?: string;
+  /** Token symbol that moved (e.g. "USDC"). */
+  token?: string;
   payoutTxHash?: string;
   actualReceive?: number;
   onAnother: () => void;
 }) {
+  // Explorer for the chain the tx actually settled on (Arc, Base, …), not the
+  // hub. Solana uses its own explorer; the hub helper is the last resort.
+  const chainCfg = chainKey ? chainByKey(chainKey) : undefined;
+  const txUrl = txHash
+    ? chainCfg
+      ? explorerTxUrlOn(chainCfg, txHash)
+      : chainKey === "solana"
+        ? `https://explorer.solana.com/tx/${txHash}?cluster=devnet`
+        : explorerTxUrl(txHash)
+    : undefined;
   const [copied, setCopied] = useState(false);
   const refRef = useRef(
     sendReference()
@@ -57,6 +74,8 @@ export function SuccessStep({
         reference: ref,
         flag: recipient.flag,
         txHash,
+        chainKey,
+        token,
       }).catch(() => {
       /* best-effort; UI already shows success */
     });
@@ -87,7 +106,7 @@ export function SuccessStep({
       bankCode: bankDest?.bankCode,
       accountLast4: bankDest?.accountNumber?.slice(-4),
     }).catch(() => {});
-  }, [recipient, quote, payoutLabel, ref, txHash, payoutTxHash, actualReceive, bankDest]);
+  }, [recipient, quote, payoutLabel, ref, txHash, chainKey, token, payoutTxHash, actualReceive, bankDest]);
 
   const share = async () => {
     const text = `I sent ${formatMoney(
@@ -155,7 +174,7 @@ export function SuccessStep({
             <div className="border-t border-black/[0.06]" />
             <Row label="Proof">
               <a
-                href={explorerTxUrl(txHash)}
+                href={txUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-sky font-medium hover:underline"

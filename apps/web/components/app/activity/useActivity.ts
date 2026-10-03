@@ -9,6 +9,7 @@ import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { fetchOnchainActivity } from "@pesarc/sdk/chain/history";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { chainByKey, explorerTxUrl as explorerTxUrlOn } from "@pesarc/sdk/chain/registry";
 import { authedFetch } from "@pesarc/sdk/api/client";
 
 export type FeedItem = {
@@ -45,6 +46,8 @@ type TransferRow = {
   receiveCurrency: string;
   reference: string;
   txHash?: string;
+  chainKey?: string;
+  token?: string;
   createdAt: string;
 };
 
@@ -91,15 +94,29 @@ export function useActivity(): { items: FeedItem[]; loading: boolean; live: bool
           .filter((t) => !payoutRefs.has(t.reference))
           .map((t) => {
             const sent = t.direction === "sent";
+            // Resolve the chain the tx settled on, so the explorer link and the
+            // chain badge point at THAT chain (Arc, Base, …), not the hub.
+            const chain = t.chainKey ? chainByKey(t.chainKey) : undefined;
+            const explorer = t.txHash
+              ? chain
+                ? explorerTxUrlOn(chain, t.txHash)
+                : t.chainKey === "solana"
+                  ? `https://explorer.solana.com/tx/${t.txHash}?cluster=devnet`
+                  : explorerTxUrl(t.txHash)
+              : undefined;
             return {
               id: `tx-${t.id}`,
               source: "onchain" as const,
               kind: t.direction,
-              symbol: sent ? t.sendCurrency : t.receiveCurrency,
+              // Prefer the real token that moved (e.g. "USDC") over the currency code.
+              symbol: t.token || (sent ? t.sendCurrency : t.receiveCurrency),
               amount: sent ? t.sendAmount : t.receiveAmount,
               counterparty: t.counterparty,
               timestamp: t.createdAt ? Math.floor(Date.parse(t.createdAt) / 1000) : undefined,
-              explorer: t.txHash ? explorerTxUrl(t.txHash) : undefined,
+              chainKey: t.chainKey,
+              chainLabel: chain?.label ?? (t.chainKey === "solana" ? "Solana" : undefined),
+              testnet: chain?.testnet,
+              explorer,
             };
           });
         // Drop live-scan rows already covered by a recorded tx hash.
