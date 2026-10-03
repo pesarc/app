@@ -183,6 +183,6 @@ async function defaults(kind: CatalogKind): Promise<CatalogItem[]> {
   }
   // agents
   return [
-    wrap({ name: "Pesarc Settlement Agent", model: "openai/gpt-4o-mini", capToken: "cNGN", cap: 50000, note: "Bounded by an on-chain session key." }, 0),
+    wrap({ name: "Pesarc Settlement Agent", model: "openai/gpt-4o-mini", capToken: "cNGN", cap: 50000, note: "Every action is confirmed and signed in the user's wallet." }, 0),
   ];
 }
