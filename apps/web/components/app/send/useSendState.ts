@@ -24,6 +24,7 @@ import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { useSolanaSigner } from "@pesarc/sdk/wallet/solana";
 import { svmTransfer } from "@pesarc/sdk/svm/write";
 import { stablecoinAddress, registryChainKey } from "@pesarc/sdk/chain/stablecoin-registry";
+import { publicClientFor } from "@pesarc/sdk/chain/registry";
 import { evmBridgeChains } from "@pesarc/sdk/chain/cctp/bridge";
 import { selectAdapter, type CrossSendRequest } from "@pesarc/sdk/chain/crosschain";
 import { tokenByCode } from "@pesarc/sdk/chain/evm-settle";
@@ -264,7 +265,7 @@ export function useSendState() {
     // token, straight to the recipient (no swap, no ramp escrow).
     if (walletIsEvm && recipientAddress) {
       if (!sendTokenAddr) throw new Error(`${effectiveSendToken} isn't available on this chain to send.`);
-      return sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount);
+      return sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount, publicClientFor(activeChain));
     }
     // Otherwise the fiat cash-out on-chain leg. Two routes:
     //  • Corridor (on the hub chain, pool wired): swap USD→cNGN and deposit the
@@ -279,7 +280,7 @@ export function useSendState() {
     if (!usdcOnActiveChain) throw new Error("USDC isn't available on this network to cash out.");
     // The on-chain leg moves USD (not cNGN), so don't report `received` as the
     // NGN figure — leave it unset so the payout + UI use the quote's NGN amount.
-    const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount);
+    const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount, publicClientFor(activeChain));
     return { tx: sent.tx };
   }, [
     smart,
@@ -295,6 +296,7 @@ export function useSendState() {
     crossAdapter,
     hubOnActiveChain,
     usdcOnActiveChain,
+    activeChain,
   ]);
 
   const reset = () => {

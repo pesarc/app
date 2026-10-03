@@ -3,8 +3,24 @@
 // smart wallet (approve + stake in one batched userOp, the same pattern as
 // corridor sends). SVM lives in svm/write.ts and is loaded lazily.
 
-import { encodeFunctionData, parseUnits } from "viem";
+import { encodeFunctionData, parseUnits, type PublicClient } from "viem";
 import { predictionMarketAbi, erc20Abi } from "@pesarc/abi";
+
+/** Read the collateral token's decimals on the ACTIVE chain. Hardcoding 18 is
+ *  wrong for 6-dec collateral like Arc's native USDC (turns a 20 stake into
+ *  2e19 and reverts). Falls back to `fallback` only if no client / the read fails. */
+async function collateralDecimals(
+  token: `0x${string}`,
+  client?: PublicClient,
+  fallback = 18,
+): Promise<number> {
+  if (!client) return fallback;
+  try {
+    return Number(await client.readContract({ address: token, abi: erc20Abi, functionName: "decimals" }));
+  } catch {
+    return fallback;
+  }
+}
 
 /** Minimal shape of the app's smart wallet (see wallet/smart-wallet). */
 export type BatchSender = {
@@ -23,12 +39,16 @@ export type EvmStakeParams = {
   decimals?: number;
 };
 
-/** Approve collateral + stake, in one gasless batch. Returns the tx hash. */
+/** Approve collateral + stake, in one batch. Returns the tx hash. `client` is a
+ *  public client for the ACTIVE chain, used to read the collateral's decimals
+ *  when `p.decimals` isn't given. */
 export async function evmStake(
   sender: BatchSender,
   p: EvmStakeParams,
+  client?: PublicClient,
 ): Promise<string | undefined> {
-  const amountWei = parseUnits(String(p.amount), p.decimals ?? 18);
+  const decimals = p.decimals ?? (await collateralDecimals(p.collateralToken, client));
+  const amountWei = parseUnits(String(p.amount), decimals);
   const approveData = encodeFunctionData({
     abi: erc20Abi,
     functionName: "approve",
