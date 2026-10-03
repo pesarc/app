@@ -147,14 +147,25 @@ export function useSendState() {
   //  • EVM wallet: a direct transfer of the token held on the ACTIVE chain.
   //  • Solana wallet: a direct SPL USDC transfer on devnet.
   // Everything else quotes live but settles via the simulated path for now.
+  // Cash-out is possible two ways: the corridor swap on the hub chain, or a
+  // direct USD transfer to the escrow on any chain where USDC exists (off-hub,
+  // e.g. Arc mainnet). Either makes a fiat payout live.
+  const usdcOnActiveChain = useMemo(
+    () =>
+      stablecoinAddress("USDC", registryChainKey(activeChain.key), network) as
+        | `0x${string}`
+        | undefined,
+    [activeChain.key, network],
+  );
+  const hubOnActiveChain = CONTRACTS_READY && activeChain.chain.id === HUB_CHAIN_ID;
   const fiatLive =
     mode === "live" &&
     authenticated &&
     smart.ready &&
-    CONTRACTS_READY &&
     !isSvm &&
     payout !== "wallet" &&
-    recipient?.receiveCurrency === "NGN";
+    recipient?.receiveCurrency === "NGN" &&
+    (hubOnActiveChain || Boolean(usdcOnActiveChain));
   const walletEvmLive =
     mode === "live" &&
     authenticated &&
@@ -245,18 +256,14 @@ export function useSendState() {
     //  • Direct (off the hub — e.g. Arc mainnet with no pool, or forced via
     //    NEXT_PUBLIC_CASHOUT_MODE=direct): send the USD stablecoin straight to the
     //    escrow; the fiat partner pays NGN from there. Same off-chain payout leg.
-    const hubOnActiveChain = CONTRACTS_READY && activeChain.chain.id === HUB_CHAIN_ID;
     const forceDirect = process.env.NEXT_PUBLIC_CASHOUT_MODE === "direct";
     if (hubOnActiveChain && !forceDirect) {
       return executeCorridorSend(smart, amount, RAMP_ESCROW);
     }
-    const usdc = stablecoinAddress("USDC", registryChainKey(activeChain.key), network) as
-      | `0x${string}`
-      | undefined;
-    if (!usdc) throw new Error("USDC isn't available on this network to cash out.");
+    if (!usdcOnActiveChain) throw new Error("USDC isn't available on this network to cash out.");
     // The on-chain leg moves USD (not cNGN), so don't report `received` as the
     // NGN figure — leave it unset so the payout + UI use the quote's NGN amount.
-    const sent = await sendTokenDirect(smart, usdc, RAMP_ESCROW, amount);
+    const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount);
     return { tx: sent.tx };
   }, [
     smart,
@@ -270,9 +277,8 @@ export function useSendState() {
     isCrossChain,
     crossReq,
     crossAdapter,
-    activeChain.chain.id,
-    activeChain.key,
-    network,
+    hubOnActiveChain,
+    usdcOnActiveChain,
   ]);
 
   const reset = () => {
