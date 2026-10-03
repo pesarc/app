@@ -22,7 +22,6 @@ import {
 } from "viem";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
-import { configuredChains } from "@pesarc/sdk/chain/registry";
 import { erc20Abi } from "@pesarc/abi";
 import { isSmartWalletConfigured } from "./config";
 import { getGasSponsor } from "./gasSponsor";
@@ -113,7 +112,7 @@ export function LiveSmartWalletProvider({
 
   // The smart wallet follows the in-session active EVM chain so staking targets
   // whichever chain the user has selected.
-  const { chain: activeEvm, setChainKey } = useActiveEvmChain();
+  const { chain: activeEvm } = useActiveEvmChain();
 
   const sponsor = getGasSponsor(activeEvm.key, activeEvm.chain.id);
 
@@ -153,38 +152,11 @@ export function LiveSmartWalletProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [external, activeEvm.chain.id, activeEvm.key, useEoaDirect]);
 
-  // Chain-agnostic for external (EOA) wallets: make the app FOLLOW the wallet's
-  // current chain so the user never has to align the app's network with MetaMask
-  // by hand. Reads the wallet's chainId, and whenever it maps to a chain we
-  // support, makes it the active chain; re-syncs on the wallet's chainChanged.
-  useEffect(() => {
-    if (!external) return;
-    let alive = true;
-    type Eip1193 = {
-      request: (a: { method: string }) => Promise<unknown>;
-      on?: (e: string, cb: (x: string) => void) => void;
-      removeListener?: (e: string, cb: (x: string) => void) => void;
-    };
-    let provider: Eip1193 | undefined;
-    const syncFromChainId = (hexId: string) => {
-      const id = typeof hexId === "string" ? parseInt(hexId, 16) : Number(hexId);
-      const match = configuredChains().find((c) => c.chain.id === id);
-      if (match && match.key !== activeEvm.key) setChainKey(match.key);
-    };
-    (async () => {
-      provider = (await external.getEthereumProvider()) as Eip1193;
-      const hexId = (await provider.request({ method: "eth_chainId" })) as string;
-      if (alive) syncFromChainId(hexId);
-      provider.on?.("chainChanged", syncFromChainId);
-    })().catch(() => {
-      /* can't read the wallet's chain — the user can still switch in the app */
-    });
-    return () => {
-      alive = false;
-      provider?.removeListener?.("chainChanged", syncFromChainId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [external, activeEvm.key, setChainKey]);
+  // The USER chooses the chain + token to send from (the in-app network/token
+  // pickers are the source of truth). We deliberately do NOT force the app to
+  // follow the wallet's current chain — that made every manual pick snap back to
+  // whatever MetaMask was on. Instead the wallet is switched to the chosen chain
+  // at SEND time (see sendCalls), right before it signs.
 
   // Alchemy path (testnets): the client is built synchronously.
   const alchemyClient = useMemo(() => {
