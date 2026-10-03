@@ -21,7 +21,7 @@ type Architecture = {
 };
 
 const FLOW: { title: string; body: string }[] = [
-  { title: "Stablecoin leaves the smart wallet", body: "The user’s cNGN (or other local stablecoin) is sent from their smart wallet on-chain — gaslessly, so they never hold a gas token." },
+  { title: "Stablecoin leaves the smart wallet", body: "The user’s cNGN (or other local stablecoin) is sent from their smart wallet on-chain — the fee is paid in the stablecoin itself, so they never need a separate gas token." },
   { title: "It settles into the escrow / treasury", body: "The on-chain leg lands the stablecoin in the ramp escrow address below, where off-ramp inflow collects before the fiat leg begins." },
   { title: "The partner pays local currency", body: "The selected off-ramp partner for that market pays the beneficiary in local currency, to their bank account or mobile-money wallet." },
   { title: "Status returns via webhook / poll", body: "The partner reports the result to our webhook (source of truth); pollable partners are also refreshed by polling until a terminal status." },

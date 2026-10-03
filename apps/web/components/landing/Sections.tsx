@@ -52,7 +52,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: PiggyBank,
     title: "Play in your own currency",
-    body: "Stake and settle in naira, cedi or shilling, gasless. No dollar account, no card, no gas token to buy first.",
+    body: "Stake and settle in naira, cedi or shilling. No dollar account, no card, no separate gas token to buy first.",
   },
   {
     icon: Send,
@@ -163,7 +163,7 @@ export function Features() {
         </h2>
         <p className="mt-5 max-w-md text-sm text-white/60 leading-relaxed">
           The debates you have every day, priced. Back your call with your own
-          currency, gasless, on markets deep enough to enter and exit any time,
+          currency, on markets deep enough to enter and exit any time,
           and simple enough for the first phone you owned.
         </p>
       </div>
@@ -189,7 +189,7 @@ export function Features() {
         >
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-center">
             {[
-              { stat: "Gasless", label: "Stake and cash out, no gas token to buy" },
+              { stat: "USDC fees", label: "Pay fees in your stablecoin, no gas token to buy" },
               { stat: "Always on", label: "Our own liquidity backs every market" },
               { stat: rest[4].title, label: rest[4].body, feature: true },
             ].map((item, i) =>

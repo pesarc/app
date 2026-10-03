@@ -80,7 +80,7 @@ export function routePlanReply(plan: RoutePlan): { reply: string; understood: st
     `| **Hops** | ${legs} |`,
     `| **Asset** | ${amt} |`,
     "",
-    "I'll move it one hop at a time, wait for each transfer to settle on-chain, and show you the transaction for every leg. Gasless, signed in your wallet.",
+    "I'll move it one hop at a time, wait for each transfer to settle on-chain, and show you the transaction for every leg. Signed in your wallet, fees paid in USDC.",
   ].join("\n");
   return { reply, understood: `Route ${plan.token} ${path}` };
 }

@@ -220,7 +220,7 @@ function Checkout() {
                 )}
               </Button>
               <p className="mt-4 text-center text-xs text-slate flex items-center justify-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" /> Gasless and secured by Pesarc
+                <Lock className="w-3.5 h-3.5" /> Secured by Pesarc
               </p>
             </>
           )}
