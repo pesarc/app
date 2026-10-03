@@ -12,11 +12,12 @@ import { updatePayoutStatus } from "@pesarc/sdk/payouts";
 //    header x-paystack-signature; body { event: "transfer.*", data: {...} }.
 //  • flutterwave— static `verif-hash` header == FLUTTERWAVE_WEBHOOK_HASH;
 //    body { event: "transfer.*", data: { id, reference, status } }.
-//  • bachs      — HMAC-SHA256 of the raw body keyed with BACHS_WEBHOOK_SECRET,
-//    header x-bachs-signature; body { event: "payout.*", data: { id, status } }.
-//    NOTE: header name + scheme coded to the published shape, not yet observed
-//    live — verify before relying on it. Until then the status poll (pollable)
-//    is the working source of truth, so a mismatch here degrades safely.
+//  • bachs      — HMAC-SHA256 of "{timestamp}.{raw_body}" keyed with
+//    BACHS_WEBHOOK_SECRET. The timestamp + signature arrive either as
+//    X-Bachs-Signature-V2 ("t=<ts>,v1=<sig>", preferred) or as the pair
+//    X-Bachs-Timestamp + X-Bachs-Signature. Body { event: "payout.*",
+//    data: { id, status } }. Scheme per docs.bachs.io/guides/webhooks/overview.
+//    The status poll (pollable) remains a fallback source of truth.
 //  • generic    — HMAC-SHA256 keyed with RAMP_WEBHOOK_SECRET, header
 //    x-ramp-signature (or x-webhook-signature).
 
@@ -99,12 +100,39 @@ async function handleFlutterwave(request: Request, raw: string) {
   return NextResponse.json({ ok: true, updated, status });
 }
 
+/**
+ * Verify a Bachs webhook: HMAC-SHA256 of "{timestamp}.{raw}" with the signing
+ * secret. The timestamp + signature arrive either as X-Bachs-Signature-V2
+ * ("t=<ts>,v1=<sig>") or as the pair X-Bachs-Timestamp + X-Bachs-Signature.
+ */
+function verifyBachs(request: Request, raw: string, secret: string): boolean {
+  let ts: string | null = null;
+  let sig: string | null = null;
+  const v2 = request.headers.get("x-bachs-signature-v2");
+  if (v2) {
+    for (const part of v2.split(",")) {
+      const [k, val] = part.split("=");
+      const key = k?.trim();
+      if (key === "t") ts = val?.trim() ?? null;
+      else if (key === "v1") sig = val?.trim() ?? null;
+    }
+  } else {
+    ts = request.headers.get("x-bachs-timestamp");
+    sig = request.headers.get("x-bachs-signature");
+  }
+  if (!ts || !sig) return false;
+  const expected = createHmac("sha256", secret).update(`${ts}.${raw}`).digest("hex");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(sig);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 async function handleBachs(request: Request, raw: string) {
   const secret = process.env.BACHS_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json({ ok: false, error: "webhook not configured" }, { status: 503 });
   }
-  if (!hmacEquals("sha256", raw, request.headers.get("x-bachs-signature"), secret)) {
+  if (!verifyBachs(request, raw, secret)) {
     return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
   }
   let body: { event?: string; data?: { id?: string; reference?: string; status?: string } };
@@ -157,6 +185,7 @@ export async function POST(request: Request) {
   // Identify the caller by its signature header, then verify with that scheme.
   if (request.headers.get("x-paystack-signature")) return handlePaystack(request, raw);
   if (request.headers.get("verif-hash")) return handleFlutterwave(request, raw);
-  if (request.headers.get("x-bachs-signature")) return handleBachs(request, raw);
+  if (request.headers.get("x-bachs-signature") || request.headers.get("x-bachs-signature-v2"))
+    return handleBachs(request, raw);
   return handleGeneric(request, raw);
 }
