@@ -12,6 +12,7 @@ import { Button } from "@/components/app/ui";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { evmStake } from "@pesarc/sdk/market-write";
+import { publicClientFor } from "@pesarc/sdk/chain/registry";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
 import type { StakePlan } from "@pesarc/sdk/agent/run";
 
@@ -33,14 +34,17 @@ export function StakeCard({ plan }: { plan: StakePlan }) {
     setErr("");
     setStatus("signing");
     try {
-      const tx = await evmStake(smart, {
-        predictionMarket: predictionMarket as `0x${string}`,
-        collateralToken: plan.collateralToken,
-        marketId: plan.marketId,
-        isYes: plan.side === "yes",
-        amount,
-        decimals: 18,
-      });
+      const tx = await evmStake(
+        smart,
+        {
+          predictionMarket: predictionMarket as `0x${string}`,
+          collateralToken: plan.collateralToken,
+          marketId: plan.marketId,
+          isYes: plan.side === "yes",
+          amount,
+        },
+        publicClientFor(chain),
+      );
       if (!tx) throw new Error("The stake didn't go through.");
       setTxHash(tx);
       setStatus("done");
