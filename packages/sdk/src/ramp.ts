@@ -171,8 +171,12 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
   };
   return {
     name: "paystack",
-    // Paystack transfers: Nigeria bank (NUBAN). GH/KE bank + mobile money exist
-    // but we scope to NGN bank here.
+    // Markets Paystack is licensed for; routing only considers it in these.
+    countries: ["NG", "GH", "KE", "ZA"],
+    // Paystack transfers: Nigeria bank (NUBAN). The initiate() flow below creates
+    // the recipient with currency NGN, so we settle NGN bank only here; GH/KE bank
+    // + mobile money exist on Paystack but need a multi-currency initiate first, so
+    // supports() stays NGN-scoped (Flutterwave carries those corridors meanwhile).
     supports: (i) => i.method === "bank" && cur(i) === "NGN",
     async initiate(input) {
       // Bank transfers need a NUBAN + bank code; without them we can't reach the
@@ -258,35 +262,59 @@ export function paystackRampAdapter(secretKey: string): RampAdapter {
  * Flutterwave off-ramp (pan-African: bank + mobile money across NGN/GHS/KES/…).
  * One call on initiate (POST /v3/transfers); statusFor polls GET /v3/transfers/:id;
  * the webhook (header `verif-hash` == FLUTTERWAVE_WEBHOOK_HASH) is the source of
- * truth. NOTE: shape follows Flutterwave v3 docs — verify against current docs and
- * observe one real request/response before going live (no live call was made here).
+ * truth.
+ *
+ * Bank vs mobile money use the SAME /v3/transfers endpoint and body shape — the
+ * difference is only what goes in `account_bank` + `account_number`:
+ *   • bank:         account_bank = bank code,     account_number = NUBAN/account no.
+ *   • mobile money: account_bank = NETWORK code,  account_number = recipient MSISDN,
+ *     e.g. MPS (M-Pesa: KE/UG/TZ/RW/ZM), MTN (GH/ZM), FMM (franco XAF/XOF),
+ *     ORANGEMONEY (XOF). The caller supplies these in bankCode + accountNumber.
+ *
+ * NOTE: shape follows Flutterwave v3 docs — verify against current docs and observe
+ * one real request/response before going live (no live call was made here). Some
+ * mobile-money corridors additionally require a `meta` array (sender name/country/
+ * mobile_number) for compliance; its exact per-corridor requirement is NOT confirmed
+ * here, so it is left as the `momoMeta` seam below (unset = omitted) rather than
+ * guessed. Wire it from the sender's KYC when enabling those corridors.
  *
  * Docs: https://developer.flutterwave.com/reference/create-a-transfer
+ *       https://developer.flutterwave.com/docs/mobile-money-1
  */
 export function flutterwaveRampAdapter(secretKey: string): RampAdapter {
   const base = "https://api.flutterwave.com/v3";
   const headers = { authorization: `Bearer ${secretKey}`, "content-type": "application/json" };
-  const FLW_CURRENCIES = ["NGN", "GHS", "KES", "UGX", "TZS", "XAF", "XOF", "ZAR"];
+  const FLW_CURRENCIES = ["NGN", "GHS", "KES", "UGX", "TZS", "ZAR", "XAF", "XOF", "MWK", "ZMW", "SLL"];
   return {
     name: "flutterwave",
-    supports: (i) => FLW_CURRENCIES.includes(cur(i)),
+    countries: ["NG", "GH", "KE", "UG", "TZ", "ZA", "MW", "ZM", "SL", "CM", "SN", "CI"],
+    // Bank and mobile-money payouts, for any currency Flutterwave settles.
+    supports: (i) =>
+      (i.method === "bank" || i.method === "mobile_money") && FLW_CURRENCIES.includes(cur(i)),
     async initiate(input) {
+      // Both methods need a destination (NUBAN or MSISDN) + a code (bank or network).
       if (!input.accountNumber || !input.bankCode) {
         return { partnerRef: localRef(), status: "initiated" };
       }
       try {
+        // Per-corridor mobile-money compliance metadata, if/when wired from sender
+        // KYC. Unset today (requirement unconfirmed), so it is omitted from the body.
+        const momoMeta: Record<string, string>[] | undefined = undefined;
         const res = await fetch(`${base}/transfers`, {
           method: "POST",
           headers,
           cache: "no-store",
           body: JSON.stringify({
-            account_bank: input.bankCode, // Flutterwave bank/network code (its own list)
+            // Bank code for method "bank"; mobile-money NETWORK code for "mobile_money".
+            account_bank: input.bankCode,
+            // NUBAN for bank; recipient phone (MSISDN) for mobile money.
             account_number: input.accountNumber,
             amount: input.amountNgn,
             currency: cur(input),
             narration: input.reference,
             reference: input.reference,
             beneficiary_name: input.accountName || input.beneficiary,
+            ...(input.method === "mobile_money" && momoMeta ? { meta: momoMeta } : {}),
           }),
         });
         const data = (await res.json()) as {
@@ -334,14 +362,34 @@ export function flutterwaveRampAdapter(secretKey: string): RampAdapter {
 
 // Default per-country partner order (primary first). Override/extend per country
 // with RAMP_COUNTRY_PROVIDERS, e.g. "NG:bachs,paystack;GH:flutterwave,paystack".
+// A corridor only goes live when the named provider's key is set AND its account
+// is funded for that currency; otherwise selection falls through to the next
+// partner (and finally the simulator). Only providers whose adapter can actually
+// settle the currency are listed — see each adapter's supports()/countries.
 const COUNTRY_PROVIDERS: Record<string, string[]> = {
-  NG: ["bachs", "paystack", "flutterwave"],
+  // Nigeria: bank-partner primary, cNGN redemption, then the pan-African rails.
+  NG: ["bachs", "cngn", "paystack", "flutterwave"],
+  // Bank corridors served by both Paystack and Flutterwave.
+  KE: ["flutterwave", "paystack"],
+  GH: ["paystack", "flutterwave"],
+  ZA: ["paystack", "flutterwave"],
+  // Flutterwave-only markets (bank + mobile money).
+  UG: ["flutterwave"],
+  TZ: ["flutterwave"],
+  RW: ["flutterwave"],
+  ZM: ["flutterwave"],
+  MW: ["flutterwave"],
+  CM: ["flutterwave"],
+  SN: ["flutterwave"],
+  CI: ["flutterwave"],
+  SL: ["flutterwave"],
 };
 
 // Currency -> default country, so callers that only know the currency still get
 // the right market's partner order.
 const CURRENCY_COUNTRY: Record<string, string> = {
-  NGN: "NG", GHS: "GH", KES: "KE", UGX: "UG", TZS: "TZ", ZAR: "ZA", XOF: "SN", XAF: "CM",
+  NGN: "NG", GHS: "GH", KES: "KE", ZAR: "ZA", UGX: "UG", TZS: "TZ",
+  RWF: "RW", ZMW: "ZM", MWK: "MW", XAF: "CM", XOF: "SN", SLL: "SL",
 };
 
 function countryOf(input: PayoutInitiateInput): string {
