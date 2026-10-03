@@ -24,7 +24,7 @@ const BANDS = [
   {
     lbl: "Face · normal fintech",
     title: "A money app that passes the Mum Test",
-    body: "Send, hold, earn and settle in your own currency, to a person, in three taps. Gasless, non-custodial, cash out to a bank or mobile money. The crypto stays invisible.",
+    body: "Send, hold, earn and settle in your own currency, to a person, in three taps. Non-custodial, fees paid in your stablecoin, cash out to a bank or mobile money. The crypto stays invisible.",
     tint: "rgba(107,183,255,0.9)",
   },
   {

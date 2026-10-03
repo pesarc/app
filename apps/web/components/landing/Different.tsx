@@ -54,9 +54,9 @@ const MOATS: Moat[] = [
   {
     n: "03",
     art: "gasless",
-    title: "No gas, no seed phrase",
-    body: "You never buy a coin to pay a fee or write down twelve secret words. It just works, like a normal app.",
-    how: "Gasless smart accounts",
+    title: "No separate gas token, no seed phrase",
+    body: "You never buy a separate coin to pay a fee or write down twelve secret words. Fees come out of the same stablecoin you hold, like a normal app.",
+    how: "Fees paid in your own stablecoin",
   },
   {
     n: "04",
@@ -98,7 +98,7 @@ function LeftRail({ progress }: { progress?: MotionValue<number> }) {
       </h2>
       <p className="mt-6 max-w-md text-sm sm:text-base font-light text-white/60 leading-relaxed">
         Send, hold and earn in your own money, in seconds, for one clear fee you can
-        actually read. No seed phrase, no gas, and it works on any phone. Scroll
+        actually read. No seed phrase, no separate gas token, and it works on any phone. Scroll
         through six things you get, and how each one works.
       </p>
       {progress && (

@@ -619,7 +619,7 @@ export async function runAgentTurn(
         "",
         `**${liveMatch.question}**`,
         "",
-        "Check the market, side and amount below, then confirm here — I'll sign it in your wallet, gaslessly. No redirect.",
+        "Check the market, side and amount below, then confirm here — I'll sign it in your wallet. Fees are paid in USDC. No redirect.",
       ].join("\n");
       return {
         ok: true,

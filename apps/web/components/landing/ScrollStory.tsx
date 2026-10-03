@@ -43,7 +43,7 @@ const STAGES: Stage[] = [
   {
     n: "03",
     icon: Zap,
-    title: "Stake gaslessly",
+    title: "Stake in your own currency",
     body: "Back your call in naira, cedi or shilling. No dollar account, no card, no gas token to buy first. Your position settles on-chain in your own money.",
     chips: ["Local currency", "No gas token", "On-chain"],
   },

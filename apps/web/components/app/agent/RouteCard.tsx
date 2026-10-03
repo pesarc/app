@@ -82,7 +82,7 @@ export function RouteCard({ plan }: { plan: RoutePlan }) {
         <>
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-[13px] text-slate">
-              {plan.amount ? `${plan.amount} USDC` : "USDC"} &middot; gasless &middot; signed in your wallet
+              {plan.amount ? `${plan.amount} USDC` : "USDC"} &middot; signed in your wallet
             </span>
             <Segmented
               aria-label="Network"

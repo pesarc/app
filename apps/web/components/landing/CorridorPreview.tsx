@@ -76,7 +76,7 @@ export default function CorridorPreview() {
           Settles <span className="text-white">&lt;30s</span>
         </span>
         <span className="inline-flex items-center gap-1.5" style={{ color: "#3AA0FF" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#3AA0FF" }} /> Gasless · 0.5%
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#3AA0FF" }} /> 0.5% fee
         </span>
       </div>
     </div>

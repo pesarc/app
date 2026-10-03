@@ -194,7 +194,7 @@ export function useSendState() {
       : walletIsSolana
         ? "Connect your Solana wallet to send on Solana."
         : !smart.ready
-          ? `Gasless sending isn't ready on ${activeChain.label} yet - this network's sponsor (bundler + paymaster) isn't configured, so nothing can be sent.`
+          ? `Sending isn't ready on ${activeChain.label} yet - this network's sender isn't configured, so nothing can be sent.`
           : !sendTokenAddr
             ? `${effectiveSendToken} isn't set up on ${activeChain.label} to send.`
             : `Sending isn't available on ${activeChain.label} right now.`;
