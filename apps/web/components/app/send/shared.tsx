@@ -47,9 +47,11 @@ export function Row({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 text-[15px]">
-      <span className="text-slate">{label}</span>
-      <span className="font-medium text-ink">{children}</span>
+    <div className="flex items-start justify-between gap-3 py-3 text-[15px]">
+      <span className="text-slate shrink-0">{label}</span>
+      {/* min-w-0 lets a long value (e.g. a full wallet address with break-all)
+          shrink and wrap inside the card instead of overflowing its right edge. */}
+      <span className="font-medium text-ink min-w-0 text-right">{children}</span>
     </div>
   );
 }
