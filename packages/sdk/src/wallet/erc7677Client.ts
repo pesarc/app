@@ -53,15 +53,16 @@ export async function buildErc7677Client(opts: {
     entryPoint: { address: ENTRY_POINT, version: "0.7" },
   });
 
-  // ERC-7677 paymaster service (getPaymasterStubData / getPaymasterData).
-  const paymaster = createPaymasterClient({ transport: http(paymasterUrl) });
+  // ERC-7677 paymaster service (getPaymasterStubData / getPaymasterData). Optional:
+  // with no paymaster URL (user-pays-gas mode) the account pays its own gas in the
+  // chain's gas token (USDC on Arc) and no paymaster is attached to the userOp.
+  const paymaster = paymasterUrl ? createPaymasterClient({ transport: http(paymasterUrl) }) : undefined;
 
   const bundler = createBundlerClient({
     account,
     client: publicClient,
     transport: http(bundlerUrl),
-    paymaster,
-    ...(paymasterContext ? { paymasterContext } : {}),
+    ...(paymaster ? { paymaster, ...(paymasterContext ? { paymasterContext } : {}) } : {}),
   });
 
   return {
