@@ -7,7 +7,7 @@ import { Button } from "@/components/app/ui";
 import { type Market } from "@pesarc/sdk/markets";
 import { midMarketRate, formatNumber, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { currencyOf } from "@pesarc/sdk/stablecoins";
-import { activeChain, explorerTxUrl } from "@pesarc/sdk/chain/registry";
+import { activeChain, explorerTxUrl, publicClientFor } from "@pesarc/sdk/chain/registry";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { evmStake } from "@pesarc/sdk/market-write";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
@@ -75,13 +75,17 @@ export default function StakeSheet({
     try {
       // Only binary markets write on-chain; multi settles as a demo position.
       if (isBinary && venueKind === "evm" && canEvm && collateralToken) {
-        const tx = await evmStake(smart, {
-          predictionMarket: chain.predictionMarket as `0x${string}`,
-          collateralToken,
-          marketId,
-          isYes,
-          amount: stakeInCollateral,
-        });
+        const tx = await evmStake(
+          smart,
+          {
+            predictionMarket: chain.predictionMarket as `0x${string}`,
+            collateralToken,
+            marketId,
+            isYes,
+            amount: stakeInCollateral,
+          },
+          publicClientFor(chain),
+        );
         if (tx) setTxHash(tx);
       } else if (isBinary && venueKind === "svm" && solanaSigner) {
         const { svmStake } = await import("@pesarc/sdk/svm/write");
