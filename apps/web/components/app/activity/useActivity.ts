@@ -54,6 +54,9 @@ export function useActivity(): { items: FeedItem[]; loading: boolean; live: bool
   const live = mode === "live" && authenticated && Boolean(smart.address);
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(false);
+  // True once a fetch has completed at least once for the current wallet, so the
+  // feed can show a skeleton (not a premature "No activity") until data arrives.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!live || !smart.address) {
@@ -136,12 +139,19 @@ export function useActivity(): { items: FeedItem[]; loading: boolean; live: bool
         );
         setItems(merged);
         setLoading(false);
+        setLoaded(true);
       })
-      .catch(() => active && setLoading(false));
+      .catch(() => {
+        if (!active) return;
+        setLoading(false);
+        setLoaded(true);
+      });
     return () => {
       active = false;
     };
   }, [live, smart.address]);
 
-  return { items, loading, live };
+  // Treat the pre-first-load window as loading too, so the UI shows a skeleton
+  // from first paint instead of flashing the empty state before the fetch runs.
+  return { items, loading: live && (loading || !loaded), live };
 }

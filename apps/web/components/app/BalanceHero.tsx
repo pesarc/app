@@ -138,6 +138,9 @@ export function BalanceHero() {
   const { setChainKey } = useActiveEvmChain();
   const { sendCurrency } = usePrefs();
   const [data, setData] = useState<AggregatedBalance | null>(null);
+  // True once balances have been fetched at least once, so the hero shows a
+  // skeleton (not a premature "$0.00 / No stablecoins") until real values load.
+  const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   // Default to LIVE (mainnet) money; testnet is opt-in via the filter.
@@ -182,6 +185,7 @@ export function BalanceHero() {
         const holdings = [...evm.holdings, ...svm].sort((a, b) => b.valueInDenom - a.valueInDenom);
         const total = holdings.reduce((s, h) => s + h.valueInDenom, 0);
         setData({ denom: sendCurrency, total, holdings });
+        setLoaded(true);
 
         // Default the network to the MAINNET EVM chain that actually holds funds
         // (fall back to any chain) — once, and only if the user hasn't picked one.
@@ -201,7 +205,11 @@ export function BalanceHero() {
           }
         }
       })
-      .catch(() => active && setData(null));
+      .catch(() => {
+        if (!active) return;
+        setData(null);
+        setLoaded(true);
+      });
     return () => {
       active = false;
     };
@@ -229,6 +237,18 @@ export function BalanceHero() {
 
   // A mainnet-empty wallet that has testnet money: offer a one-tap reveal.
   const testnetOnly = filters.network === "mainnet" && filtered.length === 0 && holdings.some((h) => h.testnet);
+
+  // Skeleton while the first balance read is in flight (light bars on the navy hero).
+  if (live && !loaded) {
+    return (
+      <div aria-busy="true" aria-label="Loading balance">
+        <div className="flex items-center gap-3 mb-2.5">
+          <div className="h-12 w-52 rounded-xl bg-white/10 animate-pulse" />
+        </div>
+        <div className="h-4 w-40 rounded bg-white/10 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div>
