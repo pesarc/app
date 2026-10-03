@@ -110,11 +110,12 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
           id?: string;
           account_name?: string;
           detail?: string;
+          message?: string;
           error_code?: string;
         };
         if (!destRes.ok || !dest.id) {
           console.warn(
-            `[ramp:bachs] destination failed for ${input.reference}: ${dest?.detail ?? dest?.error_code ?? destRes.status}`,
+            `[ramp:bachs] destination failed for ${input.reference}: ${dest?.detail ?? dest?.message ?? dest?.error_code ?? destRes.status}`,
           );
           return { partnerRef: localRef(), status: "initiated" };
         }
@@ -135,12 +136,13 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
           id?: string;
           status?: string;
           detail?: string;
+          message?: string;
           error_code?: string;
         };
         const partnerRef = pay.id ?? input.reference;
         if (!payRes.ok || !pay.id) {
           console.warn(
-            `[ramp:bachs] payout failed for ${input.reference}: ${pay?.detail ?? pay?.error_code ?? payRes.status}`,
+            `[ramp:bachs] payout failed for ${input.reference}: ${pay?.detail ?? pay?.message ?? pay?.error_code ?? payRes.status}`,
           );
           return { partnerRef, status: "initiated" };
         }
@@ -195,9 +197,17 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
           cache: "no-store",
           body: JSON.stringify({ account_number: accountNumber, bank_code: bankCode }),
         });
-        const data = (await res.json()) as { account_name?: string; detail?: string; error_code?: string };
-        if (!res.ok || !data.account_name) {
-          return { resolved: false, error: data.detail || "Couldn't verify this account." };
+        // Resolve returns HTTP 200 even when it can't verify, with resolved:false
+        // and the reason under `message` (business errors use message; auth errors
+        // use detail), so honour the flag and read both.
+        const data = (await res.json()) as {
+          resolved?: boolean;
+          account_name?: string;
+          message?: string;
+          detail?: string;
+        };
+        if (!res.ok || data.resolved === false || !data.account_name) {
+          return { resolved: false, error: data.message || data.detail || "Couldn't verify this account." };
         }
         return { resolved: true, accountName: data.account_name };
       } catch {
