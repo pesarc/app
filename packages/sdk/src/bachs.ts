@@ -16,6 +16,12 @@
 // flow never dead-ends — a webhook or the status poll corrects it afterwards.
 
 import { mapProviderStatus, type RampAdapter, type PayoutInitiateInput, type PayoutStatus } from "./ramp";
+import {
+  mapCollectionStatus,
+  type CollectionAdapter,
+  type CollectionInput,
+  type CheckoutSession,
+} from "./collections";
 import type { Bank } from "./banks";
 
 const SANDBOX_BASE = "https://sandbox-api.bachs.io";
@@ -212,6 +218,138 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
         return { resolved: true, accountName: data.account_name };
       } catch {
         return { resolved: false, error: "Couldn't reach the bank right now." };
+      }
+    },
+  };
+}
+
+/* --------------------- collections (pay-in / add-money) ------------------ */
+// The partner's collections are HOSTED CHECKOUT, not a dedicated account
+// number: create a checkout session, then send the payer to its hosted URL.
+// Confirmed against the published docs AND a live sandbox call:
+//   POST /v1/checkout-sessions
+//     req  { pricing: { currency, amount }, reference, success_url?, cancel_url?,
+//            metadata?, customer? }
+//     resp { checkout_id: "chk_…", checkout_url: "https://…/c/…",
+//            status: "open", amount, currency, reference, expires_at, … }
+//   GET  /v1/checkout-sessions/{id}
+//     resp { status, payment_status, charge, completed_at, … }
+// Amounts are MAJOR-unit decimal strings ("5000.00"), same as the payout side.
+// The source of truth for fulfilment is the collection.succeeded webhook (see
+// /api/collections/webhook); the GET poll below is the fallback.
+
+/**
+ * Secret key for the COLLECTIONS path. Deliberately separate from the off-ramp's
+ * BACHS_SECRET_KEY lookup so pay-in works with the keys the founder actually
+ * sets (BACHS_TEST_KEY for sandbox, BACHS_PROD_KEY for live) without changing
+ * off-ramp selection. The key prefix still drives sandbox vs live (bachsBase),
+ * so a sk_sandbox_ test key routes to the sandbox host — which is all Claude
+ * ever uses; the founder sets a sk_live_ key for mainnet.
+ */
+export function bachsCheckoutKey(): string {
+  return (
+    process.env.BACHS_SECRET_KEY ||
+    process.env.BACHS_TEST_KEY ||
+    process.env.BACHS_PROD_KEY ||
+    ""
+  );
+}
+
+/** Configured when any collections key is present. */
+export function bachsCheckoutConfigured(): boolean {
+  return Boolean(bachsCheckoutKey());
+}
+
+/** Map the checkout session's own status vocabulary onto ours. "open" means the
+ *  session is live but unpaid, so it is still "pending" for us. */
+function mapCheckoutStatus(status?: string, paymentStatus?: string): CheckoutSession["status"] {
+  const s = (status ?? "").toLowerCase();
+  if (s === "open" || s === "created") {
+    return mapCollectionStatus(paymentStatus) === "paid" ? "paid" : "pending";
+  }
+  return mapCollectionStatus(status);
+}
+
+export function bachsCheckoutAdapter(secretKey: string): CollectionAdapter {
+  const base = bachsBase(secretKey);
+  const headers = { authorization: `Bearer ${secretKey}`, "content-type": "application/json" };
+  const currencies = bachsCurrencies();
+  const cur = (i: CollectionInput) => (i.currency ?? "NGN").toUpperCase();
+
+  return {
+    name: "bachs-checkout",
+    kind: "checkout",
+    countries: bachsCountries(),
+    supports: (i) => currencies.includes(cur(i)),
+
+    // Same cheap authenticated GET the payout adapter uses: a 2xx means the
+    // partner is up and the key is good.
+    async health() {
+      try {
+        const res = await timedFetch(`${base}/v1/balances`, { headers, cache: "no-store" }, 2500);
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+
+    async createCheckout(input): Promise<CheckoutSession | null> {
+      try {
+        const res = await fetch(`${base}/v1/checkout-sessions`, {
+          method: "POST",
+          // The idempotency key makes a retried create return the SAME session
+          // instead of opening a second one.
+          headers: { ...headers, "idempotency-key": input.reference },
+          cache: "no-store",
+          body: JSON.stringify({
+            pricing: { currency: cur(input), amount: input.amount.toFixed(2) }, // MAJOR units
+            reference: input.reference,
+            ...(input.email ? { customer: { email: input.email } } : {}),
+            ...(input.successUrl ? { success_url: input.successUrl } : {}),
+            ...(input.cancelUrl ? { cancel_url: input.cancelUrl } : {}),
+            ...(input.metadata ? { metadata: input.metadata } : {}),
+          }),
+        });
+        const data = (await res.json()) as {
+          checkout_id?: string;
+          checkout_url?: string;
+          status?: string;
+          detail?: string;
+          message?: string;
+          error_code?: string;
+        };
+        if (!res.ok || !data.checkout_id || !data.checkout_url) {
+          console.warn(
+            `[collections:bachs] checkout failed for ${input.reference}: ${data?.detail ?? data?.message ?? data?.error_code ?? res.status}`,
+          );
+          return null;
+        }
+        return {
+          sessionId: data.checkout_id,
+          url: data.checkout_url,
+          status: mapCheckoutStatus(data.status),
+        };
+      } catch (e) {
+        console.warn(`[collections:bachs] checkout threw for ${input.reference}: ${(e as Error).message}`);
+        return null;
+      }
+    },
+
+    async statusFor(sessionId) {
+      if (!sessionId) return "pending";
+      try {
+        const res = await fetch(`${base}/v1/checkout-sessions/${encodeURIComponent(sessionId)}`, {
+          headers,
+          cache: "no-store",
+        });
+        if (!res.ok) return "pending";
+        const data = (await res.json()) as { status?: string; payment_status?: string; charge?: unknown };
+        const mapped = mapCheckoutStatus(data.status, data.payment_status);
+        // A settled charge is a definitive paid, even if `status` lags.
+        if (mapped !== "paid" && data.charge) return "paid";
+        return mapped;
+      } catch {
+        return "pending";
       }
     },
   };
