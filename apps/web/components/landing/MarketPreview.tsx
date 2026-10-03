@@ -73,7 +73,7 @@ export default function MarketPreview() {
           Settles in <span className="text-white">{m.ccy}</span>
         </span>
         <span className="inline-flex items-center gap-1.5" style={{ color: "#3AA0FF" }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#3AA0FF" }} /> Gasless
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#3AA0FF" }} /> Fees in USDC
         </span>
       </div>
     </div>

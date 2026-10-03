@@ -488,7 +488,7 @@ export default function CrossChainBridge() {
       setNote(
         useFast
           ? "Confirming your transfer. This usually takes a few seconds…"
-          : "Confirming your transfer. A free standard transfer can take about 15 minutes…",
+          : "Confirming your transfer. A standard transfer can take about 15 minutes…",
       );
       const deadline = Date.now() + 25 * 60_000;
       while (Date.now() < deadline) {
@@ -615,7 +615,7 @@ export default function CrossChainBridge() {
                   }`}
                 >
                   <div className="font-bold text-ink">Standard</div>
-                  <div className="text-slate">About 15 min, free</div>
+                  <div className="text-slate">About 15 min, no bridge fee</div>
                 </button>
               </div>
             </div>
@@ -724,7 +724,7 @@ export default function CrossChainBridge() {
       {coin === "USDC" && (
         <p className="mt-3 text-xs text-slate/70">
           {isTestnet
-            ? "Test mode uses free practice coins, so you can try a move end to end before using real money."
+            ? "Test mode uses practice coins, so you can try a move end to end before using real money."
             : "New to a route? Moving a small amount first is a smart way to check everything works."}
         </p>
       )}
@@ -890,7 +890,7 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
       {note && <p className={`text-sm ${errored ? "text-alert" : "text-slate"}`}>{note}</p>}
       <p className="text-[11px] text-slate/70">
         {canAA
-          ? "Signed in your Pesarc wallet, gasless — no pop-ups. "
+          ? "Signed in your Pesarc wallet, no pop-ups. Fees paid in USDC. "
           : "You'll approve this in your connected wallet. "}
         Sends to {toAddr ? "the recipient address" : "your own address"} on the destination;
         delivery is handled by Hyperbridge relayers after the source transaction confirms.
@@ -900,7 +900,7 @@ function HyperPanel({ symbol, network }: { symbol: string; network: CctpNetwork 
 }
 
 function feeLabel(v: bigint): string {
-  if (v === 0n) return "Free";
+  if (v === 0n) return "No bridge fee";
   const usd = Number(v) / 1_000_000;
   if (usd < 0.01) return `~$${usd.toFixed(4)}`;
   return `${usd.toFixed(2)} USDC`;

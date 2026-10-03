@@ -156,7 +156,7 @@ export async function handleUssd(input: {
   // 5 — Account.
   if (choice === "5") {
     return end(
-      "Pesarc: gasless money for every phone. From this menu you can buy airtime, data, pay electricity and send money.",
+      "Pesarc: money for every phone, in your own currency. From this menu you can buy airtime, data, pay electricity and send money.",
     );
   }
 

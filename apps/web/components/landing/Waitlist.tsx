@@ -67,7 +67,7 @@ export default function Waitlist() {
 
         <p className="text-base md:text-lg text-white/60 max-w-xl mb-10 text-balance leading-relaxed">
           Become an early beta-tester of Pesarc. Be first to trade the elections,
-          football and prices you already argue about, gasless, in your own
+          football and prices you already argue about, in your own
           currency.
         </p>
 

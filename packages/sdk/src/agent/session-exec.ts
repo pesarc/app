@@ -106,7 +106,7 @@ export async function tryAgentCrossChain(
       lines: [
         { label: "Amount", value: `${fmtAmt(swap.amount)} USDC` },
         { label: "Destination", value: swap.to },
-        { label: "Signed by", value: "Your session key (gasless)" },
+        { label: "Signed by", value: "Your session key" },
       ],
       txHash: res.txHash,
     },
