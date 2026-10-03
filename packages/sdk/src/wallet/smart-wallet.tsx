@@ -120,7 +120,9 @@ export function LiveSmartWalletProvider({
   const [erc7677Client, setErc7677Client] = useState<Erc7677SmartClient | null>(null);
   useEffect(() => {
     setErc7677Client(null);
-    if (!signer || sponsor.kind !== "erc7677" || !sponsor.bundlerUrl || !sponsor.paymasterUrl) {
+    // Needs a bundler. A paymaster is optional: when absent (user-pays-gas mode),
+    // the smart account pays its own gas in the chain's gas token (USDC on Arc).
+    if (!signer || sponsor.kind !== "erc7677" || !sponsor.bundlerUrl) {
       return;
     }
     let active = true;
