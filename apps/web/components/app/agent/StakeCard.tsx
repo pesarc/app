@@ -12,8 +12,7 @@ import { Button } from "@/components/app/ui";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { evmStake } from "@pesarc/sdk/market-write";
-import { publicClientFor } from "@pesarc/sdk/chain/registry";
-import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
+import { publicClientFor, explorerTxUrl } from "@pesarc/sdk/chain/registry";
 import type { StakePlan } from "@pesarc/sdk/agent/run";
 
 export function StakeCard({ plan }: { plan: StakePlan }) {
@@ -70,6 +69,13 @@ export function StakeCard({ plan }: { plan: StakePlan }) {
         <div className="mt-1 text-[13px] text-slate">
           Side: <span className="font-bold text-harbor">{sideLabel}</span>
         </div>
+        <div className="mt-1 text-[12px] text-slate">
+          Network: <span className="font-bold text-harbor">{chain.label}</span>
+          {chain.testnet && (
+            <span className="ml-1 text-[10px] font-bold uppercase tracking-wide text-amber-500">testnet</span>
+          )}
+          <span className="ml-1 text-slate/70">— switch it in the network selector if this is wrong.</span>
+        </div>
       </div>
 
       {status === "done" ? (
@@ -79,7 +85,7 @@ export function StakeCard({ plan }: { plan: StakePlan }) {
           </div>
           {txHash && (
             <a
-              href={explorerTxUrl(txHash)}
+              href={explorerTxUrl(chain, txHash)}
               target="_blank"
               rel="noreferrer"
               className="mt-1 inline-flex items-center gap-1 text-[13px] text-sky hover:underline"

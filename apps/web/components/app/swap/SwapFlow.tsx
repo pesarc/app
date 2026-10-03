@@ -16,6 +16,7 @@ import { STABLECOINS, currencyOf } from "@pesarc/sdk/stablecoins";
 import { CURRENCIES, formatMoney, currencyName, type CurrencyCode } from "@pesarc/sdk/money";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { publicClientFor } from "@pesarc/sdk/chain/registry";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { tokenByCode } from "@pesarc/sdk/chain/evm-settle";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
@@ -88,15 +89,19 @@ export default function SwapFlow() {
       const from = tokenByCode(chain, fromSym);
       const to = tokenByCode(chain, toSym);
       if (canExecute && from && to) {
-        const tx = await evmSwap(smart, {
-          intentMatcher: chain.intentMatcher as `0x${string}`,
-          tokenIn: from.address,
-          tokenOut: to.address,
-          amountIn: amount,
-          minAmountOut: receive,
-          recipient: smart.address as `0x${string}`,
-          ref: `SWAP-${fromCcy}-${toCcy}`,
-        });
+        const tx = await evmSwap(
+          smart,
+          {
+            intentMatcher: chain.intentMatcher as `0x${string}`,
+            tokenIn: from.address,
+            tokenOut: to.address,
+            amountIn: amount,
+            minAmountOut: receive,
+            recipient: smart.address as `0x${string}`,
+            ref: `SWAP-${fromCcy}-${toCcy}`,
+          },
+          publicClientFor(chain),
+        );
         setTxHash(tx ?? "");
       } else {
         await new Promise((r) => setTimeout(r, 900)); // demo path
