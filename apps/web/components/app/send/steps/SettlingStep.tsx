@@ -12,6 +12,8 @@ export function SettlingStep({
   recipient,
   quote,
   executeReal,
+  mustBeReal,
+  blockReason,
   onDone,
   onCancel,
 }: {
@@ -19,6 +21,11 @@ export function SettlingStep({
   quote: Quote;
   /** When present, performs a real gasless on-chain send. */
   executeReal?: () => Promise<SendResult>;
+  /** True when this send MUST settle on-chain (real wallet, live account): if it
+   *  can't, show why — never animate a simulated "sent". */
+  mustBeReal?: boolean;
+  /** Why a must-be-real send can't run live (shown instead of a fake success). */
+  blockReason?: string;
   onDone: (result?: SendResult) => void;
   /** Called when a real send fails — the user goes back, nothing is "sent". */
   onCancel: () => void;
@@ -62,7 +69,15 @@ export function SettlingStep({
             "That transfer didn't go through.";
           setError(msg);
         });
+    } else if (mustBeReal) {
+      // A real wallet send on a live account that can't execute: say why. NEVER
+      // animate a success — the money would not have moved.
+      setError(
+        blockReason ||
+          "This send can't settle on-chain right now, so nothing was sent.",
+      );
     } else {
+      // Mock/demo account only (no real wallet): animate a simulated send.
       timers.push(setTimeout(() => setActive(1), 1100));
       timers.push(setTimeout(() => setActive(2), 2300));
       timers.push(setTimeout(() => onDone(), 3500));
