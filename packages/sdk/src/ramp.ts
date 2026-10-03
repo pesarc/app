@@ -501,3 +501,21 @@ export function rampProviderNames(): string[] {
 export function rampIsLive(): boolean {
   return availableAdapters().some((a) => a.name !== "simulated");
 }
+
+/** Non-secret routing config for the internal admin surface: the resolved global
+ *  order, and each configured market's partner order (primary first, env override
+ *  else per-country default else global). The simulator is omitted here — it is
+ *  always the universal last resort appended at selection time. */
+export function rampCountryConfig(): {
+  globalOrder: string[];
+  perCountry: Record<string, string[]>;
+} {
+  const env = countryProviderEnv();
+  const countries = new Set([...Object.keys(COUNTRY_PROVIDERS), ...Object.keys(env)]);
+  const perCountry: Record<string, string[]> = {};
+  for (const cc of countries) {
+    const order = env[cc] ?? COUNTRY_PROVIDERS[cc];
+    perCountry[cc] = order?.length ? order : globalOrder();
+  }
+  return { globalOrder: globalOrder(), perCountry };
+}

@@ -120,6 +120,37 @@ export async function listTransfers(
   return listFromFile(account, limit);
 }
 
+/** Every account's transfers, newest first — for the internal admin ops view.
+ *  Mirrors listTransfers but WITHOUT the account filter, so it must stay behind
+ *  the ADMIN_SECRET gate. */
+export async function listAllTransfers(limit = 50): Promise<TransferRow[]> {
+  if (hasNeon()) {
+    try {
+      const sql = sqlClient();
+      await ensureSchema(sql);
+      const rows = await sql`
+        SELECT * FROM transfers
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `;
+      return (rows as any[]).map(mapRow);
+    } catch {
+      // Fall back to the file store rather than hiding file-persisted transfers.
+    }
+  }
+  try {
+    const data = await fs.readFile(filePath(), "utf8");
+    return data
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l) as TransferRow)
+      .reverse()
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 function mapRow(r: any): TransferRow {
   return {
     id: String(r.id),
