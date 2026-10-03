@@ -16,6 +16,7 @@
 // default to Alchemy when its key + a policy are configured.
 
 import { ALCHEMY_API_KEY, gasPolicyFor } from "./config";
+import { ARC_MAINNET_ID } from "../chain/chains";
 
 export type Erc7677Provider = "circle" | "inhouse" | "custom";
 
@@ -55,22 +56,32 @@ function arcSponsor(chainId: number): GasSponsor {
 
   const pick = (process.env.NEXT_PUBLIC_GAS_SPONSOR_ARC || "").toLowerCase();
 
-  if ((pick === "circle" || (!pick && circleUrl)) && circleUrl) {
-    return { kind: "erc7677", provider: "circle", paymasterUrl: circleUrl, bundlerUrl };
-  }
-  if ((pick === "pimlico" || (!pick && pimPmUrl)) && pimPmUrl) {
-    return {
-      kind: "erc7677",
-      provider: "custom",
-      paymasterUrl: pimPmUrl,
-      bundlerUrl,
-      ...(pimPolicy ? { context: { sponsorshipPolicyId: pimPolicy } } : {}),
-    };
-  }
-  if ((pick === "inhouse" || (!pick && inhouseUrl)) && inhouseUrl) {
-    return { kind: "erc7677", provider: "inhouse", paymasterUrl: inhouseUrl, bundlerUrl };
-  }
-  return { kind: "none" };
+  // The in-house paymaster is deployed only on Arc MAINNET; its address holds no
+  // contract on Arc testnet (5042002), so never select it off mainnet - fall back
+  // to Pimlico there (it sponsors Arc testnet with the bundler key).
+  const inhouseHere = Boolean(inhouseUrl) && chainId === ARC_MAINNET_ID;
+
+  const circle = (): GasSponsor | null =>
+    circleUrl ? { kind: "erc7677", provider: "circle", paymasterUrl: circleUrl, bundlerUrl } : null;
+  const pimlico = (): GasSponsor | null =>
+    pimPmUrl
+      ? {
+          kind: "erc7677",
+          provider: "custom",
+          paymasterUrl: pimPmUrl,
+          bundlerUrl,
+          ...(pimPolicy ? { context: { sponsorshipPolicyId: pimPolicy } } : {}),
+        }
+      : null;
+  const inhouse = (): GasSponsor | null =>
+    inhouseHere ? { kind: "erc7677", provider: "inhouse", paymasterUrl: inhouseUrl, bundlerUrl } : null;
+
+  if (pick === "circle") return circle() ?? { kind: "none" };
+  if (pick === "pimlico") return pimlico() ?? { kind: "none" };
+  // Explicit in-house: use it on mainnet; on testnet fall back to Pimlico.
+  if (pick === "inhouse") return inhouse() ?? pimlico() ?? { kind: "none" };
+  // Auto-detect (no pick): Circle, then Pimlico, then in-house (mainnet only).
+  return circle() ?? pimlico() ?? inhouse() ?? { kind: "none" };
 }
 
 /** Resolve the gas sponsor for a chain (registry key + numeric chain id). */

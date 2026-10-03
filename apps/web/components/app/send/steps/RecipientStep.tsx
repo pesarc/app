@@ -7,6 +7,7 @@ import { type PayoutMethod } from "@pesarc/sdk/quote";
 import { authedFetch } from "@pesarc/sdk/api/client";
 import type { SavedRecipient } from "@pesarc/sdk/recipients";
 import { Avatar, Button, Card, Segmented } from "@/components/app/ui";
+import { AddressText } from "@/components/app/AddressText";
 import BankDetails, { type BankDestination } from "../BankDetails";
 import {
   addressRail,
@@ -244,7 +245,8 @@ function RecipientRow({
         <div className="text-left flex-1 min-w-0">
           <div className="font-semibold text-ink truncate">{r.name}</div>
           <div className="text-sm text-slate truncate">
-            {r.flag} {r.handle}
+            {r.flag}{" "}
+            {isWalletAddress(r.handle) ? <AddressText address={r.handle} /> : r.handle}
           </div>
         </div>
         <ChevronRight className="w-5 h-5 text-slate shrink-0" />

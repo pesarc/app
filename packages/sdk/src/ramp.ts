@@ -13,7 +13,7 @@
 //     /api/payouts/webhook (see webhook route) which is the source of truth.
 
 import { cngnConfigured, cngnRampAdapter } from "./cngn";
-import { bachsConfigured, bachsRampAdapter } from "./bachs";
+import { bachsKey, bachsRampAdapter } from "./bachs";
 
 export type PayoutStatus = "initiated" | "processing" | "paid" | "failed";
 
@@ -409,9 +409,12 @@ function makeAdapter(name: string): RampAdapter | null {
       // Native cNGN redemption (NGN bank). Lazy import keeps the ramp<->cngn
       // module cycle to function-call time only.
       return cngnConfigured() ? cngnRampAdapter() : null;
-    case "bachs":
+    case "bachs": {
       // Bank-partner rail (primary for its markets). Same call-time-cycle note.
-      return bachsConfigured() ? bachsRampAdapter(process.env.BACHS_SECRET_KEY as string) : null;
+      // Key resolves from BACHS_SECRET_KEY, else BACHS_PROD_KEY/BACHS_TEST_KEY by env.
+      const k = bachsKey();
+      return k ? bachsRampAdapter(k) : null;
+    }
     case "paystack":
       return process.env.PAYSTACK_SECRET_KEY
         ? paystackRampAdapter(process.env.PAYSTACK_SECRET_KEY)
@@ -497,4 +500,22 @@ export function rampProviderNames(): string[] {
 /** True when at least one real provider is configured (vs only the simulator). */
 export function rampIsLive(): boolean {
   return availableAdapters().some((a) => a.name !== "simulated");
+}
+
+/** Non-secret routing config for the internal admin surface: the resolved global
+ *  order, and each configured market's partner order (primary first, env override
+ *  else per-country default else global). The simulator is omitted here — it is
+ *  always the universal last resort appended at selection time. */
+export function rampCountryConfig(): {
+  globalOrder: string[];
+  perCountry: Record<string, string[]>;
+} {
+  const env = countryProviderEnv();
+  const countries = new Set([...Object.keys(COUNTRY_PROVIDERS), ...Object.keys(env)]);
+  const perCountry: Record<string, string[]> = {};
+  for (const cc of countries) {
+    const order = env[cc] ?? COUNTRY_PROVIDERS[cc];
+    perCountry[cc] = order?.length ? order : globalOrder();
+  }
+  return { globalOrder: globalOrder(), perCountry };
 }

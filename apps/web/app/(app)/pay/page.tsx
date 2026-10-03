@@ -29,6 +29,7 @@ import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveNetwork } from "@pesarc/sdk/chain/activeNetwork";
 import { Button, Card } from "@/components/app/ui";
+import { AddressText } from "@/components/app/AddressText";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import { authedPostJson } from "@pesarc/sdk/api/client";
 import { payReference } from "@pesarc/sdk/reference";
@@ -303,9 +304,10 @@ export default function PayPage() {
               {target.label}
             </div>
             {target.address && (
-              <div className="font-mono text-xs text-slate break-all">
-                {target.address}
-              </div>
+              <AddressText
+                address={target.address}
+                className="block font-mono text-xs text-slate break-all"
+              />
             )}
           </Card>
 

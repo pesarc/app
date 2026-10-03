@@ -15,7 +15,7 @@ export const PAYOUT_METHODS: { id: PayoutMethod; label: string; hint: string }[]
 ];
 
 /** All-in fee folded into the FX spread (PRD: 0.5–1% vs 8.78% legacy). */
-const FEE_PCT = 0.005;
+export const FEE_PCT = 0.005;
 
 export type QuoteInput = {
   /** Amount the sender pays, in the send currency. */

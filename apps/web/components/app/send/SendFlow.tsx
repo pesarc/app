@@ -33,6 +33,8 @@ export default function SendFlow() {
     quote,
     live,
     executeReal,
+    mustBeReal,
+    liveBlockReason,
     reset,
     walletChainLabel,
     walletIsEvm,
@@ -111,6 +113,8 @@ export default function SendFlow() {
             recipient={recipient}
             quote={quote}
             executeReal={live ? executeReal : undefined}
+            mustBeReal={mustBeReal}
+            blockReason={liveBlockReason}
             onDone={(r) => {
               setTxHash(r?.tx);
               setPayoutTxHash(r?.payoutTx);

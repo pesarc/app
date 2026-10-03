@@ -7,6 +7,7 @@ import { PAYOUT_METHODS, type PayoutMethod, type Quote } from "@pesarc/sdk/quote
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button } from "@/components/app/ui";
 import { Dropdown } from "@/components/app/Dropdown";
+import { AddressText } from "@/components/app/AddressText";
 import { chainLogoUrlForLabel } from "@/lib/chainLogos";
 import NetworkSwitcher from "@/components/app/NetworkSwitcher";
 import BankDetails, { type BankDestination } from "../BankDetails";
@@ -210,7 +211,10 @@ export function AmountStep({
               <div className="font-bold text-harbor text-[15px] truncate">
                 {amount > 0 ? `${amount} ${sendToken ?? "USDC"} ` : ""}on {walletChainLabel ?? "chain"}
               </div>
-              <div className="text-[12.5px] font-medium text-slate font-mono truncate">{recipient.handle}</div>
+              <AddressText
+                address={recipient.handle}
+                className="block text-[12.5px] font-medium text-slate font-mono truncate"
+              />
             </div>
           </div>
 
