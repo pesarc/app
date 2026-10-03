@@ -183,6 +183,22 @@ export function useSendState() {
     Boolean(crossAdapter && crossAdapter.kind === "programmatic");
   const live = fiatLive || walletEvmLive || walletSolLive || walletCrossLive;
 
+  // A send to a real wallet on a real (live) account MUST settle on-chain. If it
+  // can't run live, the flow must say why - never simulate a "sent". Only the
+  // mock/demo account (no real wallet) is allowed to animate a simulated send.
+  const isWalletSend = walletIsEvm || walletIsSolana;
+  const mustBeReal = mode === "live" && isWalletSend;
+  const liveBlockReason: string | undefined =
+    !mustBeReal || live
+      ? undefined
+      : walletIsSolana
+        ? "Connect your Solana wallet to send on Solana."
+        : !smart.ready
+          ? `Gasless sending isn't ready on ${activeChain.label} yet - this network's sponsor (bundler + paymaster) isn't configured, so nothing can be sent.`
+          : !sendTokenAddr
+            ? `${effectiveSendToken} isn't set up on ${activeChain.label} to send.`
+            : `Sending isn't available on ${activeChain.label} right now.`;
+
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
   const [livePool, setLivePool] = useState<LivePoolQuote | null>(null);
@@ -318,6 +334,11 @@ export function useSendState() {
     quote,
     live,
     executeReal,
+    /** True when this send is to a real wallet on a live account: it must settle
+     *  on-chain, so the UI must never show a simulated "sent" for it. */
+    mustBeReal,
+    /** Why a must-be-real send can't run live (shown instead of a fake success). */
+    liveBlockReason,
     reset,
     /** Chain the funds will LAND on (dest for cross-chain, else the active chain). */
     walletChainLabel: walletIsSolana
