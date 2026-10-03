@@ -31,7 +31,12 @@ const FLAGS: Record<string, string> = { NGN: "🇳🇬", GHS: "🇬🇭", KES: "
 
 // Distinct USD/EUR stablecoins that resolve to their own token (from the
 // registry), not the chain's generic USD settlement token.
-const REGISTRY_SYMBOLS = new Set(["USDT", "PYUSD", "EURC"]);
+// Symbols resolved from the canonical stablecoin registry (the REAL token on
+// each chain) rather than the app's per-chain settlement map. USDC is here so a
+// wallet send of "USDC" moves actual USDC (e.g. Arc's native 0x3600... predeploy)
+// instead of the testnet TestStable that backs the "USD" settlement leg. The
+// fiat corridor uses "USD" (not "USDC"), so it keeps using the settlement token.
+const REGISTRY_SYMBOLS = new Set(["USDC", "USDT", "PYUSD", "EURC"]);
 
 export type AgentToken = { code: string; address: `0x${string}`; flag: string };
 

@@ -14,6 +14,7 @@ import {
 } from "viem";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { erc20Abi } from "@pesarc/abi";
 import { midMarketRate, type CurrencyCode } from "./money";
 
 const MINT_ABI = [
@@ -31,6 +32,14 @@ const MINT_ABI = [
 
 const GAS_DRIP = parseEther("0.001"); // enough for a few non-gasless txs
 const GAS_MIN = parseEther("0.0005"); // only drip if the wallet is below this
+
+// Arc testnet: fund REAL native USDC (the 0x3600 predeploy, 6 decimals) so a
+// gasless "send USDC" has something to move. Sent as an ERC-20 transfer (clean
+// 6-dec) rather than a native value send, because Arc's native balance scaling
+// differs from the 18-dec parseEther the gas drip assumes.
+const ARC_USDC = "0x3600000000000000000000000000000000000000" as `0x${string}`;
+const ARC_USDC_DRIP = parseUnits("5", 6); // 5 USDC — enough to try a few sends
+const ARC_USDC_MIN = parseUnits("2", 6); // only top up when below 2 USDC
 
 const arcTestnet = defineChain({
   id: 5042002,
@@ -164,6 +173,32 @@ export async function faucetDrip(to: `0x${string}`): Promise<FaucetResult> {
         }
       } catch {
         /* gas drip is best-effort */
+      }
+
+      // Arc testnet only: top up REAL USDC (0x3600, 6-dec) so a gasless USDC send
+      // has funds to move. Best-effort — if the operator holds no testnet USDC
+      // this throws and is skipped (the user can fund from Arc's testnet faucet).
+      if (c.key === "arc-testnet") {
+        try {
+          const have = (await publicClient.readContract({
+            address: ARC_USDC,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [to],
+          })) as bigint;
+          if (have < ARC_USDC_MIN) {
+            const usdcTx = await wallet.writeContract({
+              address: ARC_USDC,
+              abi: erc20Abi,
+              functionName: "transfer",
+              args: [to, ARC_USDC_DRIP],
+              nonce: nonce++,
+            });
+            minted.push({ chain: c.key, code: "USDC", amount: "5", tx: usdcTx, explorer: c.explorerTx(usdcTx) });
+          }
+        } catch {
+          /* operator may hold no Arc testnet USDC — best-effort */
+        }
       }
     } catch {
       /* whole chain unreachable — skip it, keep the others */

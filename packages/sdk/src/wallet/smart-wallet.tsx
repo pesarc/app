@@ -116,10 +116,16 @@ export function LiveSmartWalletProvider({
 
   const sponsor = getGasSponsor(activeEvm.key, activeEvm.chain.id);
 
-  // EOA-direct path: a connected external wallet on Arc signs + pays its own gas
-  // from its own address (no SimpleAccount). Built in an effect because it needs
-  // the wallet's EIP-1193 provider.
-  const useEoaDirect = Boolean(external) && activeEvm.key.startsWith("arc");
+  // EOA-direct path: a connected external wallet on Arc MAINNET signs + pays its
+  // own gas from its own address (no SimpleAccount), so "what you fund is what
+  // the app spends" with the real USDC it already holds. Built in an effect
+  // because it needs the wallet's EIP-1193 provider.
+  //
+  // Arc TESTNET is excluded on purpose: a MetaMask wallet there holds no testnet
+  // USDC (Arc's gas token), so an EOA-direct tx would always die for gas. On
+  // testnet the external wallet falls through to the sponsored ERC-7677 path
+  // (Pimlico pays gas), so sends are gasless and just work.
+  const useEoaDirect = Boolean(external) && activeEvm.key === "arc";
   const [eoaClient, setEoaClient] = useState<EoaClient | null>(null);
   useEffect(() => {
     setEoaClient(null);
