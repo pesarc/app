@@ -12,6 +12,11 @@ import { updatePayoutStatus } from "@pesarc/sdk/payouts";
 //    header x-paystack-signature; body { event: "transfer.*", data: {...} }.
 //  • flutterwave— static `verif-hash` header == FLUTTERWAVE_WEBHOOK_HASH;
 //    body { event: "transfer.*", data: { id, reference, status } }.
+//  • bachs      — HMAC-SHA256 of the raw body keyed with BACHS_WEBHOOK_SECRET,
+//    header x-bachs-signature; body { event: "payout.*", data: { id, status } }.
+//    NOTE: header name + scheme coded to the published shape, not yet observed
+//    live — verify before relying on it. Until then the status poll (pollable)
+//    is the working source of truth, so a mismatch here degrades safely.
 //  • generic    — HMAC-SHA256 keyed with RAMP_WEBHOOK_SECRET, header
 //    x-ramp-signature (or x-webhook-signature).
 
@@ -94,6 +99,34 @@ async function handleFlutterwave(request: Request, raw: string) {
   return NextResponse.json({ ok: true, updated, status });
 }
 
+async function handleBachs(request: Request, raw: string) {
+  const secret = process.env.BACHS_WEBHOOK_SECRET;
+  if (!secret) {
+    return NextResponse.json({ ok: false, error: "webhook not configured" }, { status: 503 });
+  }
+  if (!hmacEquals("sha256", raw, request.headers.get("x-bachs-signature"), secret)) {
+    return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
+  }
+  let body: { event?: string; data?: { id?: string; reference?: string; status?: string } };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid body" }, { status: 400 });
+  }
+  // Only payout events touch payouts; ignore anything else the partner sends.
+  if (!body.event?.startsWith("payout")) {
+    return NextResponse.json({ ok: true, ignored: body.event ?? null });
+  }
+  const partnerRef = body.data?.id ?? body.data?.reference;
+  if (!partnerRef) {
+    return NextResponse.json({ ok: false, error: "missing partner reference" }, { status: 400 });
+  }
+  // Prefer data.status; fall back to the event suffix (payout.paid → paid).
+  const status = mapProviderStatus(body.data?.status ?? body.event.split(".")[1]);
+  const updated = await updatePayoutStatus(String(partnerRef), status);
+  return NextResponse.json({ ok: true, updated, status });
+}
+
 async function handleGeneric(request: Request, raw: string) {
   const secret = process.env.RAMP_WEBHOOK_SECRET;
   if (!secret) {
@@ -124,5 +157,6 @@ export async function POST(request: Request) {
   // Identify the caller by its signature header, then verify with that scheme.
   if (request.headers.get("x-paystack-signature")) return handlePaystack(request, raw);
   if (request.headers.get("verif-hash")) return handleFlutterwave(request, raw);
+  if (request.headers.get("x-bachs-signature")) return handleBachs(request, raw);
   return handleGeneric(request, raw);
 }

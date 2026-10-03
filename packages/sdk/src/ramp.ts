@@ -13,6 +13,7 @@
 //     /api/payouts/webhook (see webhook route) which is the source of truth.
 
 import { cngnConfigured, cngnRampAdapter } from "./cngn";
+import { bachsConfigured, bachsRampAdapter } from "./bachs";
 
 export type PayoutStatus = "initiated" | "processing" | "paid" | "failed";
 
@@ -27,6 +28,9 @@ export type PayoutInitiateInput = {
   amountNgn: number;
   /** Payout currency (ISO). Defaults to NGN; drives multi-corridor routing. */
   currency?: string;
+  /** Destination country (ISO-3166 alpha-2). Defaults from the currency; picks
+   *  the per-country provider order so each market can run its own partner. */
+  country?: string;
   /** Structured destination a real provider needs (not persisted raw). */
   accountName?: string;
   /** NUBAN account number (bank) or MSISDN (mobile money). */
@@ -37,12 +41,29 @@ export type PayoutInitiateInput = {
 
 export type RampAdapter = {
   readonly name: string;
+  /** Markets this provider serves (ISO-3166 alpha-2). Undefined = universal
+   *  (e.g. the simulator); set it to scope a partner to its licensed countries. */
+  readonly countries?: string[];
+  /** When true, a non-terminal stored status is refreshed by polling statusFor
+   *  (for partners whose webhook isn't yet the sole source of truth). */
+  readonly pollable?: boolean;
   /** Whether this provider can handle the payout (currency / method / corridor). */
   supports(input: PayoutInitiateInput): boolean;
+  /** Liveness + auth probe for online-based selection. Undefined = always online
+   *  (no probe); false means skip this provider and try the next in order. */
+  health?(): Promise<boolean>;
   /** Start a fiat payout with the provider; returns its reference + first status. */
   initiate(input: PayoutInitiateInput): Promise<{ partnerRef: string; status: PayoutStatus }>;
   /** Status of a payout given when it was created (+ optional partner ref). */
   statusFor(createdAt: string, partnerRef?: string): PayoutStatus | Promise<PayoutStatus>;
+  /** Partner-native bank directory for this market; null = unavailable (caller
+   *  falls back). Lets the withdraw picker list the banks THIS partner can pay. */
+  listBanks?(currency: string): Promise<{ name: string; code: string }[] | null>;
+  /** Partner-native account-name resolution; absent = caller falls back. */
+  resolveAccount?(
+    accountNumber: string,
+    bankCode: string,
+  ): Promise<{ resolved: boolean; accountName?: string; error?: string }>;
 };
 
 const cur = (i: PayoutInitiateInput) => (i.currency ?? "NGN").toUpperCase();
@@ -299,15 +320,87 @@ export function flutterwaveRampAdapter(secretKey: string): RampAdapter {
 }
 
 /* ---------------- Multi-provider router ----------------
- * Providers are configured by their env keys and tried in priority order
- * (RAMP_PROVIDER_ORDER overrides the default). For each payout, selectAdapter()
- * picks the first configured provider whose supports() accepts it, so different
- * corridors can settle through different rails, with the simulator as the
- * universal fallback. The provider that handled a payout is stored on the row so
- * status/webhook resolution routes back to the same one.
+ * Each market (country) has its own ordered list of off-ramp partners, primary
+ * first. selectAdapter() walks that list and returns the first partner that both
+ * supports the payout AND answers its health probe — so the primary carries the
+ * traffic while it's up, and the next partner takes over automatically when it
+ * isn't. This is the plug-and-play seam: to make any MFB / licensed partner the
+ * primary for a country, put its adapter name first in that country's list (in
+ * code below or via RAMP_COUNTRY_PROVIDERS) — nothing at the call sites changes.
+ * The provider that handled a payout is stored on the row so status/webhook
+ * resolution routes back to the same one. The simulator is the universal last
+ * resort, so the flow never dead-ends in demo.
  */
 
-const RAMP_PROVIDERS = ["cngn", "paystack", "flutterwave", "http", "simulated"] as const;
+// Default per-country partner order (primary first). Override/extend per country
+// with RAMP_COUNTRY_PROVIDERS, e.g. "NG:bachs,paystack;GH:flutterwave,paystack".
+const COUNTRY_PROVIDERS: Record<string, string[]> = {
+  NG: ["bachs", "paystack", "flutterwave"],
+};
+
+// Currency -> default country, so callers that only know the currency still get
+// the right market's partner order.
+const CURRENCY_COUNTRY: Record<string, string> = {
+  NGN: "NG", GHS: "GH", KES: "KE", UGX: "UG", TZS: "TZ", ZAR: "ZA", XOF: "SN", XAF: "CM",
+};
+
+function countryOf(input: PayoutInitiateInput): string {
+  return (input.country ?? CURRENCY_COUNTRY[cur(input)] ?? "NG").toUpperCase();
+}
+
+/** Parse RAMP_COUNTRY_PROVIDERS ("NG:bachs,paystack;GH:flutterwave") into a map. */
+function countryProviderEnv(): Record<string, string[]> {
+  const raw = process.env.RAMP_COUNTRY_PROVIDERS;
+  if (!raw) return {};
+  const out: Record<string, string[]> = {};
+  for (const pair of raw.split(";")) {
+    const [cc, list] = pair.split(":");
+    if (cc && list) {
+      out[cc.trim().toUpperCase()] = list.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return out;
+}
+
+/** The partner order for a market: env override, else the per-country default,
+ *  else the global order (back-compat). The simulator is appended as last resort. */
+function providerOrderFor(country: string): string[] {
+  const perCountry = countryProviderEnv()[country] ?? COUNTRY_PROVIDERS[country];
+  const base = perCountry?.length ? perCountry : globalOrder();
+  return [...base, "simulated"];
+}
+
+function globalOrder(): string[] {
+  return (process.env.RAMP_PROVIDER_ORDER || "cngn,bachs,paystack,flutterwave,http")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function servesCountry(a: RampAdapter, country: string): boolean {
+  return !a.countries || a.countries.includes(country);
+}
+
+// Short-TTL health cache so one selection (and back-to-back payouts) don't hammer
+// a partner's probe endpoint. Health-less adapters are treated as always online.
+const HEALTH_TTL_MS = 30_000;
+const healthCache = new Map<string, { ok: boolean; at: number }>();
+
+async function isOnline(a: RampAdapter): Promise<boolean> {
+  if (!a.health) return true;
+  const cached = healthCache.get(a.name);
+  if (cached && Date.now() - cached.at < HEALTH_TTL_MS) return cached.ok;
+  let ok = false;
+  try {
+    ok = await a.health();
+  } catch {
+    ok = false;
+  }
+  healthCache.set(a.name, { ok, at: Date.now() });
+  return ok;
+}
+
+const RAMP_PROVIDERS = ["cngn", "bachs", "paystack", "flutterwave", "http", "simulated"] as const;
 export type RampProviderName = (typeof RAMP_PROVIDERS)[number];
 
 function makeAdapter(name: string): RampAdapter | null {
@@ -316,6 +409,9 @@ function makeAdapter(name: string): RampAdapter | null {
       // Native cNGN redemption (NGN bank). Lazy import keeps the ramp<->cngn
       // module cycle to function-call time only.
       return cngnConfigured() ? cngnRampAdapter() : null;
+    case "bachs":
+      // Bank-partner rail (primary for its markets). Same call-time-cycle note.
+      return bachsConfigured() ? bachsRampAdapter(process.env.BACHS_SECRET_KEY as string) : null;
     case "paystack":
       return process.env.PAYSTACK_SECRET_KEY
         ? paystackRampAdapter(process.env.PAYSTACK_SECRET_KEY)
@@ -335,15 +431,12 @@ function makeAdapter(name: string): RampAdapter | null {
   }
 }
 
-/** Configured adapters in priority order; the simulator is always the last resort. */
+/** Configured adapters in the global priority order; the simulator is always the
+ *  last resort. Used for diagnostics (rampProviderNames/rampIsLive). */
 export function availableAdapters(): RampAdapter[] {
-  const order = (process.env.RAMP_PROVIDER_ORDER || "cngn,paystack,flutterwave,http")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
   const seen = new Set<string>();
   const list: RampAdapter[] = [];
-  for (const name of order) {
+  for (const name of globalOrder()) {
     if (seen.has(name)) continue;
     const a = makeAdapter(name);
     if (a) {
@@ -355,9 +448,40 @@ export function availableAdapters(): RampAdapter[] {
   return list;
 }
 
-/** Pick the first configured provider that can handle this payout. */
-export function selectAdapter(input: PayoutInitiateInput): RampAdapter {
-  return availableAdapters().find((a) => a.supports(input)) ?? SimulatedRampAdapter;
+/** Candidate adapters for a payout: this market's partner order, de-duped, kept
+ *  only if configured, supporting the payout, and licensed for the country. */
+function candidatesFor(input: PayoutInitiateInput): RampAdapter[] {
+  const country = countryOf(input);
+  const seen = new Set<string>();
+  const list: RampAdapter[] = [];
+  for (const name of providerOrderFor(country)) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const a = makeAdapter(name);
+    if (a && a.supports(input) && servesCountry(a, country)) list.push(a);
+  }
+  return list;
+}
+
+/**
+ * Pick the partner that handles this payout: the first candidate in the market's
+ * order that is online (health probe). If none verifies online, fall back to the
+ * first supporting candidate anyway (a webhook/poll corrects its status later),
+ * and to the simulator if there are none. Async because the health probe is a
+ * network call.
+ */
+export async function selectAdapter(input: PayoutInitiateInput): Promise<RampAdapter> {
+  const candidates = candidatesFor(input);
+  for (const a of candidates) {
+    if (await isOnline(a)) return a;
+  }
+  return candidates[0] ?? SimulatedRampAdapter;
+}
+
+/** The off-ramp partner that would handle a bank payout in this market — so the
+ *  bank directory + account resolver speak to the SAME partner as the payout. */
+export function offRampAdapter(currency = "NGN", country?: string): Promise<RampAdapter> {
+  return selectAdapter({ reference: "", beneficiary: "", method: "bank", amountNgn: 0, currency, country });
 }
 
 /** Rebuild a specific provider's adapter by stored name (status/webhook routing). */

@@ -86,9 +86,9 @@ export async function createPayout(
   input: PayoutInput,
   account = DEMO_ACCOUNT,
 ): Promise<PayoutRow> {
-  // Route to the best configured provider for this payout (currency/method),
-  // and remember which one handled it so status/webhook resolve back to it.
-  const adapter = selectAdapter(input);
+  // Route to the market's online partner for this payout (country/currency/
+  // method), and remember which one handled it so status/webhook resolve back.
+  const adapter = await selectAdapter(input);
   const { partnerRef, status } = await adapter.initiate(input);
   const row: PayoutRow = {
     ...input,
@@ -239,9 +239,22 @@ export async function listPayouts(account = DEMO_ACCOUNT, limit = 20): Promise<P
   );
 }
 
-/** With a real provider the stored (webhook-driven) status is authoritative;
- *  the simulator derives it from elapsed time. Routed to the provider that
- *  actually handled the payout. */
+/** Rank for the "never move a status backwards" guard below. */
+const STATUS_RANK: Record<PayoutStatus, number> = {
+  initiated: 0,
+  processing: 1,
+  paid: 2,
+  failed: 2,
+};
+
+/** Resolve the live status for a stored payout, routed to the provider that
+ *  actually handled it:
+ *   • the simulator derives status from elapsed time;
+ *   • a real partner's stored (webhook-driven) status is authoritative once
+ *     terminal;
+ *   • a `pollable` partner (webhook not yet sole source of truth) refreshes a
+ *     non-terminal status by polling, but a transient poll error never drags it
+ *     backwards. */
 async function resolveStatus(
   createdAt: string,
   partnerRef: string,
@@ -249,8 +262,13 @@ async function resolveStatus(
   stored?: PayoutStatus,
 ): Promise<PayoutStatus> {
   const adapter = adapterByName(provider);
-  if (adapter.name !== "simulated") return stored ?? "initiated";
-  return adapter.statusFor(createdAt, partnerRef);
+  if (adapter.name === "simulated") return adapter.statusFor(createdAt, partnerRef);
+  const current = stored ?? "initiated";
+  if (adapter.pollable && current !== "paid" && current !== "failed") {
+    const live = await adapter.statusFor(createdAt, partnerRef);
+    return STATUS_RANK[live] >= STATUS_RANK[current] ? live : current;
+  }
+  return current;
 }
 
 /**
