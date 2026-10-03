@@ -95,7 +95,8 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
     // The partner's webhook isn't the sole source of truth yet, so a non-terminal
     // status is refreshed by polling GET /v1/payouts/{id} (see resolveStatus).
     pollable: true,
-    supports: (i) => i.method === "bank" && currencies.includes(cur(i)),
+    supports: (i) =>
+      (i.method === "bank" || i.method === "mobile_money") && currencies.includes(cur(i)),
 
     // Liveness + auth probe for online-based selection. A cheap authenticated
     // GET: if it answers 2xx the partner is up and the key is good.
@@ -109,22 +110,38 @@ export function bachsRampAdapter(secretKey: string): RampAdapter {
     },
 
     async initiate(input) {
-      // Bank payouts need a NUBAN + bank code; without them we can't reach the
-      // partner, so record it as initiated and let a webhook/poll correct it.
-      if (input.method !== "bank" || !input.accountNumber || !input.bankCode) {
+      // Bank payouts carry a NUBAN + bank code; mobile money carries a phone +
+      // network code (both in accountNumber + bankCode). Without them we can't
+      // reach the partner, so record it as initiated and let a webhook/poll fix it.
+      if (
+        (input.method !== "bank" && input.method !== "mobile_money") ||
+        !input.accountNumber ||
+        !input.bankCode
+      ) {
         return { partnerRef: localRef(), status: "initiated" };
       }
       try {
-        // 1) Register (and resolve) the payout destination.
+        // 1) Register (and resolve) the payout destination. Bank destinations send
+        // account_number + bank_code (no type field); mobile money sends
+        // type:"mobile_money" + phone_number + mobile_provider.
+        const destBody =
+          input.method === "mobile_money"
+            ? {
+                currency: cur(input),
+                type: "mobile_money",
+                phone_number: input.accountNumber,
+                mobile_provider: input.bankCode,
+              }
+            : {
+                currency: cur(input),
+                account_number: input.accountNumber,
+                bank_code: input.bankCode,
+              };
         const destRes = await fetch(`${base}/v1/payouts/destinations`, {
           method: "POST",
           headers,
           cache: "no-store",
-          body: JSON.stringify({
-            currency: cur(input),
-            account_number: input.accountNumber,
-            bank_code: input.bankCode,
-          }),
+          body: JSON.stringify(destBody),
         });
         const dest = (await destRes.json()) as {
           id?: string;
