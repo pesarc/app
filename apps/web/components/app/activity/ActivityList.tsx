@@ -101,6 +101,28 @@ function Row({ item }: { item: FeedItem }) {
   );
 }
 
+function ActivitySkeleton({ mode }: { mode: "home" | "full" }) {
+  const rows = mode === "home" ? 4 : 6;
+  return (
+    <div className="space-y-2.5" aria-busy="true" aria-label="Loading activity">
+      <div className="flex items-center justify-between">
+        <div className="h-3.5 w-28 rounded bg-black/[0.06] animate-pulse" />
+        <div className="h-9 w-9 rounded-full bg-black/[0.06] animate-pulse" />
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 bg-snow border border-fog rounded-[20px] px-4 py-3 shadow-card-flat">
+          <div className="w-[42px] h-[42px] rounded-[14px] bg-black/[0.06] animate-pulse shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-3.5 w-1/2 rounded bg-black/[0.06] animate-pulse" />
+            <div className="h-3 w-2/3 rounded bg-black/[0.05] animate-pulse" />
+          </div>
+          <div className="h-4 w-16 rounded bg-black/[0.06] animate-pulse shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div className="rounded-[20px] border border-dashed border-fog bg-snow/60 px-6 py-10 text-center">
@@ -233,7 +255,7 @@ function FilterMenu({
 }
 
 export function ActivityList({ mode }: { mode: "home" | "full" }) {
-  const { items, live } = useActivity();
+  const { items, loading, live } = useActivity();
   const [filters, setFilters] = useState<Filters>({ source: "all", network: "all", chain: "all", token: "all" });
   const [visible, setVisible] = useState(mode === "home" ? 5 : 15);
 
@@ -258,6 +280,7 @@ export function ActivityList({ mode }: { mode: "home" | "full" }) {
   );
   const shown = filtered.slice(0, visible);
 
+  if (live && items.length === 0 && loading) return <ActivitySkeleton mode={mode} />;
   if (!live || items.length === 0) return <EmptyState />;
 
   const sentN = filtered.filter((i) => i.kind === "sent" && i.source === "onchain").length;
