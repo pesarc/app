@@ -44,6 +44,17 @@ function arcSponsor(chainId: number): GasSponsor {
   // recommended bundler.
   const bundlerUrl = process.env.NEXT_PUBLIC_ARC_BUNDLER_URL || pimlicoUrl(chainId) || undefined;
 
+  // Gas mode. "user" = the user pays their own gas in the chain's gas token
+  // (USDC is the native gas token on Arc), via a bundler with NO paymaster, so
+  // the operator funds no gas. Default "sponsored" = operator pays via a
+  // paymaster below. Only meaningful on Arc, where the gas token is a stablecoin.
+  const gasMode = (process.env.NEXT_PUBLIC_GAS_MODE || "sponsored").toLowerCase();
+  if (gasMode === "user") {
+    return bundlerUrl
+      ? { kind: "erc7677", provider: "custom", paymasterUrl: "", bundlerUrl }
+      : { kind: "none" };
+  }
+
   const circleUrl = process.env.NEXT_PUBLIC_CIRCLE_PAYMASTER_URL || "";
   const inhouseUrl =
     process.env.NEXT_PUBLIC_INHOUSE_PAYMASTER_URL ||
