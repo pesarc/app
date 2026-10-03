@@ -21,6 +21,10 @@ export type TransferInput = {
   flag?: string;
   /** On-chain settlement tx hash, when the send executed on testnet. */
   txHash?: string;
+  /** App chain key the tx settled on (for the right explorer + chain badge). */
+  chainKey?: string;
+  /** Token symbol that moved, e.g. "USDC". */
+  token?: string;
 };
 
 export type TransferRow = TransferInput & {
@@ -62,11 +66,15 @@ async function createSchema(sql: Sql) {
       reference         text NOT NULL,
       flag              text,
       tx_hash           text,
+      chain_key         text,
+      token             text,
       created_at        timestamptz NOT NULL DEFAULT now()
     )
   `;
   // Upgrade pre-existing tables in place.
   await sql`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS tx_hash text`;
+  await sql`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS chain_key text`;
+  await sql`ALTER TABLE transfers ADD COLUMN IF NOT EXISTS token text`;
 }
 
 export async function recordTransfer(
@@ -81,13 +89,13 @@ export async function recordTransfer(
         INSERT INTO transfers
           (account, direction, counterparty, counterparty_handle,
            send_amount, send_currency, receive_amount, receive_currency,
-           payout, reference, flag, tx_hash)
+           payout, reference, flag, tx_hash, chain_key, token)
         VALUES
           (${account}, ${input.direction}, ${input.counterparty},
            ${input.counterpartyHandle ?? null}, ${input.sendAmount},
            ${input.sendCurrency}, ${input.receiveAmount}, ${input.receiveCurrency},
            ${input.payout}, ${input.reference}, ${input.flag ?? null},
-           ${input.txHash ?? null})
+           ${input.txHash ?? null}, ${input.chainKey ?? null}, ${input.token ?? null})
       `;
       return { ok: true };
     } catch {
@@ -166,6 +174,8 @@ function mapRow(r: any): TransferRow {
     reference: r.reference,
     flag: r.flag ?? undefined,
     txHash: r.tx_hash ?? undefined,
+    chainKey: r.chain_key ?? undefined,
+    token: r.token ?? undefined,
     createdAt:
       r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
   };

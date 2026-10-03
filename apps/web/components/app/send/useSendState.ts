@@ -244,7 +244,7 @@ export function useSendState() {
       const mint = stablecoinAddress("USDC", "solana", "testnet");
       if (!mint) throw new Error("USDC is not configured on Solana devnet.");
       const sig = await svmTransfer(solana, { mint, to: recipientAddress, amount, decimals: 6 });
-      return { tx: sig, received: amount };
+      return { tx: sig, received: amount, chainKey: "solana", token: "USDC" };
     }
     // Cross-chain wallet send: burn on the source chain with the recipient as the
     // mint target, then poll until the destination settles. Funds go straight to
@@ -254,18 +254,19 @@ export function useSendState() {
       const deadline = Date.now() + 15 * 60_000;
       while (Date.now() < deadline) {
         const s = await crossAdapter.settle(crossReq, sourceTx);
-        if (s.ok) return { tx: sourceTx, payoutTx: s.destTx, received: amount };
+        if (s.ok) return { tx: sourceTx, payoutTx: s.destTx, received: amount, chainKey: activeChain.key, token: "USDC" };
         if (!s.pending && s.error) throw new Error(s.error);
         await new Promise((r) => setTimeout(r, 15_000));
       }
       // Timed out polling — the burn landed and the funds are in transit (safe).
-      return { tx: sourceTx, received: amount };
+      return { tx: sourceTx, received: amount, chainKey: activeChain.key, token: "USDC" };
     }
     // Send to an EVM wallet on the SAME chain: a direct transfer of the PICKED
     // token, straight to the recipient (no swap, no ramp escrow).
     if (walletIsEvm && recipientAddress) {
       if (!sendTokenAddr) throw new Error(`${effectiveSendToken} isn't available on this chain to send.`);
-      return sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount, publicClientFor(activeChain));
+      const r = await sendTokenDirect(smart, sendTokenAddr, recipientAddress as `0x${string}`, amount, publicClientFor(activeChain));
+      return { ...r, chainKey: activeChain.key, token: effectiveSendToken };
     }
     // Otherwise the fiat cash-out on-chain leg. Two routes:
     //  • Corridor (on the hub chain, pool wired): swap USD→cNGN and deposit the
