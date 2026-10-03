@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Progress } from "./shared";
 import { useSendState } from "./useSendState";
@@ -46,6 +47,11 @@ export default function SendFlow() {
     setSendToken,
     sendTokenOptions,
   } = useSendState();
+
+  // The chain + token the completed send settled on, for the success receipt
+  // (explorer link) and the recorded activity row.
+  const [sentChainKey, setSentChainKey] = useState<string>();
+  const [sentToken, setSentToken] = useState<string>();
 
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-8 md:py-12">
@@ -119,6 +125,8 @@ export default function SendFlow() {
               setTxHash(r?.tx);
               setPayoutTxHash(r?.payoutTx);
               setActualReceive(r?.received);
+              setSentChainKey(r?.chainKey);
+              setSentToken(r?.token);
               setStep("success");
             }}
             onCancel={() => setStep("confirm")}
@@ -131,6 +139,8 @@ export default function SendFlow() {
             quote={quote}
             bankDest={bankDest}
             txHash={txHash}
+            chainKey={sentChainKey}
+            token={sentToken}
             payoutTxHash={payoutTxHash}
             actualReceive={actualReceive}
             onAnother={reset}
