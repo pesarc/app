@@ -13,7 +13,13 @@ import {
   createSmartWalletClient,
   alchemyWalletTransport,
 } from "@alchemy/wallet-apis";
-import { encodeFunctionData, type LocalAccount } from "viem";
+import {
+  createWalletClient,
+  custom,
+  encodeFunctionData,
+  type LocalAccount,
+  type WalletClient,
+} from "viem";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { erc20Abi } from "@pesarc/abi";
@@ -26,6 +32,9 @@ export type Call = {
   data: `0x${string}`;
   value?: bigint;
 };
+
+/** EOA-direct send path for a connected external wallet (no smart account). */
+type EoaClient = { address: `0x${string}`; wc: WalletClient };
 
 export type SmartWallet = {
   ready: boolean;
@@ -80,6 +89,16 @@ export function LiveSmartWalletProvider({
     [wallets]
   );
 
+  // A connected EXTERNAL wallet (MetaMask etc.) — not the Privy embedded one.
+  // On Arc we let it sign + pay its own gas (USDC is Arc's gas token) directly
+  // from its EOA, instead of deriving a separate SimpleAccount it never funded —
+  // so "what you fund is what the app spends". Embedded wallets keep the gasless
+  // smart-account path below.
+  const external = useMemo(
+    () => wallets?.find((w) => w.walletClientType !== "privy" && w.address),
+    [wallets]
+  );
+
   useEffect(() => {
     if (!isSmartWalletConfigured || !embedded || signer) return;
     let active = true;
@@ -96,6 +115,37 @@ export function LiveSmartWalletProvider({
   const { chain: activeEvm } = useActiveEvmChain();
 
   const sponsor = getGasSponsor(activeEvm.key, activeEvm.chain.id);
+
+  // EOA-direct path: a connected external wallet on Arc signs + pays its own gas
+  // from its own address (no SimpleAccount). Built in an effect because it needs
+  // the wallet's EIP-1193 provider.
+  const useEoaDirect = Boolean(external) && activeEvm.key.startsWith("arc");
+  const [eoaClient, setEoaClient] = useState<EoaClient | null>(null);
+  useEffect(() => {
+    setEoaClient(null);
+    if (!useEoaDirect || !external) return;
+    let active = true;
+    (async () => {
+      const provider = await external.getEthereumProvider();
+      const addr = external.address as `0x${string}`;
+      const wc = createWalletClient({
+        account: addr,
+        chain: activeEvm.chain,
+        transport: custom(provider as never),
+      });
+      // Best-effort: make sure the wallet is on the active chain.
+      try {
+        await wc.switchChain({ id: activeEvm.chain.id });
+      } catch {
+        /* the user may already be on it, or will be prompted on send */
+      }
+      if (active) setEoaClient({ address: addr, wc });
+    })().catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [external, activeEvm.chain.id, activeEvm.key, useEoaDirect]);
 
   // Alchemy path (testnets): the client is built synchronously.
   const alchemyClient = useMemo(() => {
@@ -122,7 +172,8 @@ export function LiveSmartWalletProvider({
     setErc7677Client(null);
     // Needs a bundler. A paymaster is optional: when absent (user-pays-gas mode),
     // the smart account pays its own gas in the chain's gas token (USDC on Arc).
-    if (!signer || sponsor.kind !== "erc7677" || !sponsor.bundlerUrl) {
+    // Skipped entirely when the EOA-direct path is in use (external wallet on Arc).
+    if (useEoaDirect || !signer || sponsor.kind !== "erc7677" || !sponsor.bundlerUrl) {
       return;
     }
     let active = true;
@@ -145,6 +196,21 @@ export function LiveSmartWalletProvider({
 
   const sendCalls = useCallback(
     async (calls: Call[]) => {
+      // EOA-direct (external wallet on Arc): send each call as its own tx from the
+      // user's own address; they sign in the wallet and pay gas in USDC.
+      if (eoaClient) {
+        let hash: string | undefined;
+        for (const c of calls) {
+          hash = await eoaClient.wc.sendTransaction({
+            account: eoaClient.address,
+            to: c.to,
+            data: c.data,
+            value: c.value ?? BigInt(0),
+            chain: activeEvm.chain,
+          });
+        }
+        return hash;
+      }
       if (!client) throw new Error("Smart wallet not ready");
       const { id } = await client.sendCalls({
         calls: calls.map((c) => ({
@@ -156,7 +222,7 @@ export function LiveSmartWalletProvider({
       const result = await client.waitForCallsStatus({ id });
       return result.receipts?.[0]?.transactionHash as string | undefined;
     },
-    [client]
+    [eoaClient, client, activeEvm.chain]
   );
 
   const sendErc20 = useCallback(
@@ -192,18 +258,21 @@ export function LiveSmartWalletProvider({
   // (Arc) it's a counterfactual SimpleAccount with a DIFFERENT address, so we must
   // report that one — otherwise balances, activity and "where to deposit" all read
   // the empty EOA instead of the real account.
-  const smartAddress = (erc7677Client?.address ?? signer?.address) as `0x${string}` | undefined;
+  // EOA-direct reports the user's own address; otherwise the smart account.
+  const smartAddress = (eoaClient?.address ?? erc7677Client?.address ?? signer?.address) as
+    | `0x${string}`
+    | undefined;
 
   const value = useMemo<SmartWallet>(
     () => ({
-      ready: Boolean(client),
+      ready: Boolean(client || eoaClient),
       address: smartAddress,
       error,
       sendErc20,
       sendCalls,
       grantSession: alchemyClient ? grantSession : undefined,
     }),
-    [client, smartAddress, error, sendErc20, sendCalls, alchemyClient, grantSession]
+    [client, eoaClient, smartAddress, error, sendErc20, sendCalls, alchemyClient, grantSession]
   );
 
   return (

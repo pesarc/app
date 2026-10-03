@@ -69,6 +69,10 @@ export const STABLECOIN_REGISTRY: Record<string, StablecoinEntry> = {
       },
       arc: {
         mainnet: "0x3600000000000000000000000000000000000000",
+        // Same predeploy address on Arc mainnet AND testnet — this is the real
+        // USDC users hold (and what MetaMask shows), 6 decimals. Without the
+        // testnet entry the app couldn't read Arc-testnet USDC balances at all.
+        testnet: "0x3600000000000000000000000000000000000000",
         note: "Arc native USDC predeploy (gas token, ERC-20 interface)",
       },
     },
