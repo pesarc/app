@@ -127,12 +127,22 @@ function verifyBachs(request: Request, raw: string, secret: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Signing secrets to try, so one endpoint verifies both sandbox and live
+ *  deliveries: an explicit BACHS_WEBHOOK_SECRET plus the per-env test/prod ones. */
+function bachsWebhookSecrets(): string[] {
+  return [
+    process.env.BACHS_WEBHOOK_SECRET,
+    process.env.BACHS_TEST_WEBHOOK_SECRET,
+    process.env.BACHS_PROD_WEBHOOK_SECRET,
+  ].filter((s): s is string => Boolean(s));
+}
+
 async function handleBachs(request: Request, raw: string) {
-  const secret = process.env.BACHS_WEBHOOK_SECRET;
-  if (!secret) {
+  const secrets = bachsWebhookSecrets();
+  if (secrets.length === 0) {
     return NextResponse.json({ ok: false, error: "webhook not configured" }, { status: 503 });
   }
-  if (!verifyBachs(request, raw, secret)) {
+  if (!secrets.some((s) => verifyBachs(request, raw, s))) {
     return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
   }
   let body: { event?: string; data?: { id?: string; reference?: string; status?: string } };
