@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowRight, Check, ShieldCheck, Zap } from "@/components/icons";
 import { ACCOUNT, type Recipient } from "@pesarc/sdk/account";
 import { CURRENCIES, formatMoney, midMarketRate, type CurrencyCode } from "@pesarc/sdk/money";
@@ -62,6 +63,11 @@ export function AmountStep({
 }) {
   const sendC = CURRENCIES[sendCurrency];
   const amount = parseFloat(amountStr) || 0;
+  // A contact we've paid before carries a remembered payout (method + bank/momo
+  // details). Collapse the picker into a one-line summary so repeat sends skip
+  // re-choosing; "Change" reopens the full chooser.
+  const savedPayout = recipient.defaultPayout;
+  const [editPayout, setEditPayout] = useState(false);
   // Recipient is a raw on-chain wallet: destination (address + chain) is already
   // chosen, so there's no payout method to pick — show it, don't re-ask.
   const isWallet = isWalletRecipient(recipient);
@@ -132,7 +138,7 @@ export function AmountStep({
                 className="w-[5ch] bg-transparent text-[46px] leading-none font-extrabold tracking-tight text-white outline-none placeholder:text-white/30"
               />
             </div>
-            <div className={`mt-2 text-[12.5px] font-medium ${insufficient ? "text-white font-bold" : "text-white/55"}`}>
+            <div className={`mt-2 text-[12.5px] ${insufficient ? "text-red-300 font-bold" : "font-medium text-white/55"}`}>
               {insufficient ? "Over your balance · " : "Balance "}
               {balDisplay}
             </div>
@@ -292,6 +298,34 @@ export function AmountStep({
               <div className="text-[12.5px] font-medium text-slate">Bank account {recipient.handle}</div>
             </div>
           </div>
+        </div>
+      ) : savedPayout && !editPayout ? (
+        <div className="mb-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate mb-2.5">
+            Paying to
+          </p>
+          <button
+            onClick={() => setEditPayout(true)}
+            className="w-full flex items-center gap-3 rounded-[18px] border border-fog bg-snow p-3.5 text-left hover:border-slate/40 transition-colors"
+          >
+            <span className="w-9 h-9 rounded-full bg-sky-tint flex items-center justify-center text-sky-deep">
+              <Check className="w-4 h-4" strokeWidth={3} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-harbor text-[15px] truncate">
+                {savedPayout.accountName ??
+                  PAYOUT_METHODS.find((m) => m.id === savedPayout.method)?.label ??
+                  "Saved payout"}
+              </div>
+              <div className="text-[12.5px] font-medium text-slate">
+                {PAYOUT_METHODS.find((m) => m.id === savedPayout.method)?.label ?? "Payout"}
+                {savedPayout.accountNumber
+                  ? ` · ••${savedPayout.accountNumber.slice(-4)}`
+                  : ""}
+              </div>
+            </div>
+            <span className="text-[12.5px] font-bold text-sky-deep shrink-0">Change</span>
+          </button>
         </div>
       ) : (
         <>
