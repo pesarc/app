@@ -131,18 +131,64 @@ export async function fetchOracleCorridorQuote(
   };
 }
 
+/** True when the hub ORACLE alone is wired (no quoter needed) — enough to price
+ *  USD/NGN off the oracle's mid rate. */
+export function hubOracleAvailable(): boolean {
+  return Boolean(CONTRACTS_READY && CONTRACTS.oracleAdapter);
+}
+
 /**
- * Best live quote for a corridor: the rich hub pool for NGN when configured,
- * otherwise the realized-rate oracle for any seeded corridor. Returns null when
- * there's no live price (caller keeps the indicative mock quote).
+ * NGN mid-market quote from the hub oracle alone — reads getPrice1e18Strict for
+ * the USD/NGN pool and applies the flat settlement fee. No quoter required, so
+ * NGN goes live as soon as the oracle has a fresh price (the oracle-recorder
+ * keeper must be feeding it; a stale/empty oracle reverts and we return null so
+ * the caller keeps the indicative rate).
+ */
+export async function fetchHubOracleQuote(
+  sendAmountUsd: number,
+): Promise<LivePoolQuote | null> {
+  if (!hubOracleAvailable() || sendAmountUsd <= 0) return null;
+  try {
+    const client = getPublicClient();
+    const midRate1e18 = (await client.readContract({
+      address: CONTRACTS.oracleAdapter as `0x${string}`,
+      abi: oracleAdapterAbi,
+      functionName: "getPrice1e18Strict",
+      args: [poolKey()],
+    })) as bigint;
+    const midRate = Number(formatUnits(midRate1e18, 18));
+    if (midRate <= 0) return null;
+    const effectiveRate = midRate * (1 - CORRIDOR_FEE);
+    return {
+      midRate,
+      receiveAmount: sendAmountUsd * effectiveRate,
+      effectiveRate,
+      feePct: CORRIDOR_FEE,
+      route: `Oracle · ${chainLabel()}`,
+    };
+  } catch {
+    // OracleUnavailable() (no fresh price) or any read error — fall back.
+    return null;
+  }
+}
+
+/**
+ * Best live quote for a corridor. For NGN: the rich hub pool (oracle + quoter)
+ * when a quoter is configured, else the oracle-only mid rate (no quoter needed).
+ * Every other corridor prices off the active chain's realized-rate oracle.
+ * Returns null when there's no live price (caller keeps the indicative quote).
  */
 export async function fetchCorridorQuote(
   sendAmountUsd: number,
   receiveCurrency: string,
 ): Promise<LivePoolQuote | null> {
-  if (receiveCurrency === "NGN" && livePoolQuoteAvailable()) {
-    const pool = await fetchLivePoolQuote(sendAmountUsd);
-    if (pool) return pool;
+  if (receiveCurrency === "NGN") {
+    if (livePoolQuoteAvailable()) {
+      const pool = await fetchLivePoolQuote(sendAmountUsd);
+      if (pool) return pool;
+    }
+    const oracle = await fetchHubOracleQuote(sendAmountUsd);
+    if (oracle) return oracle;
   }
   return fetchOracleCorridorQuote(sendAmountUsd, receiveCurrency);
 }
