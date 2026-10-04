@@ -6,6 +6,7 @@ import { type Recipient } from "@pesarc/sdk/account";
 import { formatMoney } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type Quote } from "@pesarc/sdk/quote";
 import { Button } from "@/components/app/ui";
+import { humanizeTxError } from "@pesarc/sdk/wallet/txError";
 import type { SendResult } from "../types";
 
 export function SettlingStep({
@@ -63,11 +64,7 @@ export function SettlingStep({
         .catch((e: unknown) => {
           // A real send failed — surface it, never fake success. Funds stay put.
           if (cancelled) return;
-          const msg =
-            (e as { shortMessage?: string; message?: string })?.shortMessage ||
-            (e as Error)?.message ||
-            "That transfer didn't go through.";
-          setError(msg);
+          setError(humanizeTxError(e, "That transfer didn't go through. Please try again."));
         });
     } else if (mustBeReal) {
       // A real wallet send on a live account that can't execute: say why. NEVER
