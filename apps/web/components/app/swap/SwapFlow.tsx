@@ -17,6 +17,7 @@ import { CURRENCIES, formatMoney, currencyName, type CurrencyCode } from "@pesar
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { publicClientFor } from "@pesarc/sdk/chain/registry";
+import { humanizeTxError } from "@pesarc/sdk/wallet/txError";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { tokenByCode } from "@pesarc/sdk/chain/evm-settle";
 import { explorerTxUrl } from "@pesarc/sdk/chain/chains";
@@ -108,7 +109,7 @@ export default function SwapFlow() {
       }
       setDone(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message.split("\n")[0] : "Swap failed. Try again.");
+      setError(humanizeTxError(e, "Swap didn't go through. Please try again."));
     }
     setBusy(false);
   };
