@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimit } from "@pesarc/sdk/api/guard";
 import { resolveAccount } from "@pesarc/sdk/banks";
+import { resolveViaAdapters } from "@pesarc/sdk/ramp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Enter a 10-digit account number and bank." }, { status: 400 });
   }
 
-  const res = await resolveAccount(parsed.data.accountNumber, parsed.data.bankCode);
+  // Prefer the active fiat partner for this market (e.g. Bachs when live), so we
+  // don't burn a test Paystack's daily resolve cap. Fall back to the legacy
+  // resolver only when no configured partner can resolve.
+  const res =
+    (await resolveViaAdapters(parsed.data.accountNumber, parsed.data.bankCode, "NG")) ??
+    (await resolveAccount(parsed.data.accountNumber, parsed.data.bankCode));
   if (res.error) {
     return NextResponse.json({ ok: false, error: res.error }, { status: 422 });
   }
