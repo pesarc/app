@@ -288,6 +288,16 @@ export function useSendState() {
     // on the hub pool) is OPT-IN only (NEXT_PUBLIC_CASHOUT_MODE=corridor): it moves
     // the POOL's USD token, not the user's real USDC, so on mainnet it would pay
     // out without ever debiting a real-USDC holder.
+    // Money-safety guard: the escrow MUST be a Pesarc-controlled account that is
+    // NOT the sender. If it's unset (or misconfigured to the sender's own
+    // address), an on-chain "debit" would be a self-transfer — balance unchanged
+    // — and the fiat partner would still pay out. Refuse before moving anything.
+    const sender = smart.address?.toLowerCase();
+    if (!RAMP_ESCROW || (sender && RAMP_ESCROW.toLowerCase() === sender)) {
+      throw new Error(
+        "Cash-out isn't set up on this network yet, so we didn't move any money. Please try again shortly.",
+      );
+    }
     const useCorridor = process.env.NEXT_PUBLIC_CASHOUT_MODE === "corridor";
     if (hubOnActiveChain && useCorridor) {
       const r = await executeCorridorSend(smart, amount, RAMP_ESCROW);
