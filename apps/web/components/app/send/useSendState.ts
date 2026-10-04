@@ -282,16 +282,20 @@ export function useSendState() {
     //  • Direct (off the hub — e.g. Arc mainnet with no pool, or forced via
     //    NEXT_PUBLIC_CASHOUT_MODE=direct): send the USD stablecoin straight to the
     //    escrow; the fiat partner pays NGN from there. Same off-chain payout leg.
-    const forceDirect = process.env.NEXT_PUBLIC_CASHOUT_MODE === "direct";
-    if (hubOnActiveChain && !forceDirect) {
-      // Runs on the hub, which IS the active chain here (hubOnActiveChain), so the
-      // explorer link + activity tag the chain it actually settled on.
+    // DEFAULT: take the user's REAL USDC straight to the ramp escrow — this
+    // debits their wallet (the token they actually hold on this chain), and the
+    // fiat partner then pays out NGN from the float. The corridor swap (USD->cNGN
+    // on the hub pool) is OPT-IN only (NEXT_PUBLIC_CASHOUT_MODE=corridor): it moves
+    // the POOL's USD token, not the user's real USDC, so on mainnet it would pay
+    // out without ever debiting a real-USDC holder.
+    const useCorridor = process.env.NEXT_PUBLIC_CASHOUT_MODE === "corridor";
+    if (hubOnActiveChain && useCorridor) {
       const r = await executeCorridorSend(smart, amount, RAMP_ESCROW);
       return { ...r, chainKey: activeChain.key, token: "USDC" };
     }
     if (!usdcOnActiveChain) throw new Error("USDC isn't available on this network to cash out.");
-    // The on-chain leg moves USD (not cNGN), so don't report `received` as the
-    // NGN figure — leave it unset so the payout + UI use the quote's NGN amount.
+    // Move the user's USDC to escrow; leave `received` unset so the payout + UI
+    // use the quote's NGN amount, not the USD figure.
     const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount, publicClientFor(activeChain));
     return { tx: sent.tx, chainKey: activeChain.key, token: "USDC" };
   }, [
