@@ -157,7 +157,9 @@ export function AmountStep({
             {recipient.name} receives
           </div>
           <div className="text-[34px] leading-none font-extrabold tracking-tight text-sky-tint numerals">
-            {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "-"}
+            {quote && amount > 0 && !insufficient
+              ? formatMoney(quote.receiveAmount, quote.receiveCurrency)
+              : "-"}
           </div>
           {recipient.receiveCurrency && recipient.receiveCurrency !== sendCurrency && (
             <div className="mt-2 text-[12.5px] font-semibold text-white/70">
