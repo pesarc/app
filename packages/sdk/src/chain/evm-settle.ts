@@ -57,8 +57,13 @@ export function tokenByCode(chain: EvmChainConfig, code: string): AgentToken | u
     upper === "USDC" ? "USD" : upper.startsWith("C") && upper.length === 4 ? upper.slice(1) : upper
   ) as keyof typeof chain.tokens;
   const address = chain.tokens[key];
-  if (!address) return undefined;
-  return { code: key, address, flag: FLAGS[key] ?? "🌍" };
+  if (address) return { code: key, address, flag: FLAGS[key] ?? "🌍" };
+  // No app settlement token on this chain for the fiat — fall back to the real
+  // stablecoin that tracks it (e.g. USD -> Arc's native USDC). Without this, the
+  // send screen can't read a balance on a contract-less mainnet (Arc) and shows
+  // "$0.00 demo", blocking the send even though the user holds real USDC.
+  const real = realStablecoinsForAppChain(chain.key, chain.testnet).find((x) => x.fiat === key);
+  return real ? { code: key, address: real.address, flag: FLAGS[key] ?? "🌍" } : undefined;
 }
 
 /** Env var name holding the server-side agent PRIVATE key for a chain. */
