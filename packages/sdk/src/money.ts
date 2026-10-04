@@ -132,6 +132,14 @@ export function ratesAreLive(): boolean {
   return LIVE_USD_PER !== null;
 }
 
+/** True when THIS currency's rate came from the live market feed. Some
+ *  currencies (e.g. NGN) are deliberately excluded from the feed because their
+ *  official rate diverges from the settlement rate — those are priced by the
+ *  on-chain oracle instead, so they must not claim a "market" rate here. */
+export function rateIsLiveFor(code: CurrencyCode): boolean {
+  return Boolean(LIVE_USD_PER && LIVE_USD_PER[code] !== undefined);
+}
+
 /** Mid-market rate: 1 unit of [from] -> X units of [to] (cross via USD).
  *  Uses live rates when loaded, else the illustrative constants. */
 export function midMarketRate(from: CurrencyCode, to: CurrencyCode): number {

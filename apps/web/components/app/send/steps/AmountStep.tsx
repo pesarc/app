@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Check, ShieldCheck, Zap } from "@/components/icons";
 import { ACCOUNT, type Recipient } from "@pesarc/sdk/account";
-import { CURRENCIES, formatMoney, midMarketRate, ratesAreLive, type CurrencyCode } from "@pesarc/sdk/money";
+import { CURRENCIES, formatMoney, midMarketRate, rateIsLiveFor, type CurrencyCode } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type PayoutMethod, type Quote } from "@pesarc/sdk/quote";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button } from "@/components/app/ui";
@@ -184,7 +184,7 @@ export function AmountStep({
               )}
               {quote?.live ? (
                 <span className="ml-1 text-sky-tint font-bold">· live</span>
-              ) : ratesAreLive() ? (
+              ) : rateIsLiveFor(recipient.receiveCurrency) ? (
                 <span className="ml-1 text-sky-tint font-bold">· market</span>
               ) : null}
             </div>
@@ -396,7 +396,7 @@ export function AmountStep({
                 {(quote.feePct * 100).toFixed(2)}% fee
                 {quote.live ? (
                   <span className="ml-1 text-sky-deep font-bold">· live rate</span>
-                ) : ratesAreLive() ? (
+                ) : rateIsLiveFor(recipient.receiveCurrency) ? (
                   <span className="ml-1 text-sky-deep font-bold">· market rate</span>
                 ) : (
                   <span className="ml-1 text-slate/70 font-medium">· indicative</span>

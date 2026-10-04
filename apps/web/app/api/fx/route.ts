@@ -14,6 +14,13 @@ export const revalidate = 600; // 10 minutes
 
 const UPSTREAM = "https://open.er-api.com/v6/latest/USD";
 
+// Currencies priced by the on-chain oracle (settlement truth), NOT the market
+// feed. NGN's official rate (~1330) diverges sharply from the parallel/
+// remittance rate (~1600) we settle at, so showing the official feed would
+// understate payout. These keep their indicative fallback until the oracle
+// supplies the live rate; everything else uses the live market feed.
+const ORACLE_TRUTH = new Set<string>(["NGN"]);
+
 /** The static fallback, in usdPer form, for every currency we know. */
 function staticUsdPer(): Record<string, number> {
   const out: Record<string, number> = {};
@@ -33,8 +40,11 @@ export async function GET() {
     if (data.result !== "success" || !data.rates) throw new Error("fx upstream shape");
 
     // rates[code] = units of `code` per 1 USD  ->  usdPer[code] = 1 / that.
+    // Oracle-truth currencies (NGN) are omitted so the client keeps their static
+    // fallback until the on-chain oracle prices them.
     const usdPer: Record<string, number> = {};
     for (const code of ALL_CURRENCIES as CurrencyCode[]) {
+      if (ORACLE_TRUTH.has(code)) continue;
       const perUsd = data.rates[code];
       usdPer[code] =
         code === "USD" ? 1 : perUsd && perUsd > 0 ? 1 / perUsd : CURRENCIES[code].usdPer;
