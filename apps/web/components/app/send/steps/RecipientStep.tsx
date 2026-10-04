@@ -230,7 +230,10 @@ function RecipientRow({
   onSelect,
 }: {
   r: Recipient;
-  onSelect: (r: Recipient, opts?: { payout?: PayoutMethod; address?: string }) => void;
+  onSelect: (
+    r: Recipient,
+    opts?: { bankDest?: BankDestination; payout?: PayoutMethod; address?: string },
+  ) => void;
 }) {
   // A saved/recent recipient whose handle is an on-chain address is a WALLET send:
   // route it as such (payout "wallet" + the address) so it goes straight to the
@@ -238,8 +241,19 @@ function RecipientRow({
   const walletOpts = isWalletAddress(r.handle)
     ? { payout: "wallet" as PayoutMethod, address: r.handle }
     : undefined;
+  // A contact we've paid before carries its remembered payout — pre-fill the
+  // method + bank/mobile details so the next send skips re-entering them.
+  const dp = r.defaultPayout;
+  const opts =
+    walletOpts ??
+    (dp
+      ? {
+          payout: dp.method as PayoutMethod,
+          bankDest: { bankCode: dp.bankCode ?? "", accountNumber: dp.accountNumber ?? "", accountName: dp.accountName },
+        }
+      : undefined);
   return (
-    <button onClick={() => onSelect(r, walletOpts)} className="w-full">
+    <button onClick={() => onSelect(r, opts)} className="w-full">
       <Card className="flex items-center gap-3 p-3.5 hover:border-sky/40 hover:shadow-pop-sm transition">
         <Avatar initials={initials(r.name)} color={r.initialsColor} />
         <div className="text-left flex-1 min-w-0">
