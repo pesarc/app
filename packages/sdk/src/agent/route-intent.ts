@@ -29,7 +29,7 @@ const CHAINS: { name: string; re: RegExp }[] = [
   { name: "Solana", re: /\b(solana|sol)\b/ },
 ];
 
-const MOVE_VERB = /\b(route|swap|move|bridge|send|hop|loop|cycle|across)\b/;
+const MOVE_VERB = /\b(route|swap|move|bridge|send|change|turn|convert|hop|loop|cycle|across)\b/;
 
 /** The first chain named in a slice of text, in CHAINS order, or null. */
 function chainIn(text: string): string | null {
