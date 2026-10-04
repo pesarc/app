@@ -75,7 +75,7 @@ function FilterMenu({
         {active && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky" />}
       </button>
       {open && (
-        <div className="animate-dropdown absolute right-0 mt-2 z-30 w-64 rounded-2xl border border-fog bg-snow shadow-pop-sm p-3 space-y-3">
+        <div className="animate-dropdown absolute right-0 mt-2 z-50 w-64 rounded-2xl border border-fog bg-snow shadow-pop-sm p-3 space-y-3">
           {hasBothNetworks && (
             <div>
               <div className="text-[10px] font-bold uppercase tracking-widest text-slate mb-1.5">Network</div>

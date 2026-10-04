@@ -17,11 +17,13 @@ import {
   createWalletClient,
   custom,
   encodeFunctionData,
+  numberToHex,
   type LocalAccount,
   type WalletClient,
 } from "viem";
 import { HUB_CHAIN } from "@pesarc/sdk/chain/chains";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
+import { publicClientFor } from "@pesarc/sdk/chain/registry";
 import { erc20Abi } from "@pesarc/abi";
 import { isSmartWalletConfigured } from "./config";
 import { getGasSponsor } from "./gasSponsor";
@@ -34,7 +36,10 @@ export type Call = {
 };
 
 /** EOA-direct send path for a connected external wallet (no smart account). */
-type EoaClient = { address: `0x${string}`; wc: WalletClient };
+type Eip1193Provider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+type EoaClient = { address: `0x${string}`; wc: WalletClient; provider: Eip1193Provider };
 
 export type SmartWallet = {
   ready: boolean;
@@ -137,7 +142,7 @@ export function LiveSmartWalletProvider({
       // The chain switch happens at SEND time (in sendCalls), not here — the app
       // follows the wallet's chain (sync effect below), so on send the wallet is
       // already on the target chain and no popup is needed.
-      if (active) setEoaClient({ address: addr, wc });
+      if (active) setEoaClient({ address: addr, wc, provider: provider as Eip1193Provider });
     })().catch((e) => setError(e instanceof Error ? e.message : String(e)));
     return () => {
       active = false;
@@ -212,15 +217,32 @@ export function LiveSmartWalletProvider({
             `Switch your wallet to ${activeEvm.label} to send on this network.`,
           );
         }
+        // Send via the wallet's own provider (eth_sendTransaction) rather than
+        // viem's path, so MetaMask estimates gas/fees itself — viem's fee cap was
+        // landing below the block base fee on Arbitrum ("maxFeePerGas cannot be
+        // lower than the block base fee"). WAIT for each receipt before the next
+        // call, so a batched approve is mined before the stake/swap that needs it
+        // (otherwise the second tx reverts for missing allowance), and so a
+        // reverted tx surfaces as an error instead of a false success.
+        const pub = publicClientFor(activeEvm);
         let hash: string | undefined;
         for (const c of calls) {
-          hash = await eoaClient.wc.sendTransaction({
-            account: eoaClient.address,
-            to: c.to,
-            data: c.data,
-            value: c.value ?? BigInt(0),
-            chain: activeEvm.chain,
-          });
+          const h = (await eoaClient.provider.request({
+            method: "eth_sendTransaction",
+            params: [
+              {
+                from: eoaClient.address,
+                to: c.to,
+                data: c.data,
+                ...(c.value && c.value > BigInt(0) ? { value: numberToHex(c.value) } : {}),
+              },
+            ],
+          })) as `0x${string}`;
+          const receipt = await pub.waitForTransactionReceipt({ hash: h });
+          if (receipt.status === "reverted") {
+            throw new Error("The transaction failed on-chain (reverted). Nothing was sent.");
+          }
+          hash = h;
         }
         return hash;
       }
