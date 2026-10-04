@@ -27,11 +27,16 @@ export function gasPolicyFor(chainKey: string): string {
 export const TEST_RECIPIENT = (process.env.NEXT_PUBLIC_TEST_RECIPIENT ||
   "") as "" | `0x${string}`;
 
-// Sandbox ramp partner's escrow wallet: fiat payouts (bank / mobile money)
-// deliver the swapped cNGN here on-chain, and the payout orchestrator
-// (lib/payouts.ts) tracks the fiat leg. Defaults to the testnet operator.
-export const RAMP_ESCROW = (process.env.NEXT_PUBLIC_RAMP_ESCROW ||
-  "0xd4418f403F86De7DB7D1885d83A6d9A5bBf701F1") as `0x${string}`;
+// Ramp partner's escrow wallet: a Pesarc-controlled settlement account that is
+// NOT any sender's wallet. A cash-out moves the user's USDC here on-chain (this
+// is what debits them), and the payout orchestrator (lib/payouts.ts) pays the
+// fiat leg from the float, replenished by the escrowed USDC. MUST be set per
+// environment via NEXT_PUBLIC_RAMP_ESCROW — there is deliberately no default:
+// an unset escrow fails the cash-out safety guard rather than silently sending
+// the user's funds back to themselves (a no-op "debit" that still pays out).
+export const RAMP_ESCROW = (process.env.NEXT_PUBLIC_RAMP_ESCROW || "") as
+  | ""
+  | `0x${string}`;
 
 export const isWalletConfigured = Boolean(PRIVY_APP_ID);
 
