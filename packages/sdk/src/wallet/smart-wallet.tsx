@@ -225,6 +225,32 @@ export function LiveSmartWalletProvider({
         // (otherwise the second tx reverts for missing allowance), and so a
         // reverted tx surfaces as an error instead of a false success.
         const pub = publicClientFor(activeEvm);
+
+        // Explicit, generous fee cap from the CURRENT base fee. The wallet's own
+        // estimate was landing just UNDER the base fee on low-traffic testnets
+        // ("max fee per gas less than block base fee"), so the node rejected it.
+        // 2x base + priority gives headroom for a base-fee rise before inclusion.
+        let feeFields: Record<string, string> = {};
+        try {
+          const block = await pub.getBlock({ blockTag: "latest" });
+          const baseFee = block.baseFeePerGas;
+          if (baseFee && baseFee > BigInt(0)) {
+            let priority = BigInt(1_000_000); // 0.001 gwei floor
+            try {
+              const est = await pub.estimateMaxPriorityFeePerGas();
+              if (est > priority) priority = est;
+            } catch {
+              /* chain may not support the RPC — keep the floor */
+            }
+            feeFields = {
+              maxFeePerGas: numberToHex(baseFee * BigInt(2) + priority),
+              maxPriorityFeePerGas: numberToHex(priority),
+            };
+          }
+        } catch {
+          /* couldn't read the base fee — fall back to the wallet's estimate */
+        }
+
         let hash: string | undefined;
         for (const c of calls) {
           const h = (await eoaClient.provider.request({
@@ -235,6 +261,7 @@ export function LiveSmartWalletProvider({
                 to: c.to,
                 data: c.data,
                 ...(c.value && c.value > BigInt(0) ? { value: numberToHex(c.value) } : {}),
+                ...feeFields,
               },
             ],
           })) as `0x${string}`;
