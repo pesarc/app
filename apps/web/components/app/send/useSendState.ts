@@ -11,6 +11,7 @@ import {
 } from "@pesarc/sdk/quote";
 import { fetchCorridorQuote, type LivePoolQuote } from "@pesarc/sdk/chain/liveQuote";
 import { useUIMode } from "@pesarc/sdk/ui-mode";
+import { useFxReady } from "@pesarc/sdk/fx-rates";
 import { usePrefs } from "@pesarc/sdk/prefs";
 import { useWallet } from "@pesarc/sdk/wallet/WalletProvider";
 import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
@@ -50,6 +51,8 @@ export function useSendState() {
   // Solana selected → the EVM smart-wallet execution must not run; the flow
   // falls to its demo/simulated path (real execution stays on the EVM/Arc leg).
   const { isSvm } = useActiveNetwork();
+  // Bumps when live FX rates load, so the quote recomputes with real rates.
+  const fxVersion = useFxReady();
   // Active EVM chain: a wallet send delivers the token the user holds HERE.
   const { chain: activeChain } = useActiveEvmChain();
   const usdToken = activeChain.tokens?.USD as `0x${string}` | undefined;
@@ -240,7 +243,9 @@ export function useSendState() {
       payout,
     });
     return livePool ? applyLivePool(mock, livePool) : mock;
-  }, [recipient, amount, payout, livePool, sendCurrency]);
+    // fxVersion: recompute when live FX rates load so getQuote (via midMarketRate)
+    // picks up real market rates instead of the static constants.
+  }, [recipient, amount, payout, livePool, sendCurrency, fxVersion]);
 
   // Real gasless corridor send (USD -> NGN swap on the hub pool). The cNGN
   // then goes to the peer's wallet for in-app payouts, or to the ramp

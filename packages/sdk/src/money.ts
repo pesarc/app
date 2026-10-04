@@ -114,10 +114,37 @@ export const RECEIVE_CURRENCIES: CurrencyCode[] = [...AFRICAN_CURRENCIES];
  *  currencies we can really price and settle. Keep in sync with STABLECOINS. */
 export const SUPPORTED_CURRENCIES: CurrencyCode[] = ["USD", "NGN", "KES", "GHS", "ZAR", "EGP"];
 
-/** Mid-market rate: 1 unit of [from] -> X units of [to] (cross via USD). */
+// Live mid-market rates, in the same `usdPer` convention (value of 1 unit in
+// USD), fetched from the FX API (/api/fx) and set on the CLIENT only. When
+// present, midMarketRate uses these real rates instead of the illustrative
+// constants above, so every rate the user sees is current market — not a
+// hardcoded figure. Null until loaded (and on the server), where the static
+// constants stand in. Per-browser singleton; never set this server-side.
+let LIVE_USD_PER: Partial<Record<CurrencyCode, number>> | null = null;
+
+/** Install (or clear) live mid-market rates. Call only on the client. */
+export function setLiveRates(usdPer: Partial<Record<CurrencyCode, number>> | null): void {
+  LIVE_USD_PER = usdPer && Object.keys(usdPer).length > 0 ? usdPer : null;
+}
+
+/** True once real market rates are loaded (for a "live"/"market" badge). */
+export function ratesAreLive(): boolean {
+  return LIVE_USD_PER !== null;
+}
+
+/** True when THIS currency's rate came from the live market feed. Some
+ *  currencies (e.g. NGN) are deliberately excluded from the feed because their
+ *  official rate diverges from the settlement rate — those are priced by the
+ *  on-chain oracle instead, so they must not claim a "market" rate here. */
+export function rateIsLiveFor(code: CurrencyCode): boolean {
+  return Boolean(LIVE_USD_PER && LIVE_USD_PER[code] !== undefined);
+}
+
+/** Mid-market rate: 1 unit of [from] -> X units of [to] (cross via USD).
+ *  Uses live rates when loaded, else the illustrative constants. */
 export function midMarketRate(from: CurrencyCode, to: CurrencyCode): number {
-  const f = CURRENCIES[from]?.usdPer;
-  const t = CURRENCIES[to]?.usdPer;
+  const f = LIVE_USD_PER?.[from] ?? CURRENCIES[from]?.usdPer;
+  const t = LIVE_USD_PER?.[to] ?? CURRENCIES[to]?.usdPer;
   if (!f || !t) return 1;
   return f / t;
 }

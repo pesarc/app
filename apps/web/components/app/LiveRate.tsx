@@ -5,7 +5,7 @@
 // mid-market rate clearly tagged "indicative". No fabricated movement or fake
 // "live" pulse — the number only changes when the real rate does.
 
-import { CURRENCIES, formatNumber, type CurrencyCode } from "@pesarc/sdk/money";
+import { CURRENCIES, formatNumber, rateIsLiveFor, type CurrencyCode } from "@pesarc/sdk/money";
 import { useCorridorRate } from "./useCorridorRate";
 
 export function LiveRate({ from, to }: { from: CurrencyCode; to: CurrencyCode }) {
@@ -24,6 +24,10 @@ export function LiveRate({ from, to }: { from: CurrencyCode; to: CurrencyCode })
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
           </span>
           live
+        </div>
+      ) : rateIsLiveFor(to) ? (
+        <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-sky-deep">
+          market
         </div>
       ) : (
         <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-slate">

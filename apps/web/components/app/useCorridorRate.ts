@@ -8,12 +8,15 @@
 
 import { useEffect, useState } from "react";
 import { midMarketRate, type CurrencyCode } from "@pesarc/sdk/money";
+import { useFxReady } from "@pesarc/sdk/fx-rates";
 import { activeChain } from "@pesarc/sdk/chain/registry";
 import { realizedRateOn, tokenByCode } from "@pesarc/sdk/chain/evm-settle";
 
 export type CorridorRate = { rate: number; live: boolean; indicative: number };
 
 export function useCorridorRate(from: CurrencyCode, to: CurrencyCode): CorridorRate {
+  // Re-render when live FX rates load so the indicative recomputes to market.
+  useFxReady();
   const indicative = midMarketRate(from, to);
   const [rate, setRate] = useState(indicative);
   const [live, setLive] = useState(false);
