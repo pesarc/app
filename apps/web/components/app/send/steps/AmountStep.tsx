@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, ShieldCheck, Zap } from "@/components/icons";
 import { ACCOUNT, type Recipient } from "@pesarc/sdk/account";
-import { CURRENCIES, formatMoney, type CurrencyCode } from "@pesarc/sdk/money";
+import { CURRENCIES, formatMoney, midMarketRate, type CurrencyCode } from "@pesarc/sdk/money";
 import { PAYOUT_METHODS, type PayoutMethod, type Quote } from "@pesarc/sdk/quote";
 import { useLiveBalance } from "@pesarc/sdk/chain/useLiveBalance";
 import { Button } from "@/components/app/ui";
@@ -159,6 +159,16 @@ export function AmountStep({
           <div className="text-[34px] leading-none font-extrabold tracking-tight text-sky-tint numerals">
             {quote && valid ? formatMoney(quote.receiveAmount, quote.receiveCurrency) : "-"}
           </div>
+          {recipient.receiveCurrency && recipient.receiveCurrency !== sendCurrency && (
+            <div className="mt-2 text-[12.5px] font-semibold text-white/70">
+              1 {sendCurrency} ={" "}
+              {formatMoney(
+                quote?.midRate ?? midMarketRate(sendCurrency, recipient.receiveCurrency),
+                recipient.receiveCurrency,
+              )}
+              {quote?.live && <span className="ml-1 text-sky-tint font-bold">· live</span>}
+            </div>
+          )}
           {savings > 0 && (
             <div className="inline-flex items-center gap-1.5 mt-3 rounded-full bg-sky/20 text-sky-tint text-xs font-bold px-3 py-1.5">
               <Check className="w-3.5 h-3.5" />

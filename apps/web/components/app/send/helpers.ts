@@ -123,6 +123,15 @@ export function savedToRecipient(s: SavedRecipient): Recipient {
     receiveCurrency: s.receiveCurrency as CurrencyCode,
     recent: true,
     initialsColor: s.kind === "bank" ? "#13426f" : "#3AA0FF",
+    defaultPayout:
+      s.payoutMethod && s.accountNumber
+        ? {
+            method: s.payoutMethod,
+            bankCode: s.bankCode,
+            accountNumber: s.accountNumber,
+            accountName: s.accountName,
+          }
+        : undefined,
   };
 }
 
