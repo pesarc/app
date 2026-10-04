@@ -93,21 +93,25 @@ export default async function HomePage() {
         <div>
           {/* Balance hero */}
           <Reveal>
-            <div className="relative overflow-hidden rounded-card-lg bg-harbor text-white p-6 md:p-7 mb-4 shadow-[rgba(19,66,111,0.28)_0px_8px_0px_0px]">
-              <svg
-                width="100%"
-                height="240"
-                viewBox="0 0 390 240"
-                fill="none"
-                aria-hidden
-                className="absolute inset-0 opacity-50 pointer-events-none"
-              >
-                <path d="M-20 250 C 90 90, 300 90, 420 250" stroke="#50a7ff" strokeOpacity="0.55" strokeWidth="1.5" />
-                <path d="M-20 300 C 110 120, 280 120, 420 300" stroke="#2e96ff" strokeOpacity="0.25" strokeWidth="1.5" />
-                <path d="M-40 210 C 120 60, 270 60, 440 210" stroke="#2e96ff" strokeOpacity="0.18" strokeWidth="1.5" strokeDasharray="2 6" />
-                <circle cx="300" cy="103" r="4" fill="#bde1f9" />
-                <circle cx="300" cy="103" r="9" fill="#2e96ff" fillOpacity="0.2" />
-              </svg>
+            <div className="relative rounded-card-lg bg-harbor text-white p-6 md:p-7 mb-4 shadow-[rgba(19,66,111,0.28)_0px_8px_0px_0px]">
+              {/* Clip ONLY the decorative lines, so the balance filter popover
+                  (rendered deeper) isn't cut off by the card's overflow. */}
+              <div className="absolute inset-0 overflow-hidden rounded-card-lg pointer-events-none">
+                <svg
+                  width="100%"
+                  height="240"
+                  viewBox="0 0 390 240"
+                  fill="none"
+                  aria-hidden
+                  className="absolute inset-0 opacity-50"
+                >
+                  <path d="M-20 250 C 90 90, 300 90, 420 250" stroke="#50a7ff" strokeOpacity="0.55" strokeWidth="1.5" />
+                  <path d="M-20 300 C 110 120, 280 120, 420 300" stroke="#2e96ff" strokeOpacity="0.25" strokeWidth="1.5" />
+                  <path d="M-40 210 C 120 60, 270 60, 440 210" stroke="#2e96ff" strokeOpacity="0.18" strokeWidth="1.5" strokeDasharray="2 6" />
+                  <circle cx="300" cy="103" r="4" fill="#bde1f9" />
+                  <circle cx="300" cy="103" r="9" fill="#2e96ff" fillOpacity="0.2" />
+                </svg>
+              </div>
 
               <div className="relative">
                 <div className="flex items-center justify-between mb-3.5">
