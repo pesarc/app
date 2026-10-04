@@ -94,7 +94,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <span className="text-xs font-medium text-white/50">
-            © {new Date().getFullYear()} {site.name}. All rights reserved.
+            © {new Date().getFullYear()} PESARC DIGITAL TECHNOLOGIES LTD. All rights reserved.
+          </span>
+          <span className="text-xs font-medium text-white/40">
+            Company No. 9908307
           </span>
           <Link href="/privacy" className="text-xs font-medium text-white/50 hover:text-white transition-colors">
             Privacy
