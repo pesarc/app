@@ -44,7 +44,17 @@ const TOKENS: { symbol: string; re: RegExp }[] = [
   { symbol: "cEGP", re: /\b(cegp|egp|pound|pounds)\b/ },
 ];
 
-const MOVE_VERB = /\b(swap|move|bridge|transfer|convert|shift|port|send)\b/;
+const MOVE_VERB = /\b(swap|move|bridge|transfer|convert|change|turn|shift|port|send)\b/;
+
+/** True when the message asks to cross environments (testnet <-> mainnet), which
+ *  is never possible — the two are separate networks with separate balances.
+ *  Used to refuse rather than silently misroute. */
+export function crossesEnvironments(message: string): boolean {
+  const m = message.toLowerCase();
+  const hasTest = /\b(testnet|sepolia|devnet|test ?net)\b/.test(m);
+  const hasMain = /\b(mainnet|main ?net|production|live ?net)\b/.test(m);
+  return hasTest && hasMain;
+}
 
 /** First chain name found in a slice of text, or null. */
 function chainIn(text: string): string | null {
