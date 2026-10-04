@@ -188,7 +188,13 @@ export function useSendState() {
   // can't run live, the flow must say why - never simulate a "sent". Only the
   // mock/demo account (no real wallet) is allowed to animate a simulated send.
   const isWalletSend = walletIsEvm || walletIsSolana;
-  const mustBeReal = mode === "live" && isWalletSend;
+  // ANY send on a real (live) account with a connected wallet MUST settle
+  // on-chain — a wallet send OR a fiat cash-out (bank / mobile money), which has
+  // a real on-chain leg (USDC -> ramp escrow) before the payout. Only the
+  // mock/demo account (no real wallet) may animate a simulated "sent". Scoping
+  // this to wallet sends let a live fiat cash-out fall through to the demo path
+  // and show a false success with no transaction.
+  const mustBeReal = mode === "live" && authenticated && Boolean(smart.address);
   const liveBlockReason: string | undefined =
     !mustBeReal || live
       ? undefined
@@ -196,9 +202,11 @@ export function useSendState() {
         ? "Connect your Solana wallet to send on Solana."
         : !smart.ready
           ? `Sending isn't ready on ${activeChain.label} yet - this network's sender isn't configured, so nothing can be sent.`
-          : !sendTokenAddr
-            ? `${effectiveSendToken} isn't set up on ${activeChain.label} to send.`
-            : `Sending isn't available on ${activeChain.label} right now.`;
+          : payout !== "wallet"
+            ? `Cash-out isn't available on ${activeChain.label} yet - this network has no corridor or USDC configured to settle it, so nothing was sent.`
+            : !sendTokenAddr
+              ? `${effectiveSendToken} isn't set up on ${activeChain.label} to send.`
+              : `Sending isn't available on ${activeChain.label} right now.`;
 
   // Instant mock quote, then overlaid with live on-chain pool pricing
   // (oracle mid + exact swap simulation) when the corridor is on the hub.
@@ -276,13 +284,16 @@ export function useSendState() {
     //    escrow; the fiat partner pays NGN from there. Same off-chain payout leg.
     const forceDirect = process.env.NEXT_PUBLIC_CASHOUT_MODE === "direct";
     if (hubOnActiveChain && !forceDirect) {
-      return executeCorridorSend(smart, amount, RAMP_ESCROW);
+      // Runs on the hub, which IS the active chain here (hubOnActiveChain), so the
+      // explorer link + activity tag the chain it actually settled on.
+      const r = await executeCorridorSend(smart, amount, RAMP_ESCROW);
+      return { ...r, chainKey: activeChain.key, token: "USDC" };
     }
     if (!usdcOnActiveChain) throw new Error("USDC isn't available on this network to cash out.");
     // The on-chain leg moves USD (not cNGN), so don't report `received` as the
     // NGN figure — leave it unset so the payout + UI use the quote's NGN amount.
     const sent = await sendTokenDirect(smart, usdcOnActiveChain, RAMP_ESCROW, amount, publicClientFor(activeChain));
-    return { tx: sent.tx };
+    return { tx: sent.tx, chainKey: activeChain.key, token: "USDC" };
   }, [
     smart,
     solana,
