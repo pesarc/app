@@ -499,6 +499,34 @@ export function availableAdapters(): RampAdapter[] {
   return list;
 }
 
+/**
+ * Resolve a bank account to its holder name via the FIRST configured partner for
+ * `country` that can — so a live Bachs user resolves through Bachs, not a test
+ * Paystack (which caps live resolves per day). Walks the same per-country order
+ * as payouts. Returns null when no configured partner resolves it, so the caller
+ * can fall back to its own resolver.
+ */
+export async function resolveViaAdapters(
+  accountNumber: string,
+  bankCode: string,
+  country = "NG",
+): Promise<{ resolved: boolean; accountName?: string; error?: string } | null> {
+  let lastError: string | undefined;
+  for (const name of providerOrderFor(country.toUpperCase())) {
+    if (name === "simulated") continue;
+    const a = makeAdapter(name);
+    if (!a?.resolveAccount) continue;
+    try {
+      const r = await a.resolveAccount(accountNumber, bankCode);
+      if (r.resolved) return r; // got the name — done
+      if (r.error) lastError = r.error; // remember, but try the next partner
+    } catch {
+      /* partner unreachable — try the next */
+    }
+  }
+  return lastError ? { resolved: false, error: lastError } : null;
+}
+
 /** Candidate adapters for a payout: this market's partner order, de-duped, kept
  *  only if configured, supporting the payout, and licensed for the country. */
 function candidatesFor(input: PayoutInitiateInput): RampAdapter[] {
