@@ -50,6 +50,7 @@ import { createCatalog, listCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
 import { interpretMessage } from "./interpret";
+import { humanizeTxError } from "../wallet/txError";
 import { activeChain, chainByKey, type EvmChainConfig } from "../chain/registry";
 import {
   evmAgentReady,
@@ -727,11 +728,14 @@ export async function runAgentTurn(
   let understanding;
   try {
     understanding = await parseSettlementRequest(message);
-  } catch (e) {
+  } catch {
+    // Never leak a raw LLM/provider error (401s, rate limits, timeouts) to the
+    // user — just ask them to rephrase in plain terms.
     return {
       ok: false,
-      status: 500,
-      reply: e instanceof Error ? e.message.slice(0, 160) : "The agent had trouble.",
+      needsInput: true,
+      reply:
+        "I couldn't quite follow that. Tell me the amount and the two currencies (for example \"send 20 USD to NGN\"), or try rephrasing.",
     };
   }
   if (!understanding.ok) {
@@ -874,10 +878,7 @@ async function execPayout(
       },
     };
   } catch (e) {
-    return {
-      ok: false,
-      reply: e instanceof Error ? `Cash out failed: ${e.message.slice(0, 140)}` : "Cash out failed.",
-    };
+    return { ok: false, reply: humanizeTxError(e, "That cash-out didn't go through. Please try again.") };
   }
 }
 
@@ -1083,10 +1084,6 @@ async function execTransfer(
       },
     };
   } catch (e) {
-    return {
-      ok: false,
-      status: 500,
-      reply: e instanceof Error ? e.message.slice(0, 180) : "The settlement failed.",
-    };
+    return { ok: false, reply: humanizeTxError(e, "That didn't go through. Please try again.") };
   }
 }
