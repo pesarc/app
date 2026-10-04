@@ -49,6 +49,7 @@ import { recordTransfer } from "../transfers";
 import { createCatalog, listCatalog } from "../catalog";
 import { parseSettlementRequest } from "../celo/agent";
 import { llmConfigured } from "../llm/extract";
+import { interpretMessage } from "./interpret";
 import { activeChain, chainByKey, type EvmChainConfig } from "../chain/registry";
 import {
   evmAgentReady,
@@ -267,6 +268,22 @@ export async function runAgentTurn(
   const preview = opts.preview ?? false;
   // The signed-in user's wallet, so "my balance / activity" needs no address.
   const myWallet = opts.wallet;
+  // The user's original words, kept so safety guards (e.g. cross-environment)
+  // check what the USER actually asked, not a rewrite that could drop a word.
+  const rawMessage = message;
+
+  // LLM understanding layer: rewrite the user's free-text into a canonical command
+  // the parsers below reliably match, so phrasing stops mattering ("change 1 usdc
+  // on arc to base" -> "swap 1 USDC from Arc to Base"). Opt-in: a no-op when no
+  // LLM is configured, and it falls back to the raw message on any miss or on
+  // plain chat, so nothing regresses. It only ever rewrites the user's OWN words
+  // for the SAME handlers — it executes nothing and reaches no data on its own.
+  if (llmConfigured()) {
+    const interp = await interpretMessage(message);
+    if (interp && interp.action !== "other" && interp.canonical) {
+      message = interp.canonical;
+    }
+  }
 
   // Create-a-market intent — no money moves, so it never needs consent.
   const spec = parseCreateMarket(message);
@@ -578,7 +595,7 @@ export async function runAgentTurn(
   if (swap) {
     // Guardrail: never move funds between testnet and mainnet — they are separate
     // networks with separate balances, so this is refused rather than misrouted.
-    if (crossesEnvironments(message)) {
+    if (crossesEnvironments(rawMessage) || crossesEnvironments(message)) {
       return {
         ok: true,
         needsInput: true,
