@@ -7,6 +7,7 @@ import { PrefsProvider } from "@pesarc/sdk/prefs";
 import { PersonaProvider } from "@pesarc/sdk/persona";
 import { WalletProvider } from "@pesarc/sdk/wallet/WalletProvider";
 import { ActiveChainProvider } from "@pesarc/sdk/chain/activeChain";
+import { FxRatesProvider } from "@pesarc/sdk/fx-rates";
 
 export default function AppLayout({
   children,
@@ -16,6 +17,7 @@ export default function AppLayout({
   return (
     <ActiveChainProvider>
       <WalletProvider>
+        <FxRatesProvider>
         <UIModeProvider>
           <PrefsProvider>
             <PersonaProvider>
@@ -28,6 +30,7 @@ export default function AppLayout({
             </PersonaProvider>
           </PrefsProvider>
         </UIModeProvider>
+        </FxRatesProvider>
       </WalletProvider>
     </ActiveChainProvider>
   );
