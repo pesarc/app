@@ -4,6 +4,8 @@ import { listAllPayouts, type PayoutRow } from "@pesarc/sdk/payouts";
 import { listAllTransfers, type TransferRow } from "@pesarc/sdk/transfers";
 import { availableAdapters, rampIsLive } from "@pesarc/sdk/ramp";
 import { FEE_PCT } from "@pesarc/sdk/quote";
+import { escrowUsdcBalances } from "@pesarc/sdk/treasury";
+import { bachsBalances, bachsConfigured } from "@pesarc/sdk/bachs";
 
 // Live operations snapshot for the internal admin dashboard: recent payouts
 // across ALL accounts, recent transfers, computed KPIs, and provider health.
@@ -57,10 +59,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
-  const [payouts, transfers] = await Promise.all([
+  const [payouts, transfers, escrow, float] = await Promise.all([
     listAllPayouts(50),
     listAllTransfers(50),
+    escrowUsdcBalances(),
+    bachsConfigured() ? bachsBalances() : Promise.resolve(null),
   ]);
+
+  const escrowUsdcTotal = escrow.reduce((s, e) => s + e.usdc, 0);
+  const floatNgn = float?.find((b) => b.currency === "NGN")?.available ?? null;
 
   const providers = availableAdapters().map((a) => ({
     name: a.name,
@@ -78,5 +85,12 @@ export async function GET(request: Request) {
     transfers,
     providers,
     rampLive: rampIsLive(),
+    treasury: {
+      escrowUsdcTotal,
+      escrowByChain: escrow,
+      floatProvider: bachsConfigured() ? "bachs" : null,
+      floatNgn,
+      float,
+    },
   });
 }

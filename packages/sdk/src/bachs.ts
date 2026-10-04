@@ -89,6 +89,43 @@ async function timedFetch(url: string, init: RequestInit, ms: number): Promise<R
   }
 }
 
+export type BachsBalance = { currency: string; available: number };
+
+/** The partner float: available balances by currency (major units) from
+ *  GET /v1/balances. Used by the admin treasury view. null = not configured or
+ *  the call failed; shape is parsed defensively since the field names vary. */
+export async function bachsBalances(): Promise<BachsBalance[] | null> {
+  const key = bachsKey();
+  if (!key) return null;
+  const base = bachsBase(key);
+  try {
+    const res = await timedFetch(
+      `${base}/v1/balances`,
+      { headers: { authorization: `Bearer ${key}`, "content-type": "application/json" }, cache: "no-store" },
+      3000,
+    );
+    if (!res.ok) return null;
+    const json: unknown = await res.json().catch(() => null);
+    const arr = Array.isArray(json)
+      ? json
+      : ((json as { balances?: unknown[]; data?: unknown[] })?.balances ??
+         (json as { data?: unknown[] })?.data ??
+         []);
+    if (!Array.isArray(arr)) return null;
+    return arr
+      .map((b) => {
+        const o = b as Record<string, unknown>;
+        return {
+          currency: String(o.currency ?? o.code ?? "").toUpperCase(),
+          available: Number(o.available ?? o.available_balance ?? o.balance ?? o.amount ?? 0),
+        };
+      })
+      .filter((b) => b.currency);
+  } catch {
+    return null;
+  }
+}
+
 export function bachsRampAdapter(secretKey: string): RampAdapter {
   const base = bachsBase(secretKey);
   const headers = { authorization: `Bearer ${secretKey}`, "content-type": "application/json" };

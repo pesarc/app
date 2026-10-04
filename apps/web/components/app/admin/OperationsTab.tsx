@@ -36,6 +36,13 @@ type Ops = {
   payouts: Payout[];
   providers: Provider[];
   rampLive: boolean;
+  treasury?: {
+    escrowUsdcTotal: number;
+    escrowByChain: { chainKey: string; label: string; testnet: boolean; usdc: number }[];
+    floatProvider: string | null;
+    floatNgn: number | null;
+    float: { currency: string; available: number }[] | null;
+  };
 };
 
 export function OperationsTab({ hdr, onForbidden }: { hdr: AdminHdr; onForbidden: () => void }) {
@@ -114,6 +121,79 @@ export function OperationsTab({ hdr, onForbidden }: { hdr: AdminHdr; onForbidden
         Est. fee revenue = sum of each transfer’s amount × {(m.feePct * 100).toFixed(2)}% fee
         (grouped by currency), across {m.totalTransfers} recent transfers.
       </p>
+
+      {data.treasury && (
+        <div>
+          <SectionTitle>Float &amp; escrow</SectionTitle>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-card border border-black/[0.04] shadow-card-flat bg-snow p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-1">
+                Escrowed USDC (backs payouts)
+              </div>
+              <div className="text-[22px] font-extrabold text-harbor numerals">
+                ${data.treasury.escrowUsdcTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </div>
+              <div className="mt-2 space-y-1">
+                {data.treasury.escrowByChain.filter((e) => e.usdc > 0).length === 0 ? (
+                  <div className="text-[12px] text-slate">No USDC in escrow yet.</div>
+                ) : (
+                  data.treasury.escrowByChain
+                    .filter((e) => e.usdc > 0)
+                    .sort((a, b) => b.usdc - a.usdc)
+                    .map((e) => (
+                      <div key={e.chainKey} className="flex items-center justify-between text-[12.5px]">
+                        <span className="text-slate">
+                          {e.label}
+                          {e.testnet && <span className="ml-1 text-amber-500 font-bold">test</span>}
+                        </span>
+                        <span className="font-bold text-harbor numerals">
+                          ${e.usdc.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-card border border-black/[0.04] shadow-card-flat bg-snow p-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-slate mb-1">
+                Partner float{data.treasury.floatProvider ? ` · ${data.treasury.floatProvider}` : ""}
+              </div>
+              {data.treasury.floatProvider == null ? (
+                <div className="text-[13px] text-slate">
+                  No fiat partner configured — set a live payout key to fund and track the float.
+                </div>
+              ) : data.treasury.floatNgn == null ? (
+                <div className="text-[13px] text-slate">
+                  Couldn’t read the float balance (partner unreachable or key invalid).
+                </div>
+              ) : (
+                <>
+                  <div className="text-[22px] font-extrabold text-harbor numerals">{ngn(data.treasury.floatNgn)}</div>
+                  {data.treasury.float && data.treasury.float.length > 1 && (
+                    <div className="mt-2 space-y-1">
+                      {data.treasury.float
+                        .filter((b) => b.currency !== "NGN")
+                        .map((b) => (
+                          <div key={b.currency} className="flex items-center justify-between text-[12.5px]">
+                            <span className="text-slate">{b.currency}</span>
+                            <span className="font-bold text-harbor numerals">
+                              {b.available.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          <p className="text-[12px] text-slate mt-2">
+            Escrowed USDC is what you’ve collected on-chain; the partner float is the fiat you can pay out right now.
+            Keep the float above your pending-payout volume and replenish it by converting escrowed USDC to fiat.
+          </p>
+        </div>
+      )}
 
       <div>
         <SectionTitle>Recent payouts</SectionTitle>
