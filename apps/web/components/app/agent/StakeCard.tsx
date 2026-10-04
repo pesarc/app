@@ -13,6 +13,7 @@ import { useSmartWallet } from "@pesarc/sdk/wallet/smartWallet";
 import { useActiveEvmChain } from "@pesarc/sdk/chain/activeChain";
 import { evmStake } from "@pesarc/sdk/market-write";
 import { publicClientFor, explorerTxUrl } from "@pesarc/sdk/chain/registry";
+import { humanizeTxError } from "@pesarc/sdk/wallet/txError";
 import type { StakePlan } from "@pesarc/sdk/agent/run";
 
 export function StakeCard({ plan }: { plan: StakePlan }) {
@@ -49,9 +50,7 @@ export function StakeCard({ plan }: { plan: StakePlan }) {
       setStatus("done");
     } catch (e: unknown) {
       setErr(
-        (e as { shortMessage?: string; message?: string })?.shortMessage ||
-          (e as Error)?.message ||
-          "That stake didn't go through.",
+        humanizeTxError(e, "That stake didn't go through. Please try again."),
       );
       setStatus("error");
     }
