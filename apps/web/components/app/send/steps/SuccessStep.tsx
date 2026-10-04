@@ -80,7 +80,10 @@ export function SuccessStep({
       /* best-effort; UI already shows success */
     });
 
-    if (quote.payout === "bank" || quote.payout === "mobile_money") {
+    // Only initiate the fiat payout when a real on-chain leg settled (a tx hash).
+    // Without it there is nothing backing the payout, so never ask the partner to
+    // disburse — this also stops a simulated "success" from firing a real payout.
+    if ((quote.payout === "bank" || quote.payout === "mobile_money") && (payoutTxHash || txHash)) {
       authedPostJson("/api/payouts", {
           reference: ref,
           beneficiary: bankDest?.accountName || recipient.name,
