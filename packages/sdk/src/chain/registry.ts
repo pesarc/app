@@ -26,6 +26,7 @@ import {
   mainnet,
   sepolia,
 } from "viem/chains";
+import { realStablecoinsForAppChain } from "./stablecoin-registry";
 
 // Circle's Arc — a stablecoin-native L1 where USDC is the gas token. Not in
 // viem/chains yet, so we define it. Params from Arc's docs (docs.arc.io) and
@@ -320,12 +321,18 @@ export function configuredChains(): EvmChainConfig[] {
 
 /**
  * Chains to read balances on: any chain the app is wired to — has a prediction
- * market, an intent matcher, or a configured token map. Broader than
- * configuredChains so mainnet chains that only hold funds (e.g. Arc) are read too.
+ * market, an intent matcher, or a configured token map — PLUS any chain where a
+ * real stablecoin is known (e.g. Arc mainnet's native USDC), even with no Pesarc
+ * contracts deployed. Without the last clause a user's real USDC on a
+ * contract-less mainnet (Arc) is invisible and the balance reads $0.
  */
 export function balanceChains(): EvmChainConfig[] {
   return allChains().filter(
-    (c) => Boolean(c.predictionMarket) || Boolean(c.intentMatcher) || Object.keys(c.tokens).length > 0,
+    (c) =>
+      Boolean(c.predictionMarket) ||
+      Boolean(c.intentMatcher) ||
+      Object.keys(c.tokens).length > 0 ||
+      realStablecoinsForAppChain(c.key, c.testnet).length > 0,
   );
 }
 

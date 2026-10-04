@@ -74,7 +74,15 @@ export function AmountStep({
   // Balance of the token this send moves: the picked token for a wallet send,
   // else the USD send currency. useLiveBalance resolves by symbol.
   const live = useLiveBalance(isWallet && sendToken ? sendToken : sendCurrency);
-  const bal = live.available && live.amount !== undefined ? live.amount : ACCOUNT.balance;
+  // Real balance when we can read it. In live mode (a wallet is connected,
+  // live.address set) never fall back to the demo balance — show 0 while it
+  // loads or if this chain holds none. The demo balance is only for mock mode.
+  const bal =
+    live.available && live.amount !== undefined
+      ? live.amount
+      : live.address
+      ? 0
+      : ACCOUNT.balance;
   const balDisplay =
     isWallet && sendToken
       ? `${bal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${sendToken}`
