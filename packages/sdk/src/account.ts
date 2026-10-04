@@ -24,6 +24,14 @@ export type Recipient = {
   receiveCurrency: CurrencyCode;
   recent?: boolean;
   initialsColor: string;
+  /** Remembered payout from a previous send, so selecting this contact pre-fills
+   *  the method + bank/mobile-money details (bankCode = network for momo). */
+  defaultPayout?: {
+    method: "bank" | "mobile_money";
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
 };
 
 export const RECIPIENTS: Recipient[] = [

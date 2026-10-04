@@ -16,6 +16,11 @@ export type RecipientInput = {
   country?: string;
   bankCode?: string;
   accountLast4?: string;
+  /** Remembered default payout so the next send to this contact is pre-filled.
+   *  For mobile money, bankCode holds the network code. */
+  payoutMethod?: "bank" | "mobile_money";
+  accountNumber?: string;
+  accountName?: string;
 };
 
 export type SavedRecipient = RecipientInput & {
@@ -29,7 +34,11 @@ type Sql = ReturnType<typeof getSql>;
 
 let schemaReady: Promise<void> | null = null;
 function ensureSchema(sql: Sql): Promise<void> {
-  schemaReady ??= sql`
+  schemaReady ??= createSchema(sql);
+  return schemaReady;
+}
+async function createSchema(sql: Sql) {
+  await sql`
     CREATE TABLE IF NOT EXISTS recipients (
       id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       account          text NOT NULL DEFAULT 'demo',
@@ -41,12 +50,18 @@ function ensureSchema(sql: Sql): Promise<void> {
       country          text,
       bank_code        text,
       account_last4    text,
+      payout_method    text,
+      account_number   text,
+      account_name     text,
       created_at       timestamptz NOT NULL DEFAULT now(),
       updated_at       timestamptz NOT NULL DEFAULT now(),
       UNIQUE (account, handle)
     )
-  `.then(() => undefined);
-  return schemaReady;
+  `;
+  // Add the remembered-payout columns to pre-existing tables.
+  await sql`ALTER TABLE recipients ADD COLUMN IF NOT EXISTS payout_method text`;
+  await sql`ALTER TABLE recipients ADD COLUMN IF NOT EXISTS account_number text`;
+  await sql`ALTER TABLE recipients ADD COLUMN IF NOT EXISTS account_name text`;
 }
 
 /** Upsert a recipient for an account (bumped to the top on repeat sends). */
@@ -60,10 +75,12 @@ export async function saveRecipient(
     await ensureSchema(sql);
     await sql`
       INSERT INTO recipients
-        (account, name, handle, kind, receive_currency, flag, country, bank_code, account_last4)
+        (account, name, handle, kind, receive_currency, flag, country, bank_code, account_last4,
+         payout_method, account_number, account_name)
       VALUES
         (${account}, ${input.name}, ${input.handle}, ${input.kind}, ${input.receiveCurrency},
-         ${input.flag ?? null}, ${input.country ?? null}, ${input.bankCode ?? null}, ${input.accountLast4 ?? null})
+         ${input.flag ?? null}, ${input.country ?? null}, ${input.bankCode ?? null}, ${input.accountLast4 ?? null},
+         ${input.payoutMethod ?? null}, ${input.accountNumber ?? null}, ${input.accountName ?? null})
       ON CONFLICT (account, handle) DO UPDATE SET
         name = EXCLUDED.name,
         kind = EXCLUDED.kind,
@@ -72,6 +89,9 @@ export async function saveRecipient(
         country = COALESCE(EXCLUDED.country, recipients.country),
         bank_code = COALESCE(EXCLUDED.bank_code, recipients.bank_code),
         account_last4 = COALESCE(EXCLUDED.account_last4, recipients.account_last4),
+        payout_method = COALESCE(EXCLUDED.payout_method, recipients.payout_method),
+        account_number = COALESCE(EXCLUDED.account_number, recipients.account_number),
+        account_name = COALESCE(EXCLUDED.account_name, recipients.account_name),
         updated_at = now()
     `;
     return { ok: true };
@@ -107,6 +127,9 @@ export async function listRecipients(
       country: r.country ?? undefined,
       bankCode: r.bank_code ?? undefined,
       accountLast4: r.account_last4 ?? undefined,
+      payoutMethod: r.payout_method ?? undefined,
+      accountNumber: r.account_number ?? undefined,
+      accountName: r.account_name ?? undefined,
       createdAt: r.created_at,
     }));
   } catch {
