@@ -18,11 +18,20 @@ export type WalletState = {
   /** Privy/SDK finished initialising. */
   ready: boolean;
   authenticated: boolean;
+  /** The ACTIVE address — the linked external wallet (MetaMask) when one is
+   *  connected, else the embedded wallet. This is the account the app funds
+   *  from and reads balances for. */
   address?: string;
+  /** The linked external wallet's address, if the user connected one. Lets the
+   *  UI show "wallet connected" vs offer to connect. */
+  externalAddress?: string;
   /** Human alias shown in the UI (phone/@handle resolves to the wallet). */
   alias: string;
   login: () => void;
   logout: () => void;
+  /** Link an external wallet (MetaMask/WalletConnect) to the CURRENT account,
+   *  so one identity can hold funds in a self-custody wallet. No-op in mock. */
+  linkWallet: () => void;
 };
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -37,9 +46,11 @@ function MockWalletProvider({ children }: { children: React.ReactNode }) {
       ready: true,
       authenticated: true,
       address: undefined,
+      externalAddress: undefined,
       alias: ALIAS,
       login: () => {},
       logout: () => {},
+      linkWallet: () => {},
     }),
     []
   );
@@ -56,21 +67,27 @@ function MockWalletProvider({ children }: { children: React.ReactNode }) {
 // Privy dashboard. B3 swaps the mock balances/quote for on-chain reads/writes.
 
 function LiveWalletBridge({ children }: { children: React.ReactNode }) {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout, linkWallet } = usePrivy();
   const { wallets } = useWallets();
 
   const value = useMemo<WalletState>(() => {
-    const address = wallets?.[0]?.address ?? user?.wallet?.address ?? undefined;
+    // A connected external wallet (MetaMask etc.) is the one that holds the
+    // user's funds, so it's the active account — mirror smart-wallet.tsx, which
+    // also prefers it. Fall back to the embedded wallet when none is linked.
+    const external = wallets?.find((w) => w.walletClientType !== "privy" && w.address);
+    const address = external?.address ?? wallets?.[0]?.address ?? user?.wallet?.address ?? undefined;
     return {
       mode: "live",
       ready,
       authenticated,
       address,
+      externalAddress: external?.address,
       alias: ALIAS,
       login,
       logout,
+      linkWallet,
     };
-  }, [ready, authenticated, user, wallets, login, logout]);
+  }, [ready, authenticated, user, wallets, login, logout, linkWallet]);
 
   return (
     <WalletContext.Provider value={value}>
@@ -88,17 +105,21 @@ function LiveWalletBridge({ children }: { children: React.ReactNode }) {
 // <PhoneSignIn/>, rendered by AuthGate when unauthenticated.
 
 function OwnAuthBridge({ children }: { children: React.ReactNode }) {
-  const { ready, authenticated, user, logout: privyLogout } = usePrivy();
+  const { ready, authenticated, user, logout: privyLogout, linkWallet } = usePrivy();
   const { wallets } = useWallets();
 
   const value = useMemo<WalletState>(
-    () => ({
+    () => {
+    const external = wallets?.find((w) => w.walletClientType !== "privy" && w.address);
+    return {
       mode: "live",
       ready,
       authenticated,
-      address: wallets?.[0]?.address ?? user?.wallet?.address ?? undefined,
+      address: external?.address ?? wallets?.[0]?.address ?? user?.wallet?.address ?? undefined,
+      externalAddress: external?.address,
       alias: ALIAS,
       login: () => {}, // AuthGate shows <PhoneSignIn/> when unauthenticated
+      linkWallet,
       logout: async () => {
         try {
           await fetch("/api/auth/session", { method: "DELETE" });
@@ -108,8 +129,9 @@ function OwnAuthBridge({ children }: { children: React.ReactNode }) {
         } catch {}
         if (typeof window !== "undefined") window.location.reload();
       },
-    }),
-    [ready, authenticated, user, wallets, privyLogout],
+    };
+    },
+    [ready, authenticated, user, wallets, privyLogout, linkWallet],
   );
 
   return (

@@ -58,7 +58,8 @@ export default function YouPage() {
   const { sendCurrency, setSendCurrency, kyc, setKyc, country } = usePrefs();
   const homeCountry = country ? countryByCode(country) : undefined;
   const needsBvn = country ? BVN_COUNTRIES.has(country) : false;
-  const { mode: walletMode, authenticated, address, alias, login, logout } = useWallet();
+  const { mode: walletMode, authenticated, address, externalAddress, alias, login, logout, linkWallet } =
+    useWallet();
 
   const signedIn = walletMode === "mock" || authenticated;
   const identity = walletMode === "mock"
@@ -137,6 +138,38 @@ export default function YouPage() {
         <div className="px-1 mb-2 text-[11px] font-bold uppercase tracking-widest text-slate">
           Wallets
         </div>
+        {/* Connect an external wallet (MetaMask) to THIS account, so one identity
+            can hold funds in a self-custody wallet — no separate login. Only in
+            live mode; the demo has no real wallet to link. */}
+        {walletMode === "live" && (
+          <div className="mb-2.5 flex items-center gap-3 rounded-card bg-snow border border-fog p-3.5">
+            <span className="w-9 h-9 rounded-full bg-sky-tint flex items-center justify-center text-sky-deep shrink-0">
+              <Wallet className="w-[18px] h-[18px]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-bold text-ink">
+                {externalAddress ? "Wallet connected" : "Connect your wallet"}
+              </div>
+              <div className="text-[12.5px] font-medium text-slate truncate">
+                {externalAddress
+                  ? `${externalAddress.slice(0, 6)}…${externalAddress.slice(-4)} · balances & cash-outs use this`
+                  : "Link MetaMask to spend the funds you already hold."}
+              </div>
+            </div>
+            {externalAddress ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-sky-tint text-sky-deep text-xs font-bold px-3 py-1.5 shrink-0">
+                <BadgeCheck className="w-3.5 h-3.5" /> OK
+              </span>
+            ) : (
+              <button
+                onClick={() => linkWallet()}
+                className="inline-flex items-center gap-1 rounded-pill bg-sky text-white text-sm font-bold px-4 py-2 shadow-pop-sm hover:-translate-y-0.5 transition-transform shrink-0"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+        )}
         <AlgorandWallet />
       </div>
 
