@@ -16,7 +16,7 @@ import { parseCreateMarket } from "./market-intent";
 import { parseBillIntent } from "./bill-intent";
 import { parseBalanceIntent, parseActivityIntent } from "./balance-intent";
 import { parseCashoutIntent } from "./cashout-intent";
-import { parseSwapIntent } from "./swap-intent";
+import { parseSwapIntent, crossesEnvironments } from "./swap-intent";
 import { parseRouteIntent, routePlanReply, type RoutePlan } from "./route-intent";
 export type { RoutePlan } from "./route-intent";
 import { parseEarnIntent } from "./earn-intent";
@@ -576,6 +576,17 @@ export async function runAgentTurn(
   // smart wallet — gaslessly, no wallet pop-up, no redirect to another page.
   const swap = parseSwapIntent(message);
   if (swap) {
+    // Guardrail: never move funds between testnet and mainnet — they are separate
+    // networks with separate balances, so this is refused rather than misrouted.
+    if (crossesEnvironments(message)) {
+      return {
+        ok: true,
+        needsInput: true,
+        understood: `Blocked cross-environment move ${swap.from} to ${swap.to}`,
+        reply:
+          "I can't move funds between **testnet** and **mainnet** — they're separate networks with separate balances. Tell me a single network (for example \"Arc testnet to Base testnet\", or both on mainnet) and I'll lay out the route.",
+      };
+    }
     // USDC rides CCTP, which the browser route runner signs on ANY chain we
     // support (Arc included). Hand the UI a one-leg route it lays out for review
     // and runs IN CHAT once the user confirms — never auto-executed.
