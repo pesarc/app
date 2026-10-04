@@ -24,6 +24,9 @@ const schema = z.object({
   country: z.string().trim().max(40).optional(),
   bankCode: z.string().trim().max(12).optional(),
   accountLast4: z.string().trim().max(4).optional(),
+  payoutMethod: z.enum(["bank", "mobile_money"]).optional(),
+  accountNumber: z.string().trim().max(24).optional(),
+  accountName: z.string().trim().max(120).optional(),
 });
 
 /** Save (upsert) a recipient after a send. */

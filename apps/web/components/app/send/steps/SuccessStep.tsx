@@ -108,6 +108,14 @@ export function SuccessStep({
       country: recipient.country || undefined,
       bankCode: bankDest?.bankCode,
       accountLast4: bankDest?.accountNumber?.slice(-4),
+      // Remember the payout so the next send to this contact is pre-filled.
+      ...(bankDest?.accountNumber && (quote.payout === "bank" || quote.payout === "mobile_money")
+        ? {
+            payoutMethod: quote.payout,
+            accountNumber: bankDest.accountNumber,
+            accountName: bankDest.accountName,
+          }
+        : {}),
     }).catch(() => {});
   }, [recipient, quote, payoutLabel, ref, txHash, chainKey, token, payoutTxHash, actualReceive, bankDest]);
 
