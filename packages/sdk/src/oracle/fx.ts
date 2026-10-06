@@ -4,6 +4,12 @@
 // published on the free tier). So the reference RATE is sourced off-chain here
 // and pushed on-chain by the keeper — the classic "push oracle" pattern. On
 // mainnet, swap this for a licensed FX data provider (or a Pyth Pro feed).
+//
+// NGN is special: the OFFICIAL rate (~1330) diverges sharply from the
+// PARALLEL/street rate (~1600) that remittance actually settles at. For NGN we
+// therefore default to a parallel-market proxy — Binance P2P USDT/NGN, which is
+// where the street rate is discovered in real time — and fall back to the
+// official source only if that's unavailable. Flip back with NGN_RATE_SOURCE=official.
 
 export type FxRate = {
   /** e.g. "NGN" */
@@ -20,11 +26,78 @@ const PRIMARY = "https://open.er-api.com/v6/latest/USD";
 /** Fallback source with a different operator. */
 const FALLBACK = "https://api.frankfurter.app/latest?from=USD";
 
+/** Binance P2P public search — the USDT/<fiat> ads are a live read on the
+ *  parallel/street rate (USDT ≈ USD). No key required. */
+const BINANCE_P2P = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
+
+/** Median of a numeric list (robust to a few outlier ads). */
+function median(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
 /**
- * Fetches the live USD→`quote` rate. Tries the primary source, then the
- * fallback; throws only if both fail so the keeper never pushes a guessed rate.
+ * Parallel-market USD→fiat rate from Binance P2P (USDT as the USD proxy).
+ * tradeType "SELL" = the price at which we could sell USDT for fiat — the rate
+ * we can actually source the local currency at, so quoting off it doesn't
+ * over-promise. Takes the median of the top ads. Throws on any failure so the
+ * caller falls back to the official source.
  */
-export async function fetchUsdRate(quote: string): Promise<FxRate> {
+export async function fetchP2pParallelRate(fiat: string): Promise<FxRate> {
+  const f = fiat.toUpperCase();
+  const tradeType = (process.env.NGN_P2P_TRADE_TYPE || "SELL").toUpperCase();
+  const res = await fetch(BINANCE_P2P, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      // Binance's public P2P search expects browser-like headers.
+      "user-agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      accept: "*/*",
+      clienttype: "web",
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      asset: "USDT",
+      fiat: f,
+      tradeType,
+      page: 1,
+      rows: 10,
+      payTypes: [],
+      countries: [],
+      publisherType: null,
+    }),
+  });
+  if (!res.ok) throw new Error(`P2P source ${res.status} for USD/${f}`);
+  const data = (await res.json()) as {
+    data?: { adv?: { price?: string } }[];
+  };
+  const prices = (data.data ?? [])
+    .map((d) => Number(d.adv?.price))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const rate = median(prices);
+  if (rate <= 0) throw new Error(`No P2P ads for USD/${f}`);
+  return { quote: f, rate, asOf: new Date().toISOString(), source: "binance-p2p" };
+}
+
+/**
+ * Official rate with a configurable parallel PREMIUM — the robust fallback when
+ * the live P2P source is unreachable (e.g. Binance is geo-blocked from the
+ * host). Set NGN_PARALLEL_PREMIUM to the gap between official and street (e.g.
+ * 0.2 ≈ +20%, turning ~1330 into ~1600) so NGN never silently reverts to the
+ * understated official rate. Premium 0 (default) = pure official.
+ */
+async function fetchOfficialWithPremium(quote: string): Promise<FxRate> {
+  const base = await fetchOfficialRate(quote);
+  const premium = Number(process.env.NGN_PARALLEL_PREMIUM || 0);
+  if (!Number.isFinite(premium) || premium <= 0) return base;
+  return { ...base, rate: base.rate * (1 + premium), source: `${base.source}+premium` };
+}
+
+/** Official USD→fiat rate: open.er-api.com, then frankfurter.app. */
+async function fetchOfficialRate(quote: string): Promise<FxRate> {
   const q = quote.toUpperCase();
 
   try {
@@ -57,4 +130,29 @@ export async function fetchUsdRate(quote: string): Promise<FxRate> {
   const rate = data.rates?.[q];
   if (!rate || rate <= 0) throw new Error(`No USD/${q} rate available`);
   return { quote: q, rate, asOf: data.date ?? "", source: "frankfurter.app" };
+}
+
+/**
+ * Fetches the live USD→`quote` rate. NGN defaults to the parallel-market proxy
+ * (Binance P2P) so the settlement rate matches reality; set NGN_RATE_SOURCE=official
+ * to force the official rate. Every other currency uses the official source.
+ * Parallel failures fall back to official, so the keeper never pushes a guessed
+ * rate and never silently fails.
+ */
+export async function fetchUsdRate(quote: string): Promise<FxRate> {
+  const q = quote.toUpperCase();
+  const mode = (process.env.NGN_RATE_SOURCE || "parallel").toLowerCase();
+
+  if (q === "NGN" && mode !== "official") {
+    // "premium" mode: skip P2P, use official × premium directly.
+    if (mode === "premium") return fetchOfficialWithPremium(q);
+    // "parallel" (default): live P2P street rate, else premium-adjusted official.
+    try {
+      return await fetchP2pParallelRate(q);
+    } catch {
+      return fetchOfficialWithPremium(q);
+    }
+  }
+
+  return fetchOfficialRate(q);
 }
