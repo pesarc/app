@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { ALL_CURRENCIES, CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
-import { CHAINLINK_BASE_FX, chainlinkUsdPer } from "@pesarc/sdk/oracle/chainlink";
+import { chainlinkCoveredCurrencies, chainlinkUsdPer } from "@pesarc/sdk/oracle/chainlink";
 
 export const revalidate = 600; // 10 minutes
 
@@ -56,7 +56,7 @@ export async function GET() {
     // value already set above when a feed is stale/unreadable. NGN is excluded —
     // it's the on-chain oracle's job (settlement truth), not the display feed.
     await Promise.all(
-      Object.keys(CHAINLINK_BASE_FX)
+      chainlinkCoveredCurrencies()
         .filter((c) => !ORACLE_TRUTH.has(c) && c !== "USD")
         .map(async (c) => {
           const v = await chainlinkUsdPer(c);
