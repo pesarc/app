@@ -1,15 +1,17 @@
-// Live FX source for the corridor oracle keeper. Exotic-market pairs like
-// USD/NGN and USD/GHS are NOT reliably published by any decentralized on-chain
-// feed (Chainlink has no NGN feed; Pyth lists FX.USD/NGN but it isn't actively
-// published on the free tier). So the reference RATE is sourced off-chain here
-// and pushed on-chain by the keeper — the classic "push oracle" pattern. On
-// mainnet, swap this for a licensed FX data provider (or a Pyth Pro feed).
+// Live FX source for the corridor oracle keeper. The reference RATE is sourced
+// here and pushed on-chain by the keeper — the classic "push oracle" pattern,
+// which also lets contract-less chains (e.g. Arc) get Chainlink-grade data.
 //
-// NGN is special: the OFFICIAL rate (~1330) diverges sharply from the
-// PARALLEL/street rate (~1600) that remittance actually settles at. For NGN we
-// therefore default to a parallel-market proxy — Binance P2P USDT/NGN, which is
-// where the street rate is discovered in real time — and fall back to the
-// official source only if that's unavailable. Flip back with NGN_RATE_SOURCE=official.
+// Priority: Chainlink Data Feeds (decentralized, on-chain) wherever a feed
+// exists (see ./chainlink), falling back to the off-chain API for the
+// currencies Chainlink doesn't cover (KES/GHS/EGP/…).
+//
+// NGN is special: Chainlink (and every official source) reports the OFFICIAL
+// rate (~1330), but remittance settles at the PARALLEL/street rate (~1600). So
+// for NGN we take the Chainlink base × NGN_PARALLEL_PREMIUM by default.
+// NGN_RATE_SOURCE overrides: chainlink | parallel (Binance P2P) | premium | official.
+
+import { chainlinkUsdPer, hasChainlinkFeed } from "./chainlink";
 
 export type FxRate = {
   /** e.g. "NGN" */
@@ -96,6 +98,18 @@ async function fetchOfficialWithPremium(quote: string): Promise<FxRate> {
   return { ...base, rate: base.rate * (1 + premium), source: `${base.source}+premium` };
 }
 
+/** Apply the configured NGN parallel premium to a units-per-USD rate. */
+function withPremium(rate: number, source: string, quote: string): FxRate {
+  const premium = Number(process.env.NGN_PARALLEL_PREMIUM || 0);
+  const p = Number.isFinite(premium) && premium > 0 ? premium : 0;
+  return {
+    quote,
+    rate: rate * (1 + p),
+    asOf: new Date().toISOString(),
+    source: p > 0 ? `${source}+premium` : source,
+  };
+}
+
 /** Official USD→fiat rate: open.er-api.com, then frankfurter.app. */
 async function fetchOfficialRate(quote: string): Promise<FxRate> {
   const q = quote.toUpperCase();
@@ -141,18 +155,35 @@ async function fetchOfficialRate(quote: string): Promise<FxRate> {
  */
 export async function fetchUsdRate(quote: string): Promise<FxRate> {
   const q = quote.toUpperCase();
-  const mode = (process.env.NGN_RATE_SOURCE || "parallel").toLowerCase();
 
-  if (q === "NGN" && mode !== "official") {
-    // "premium" mode: skip P2P, use official × premium directly.
+  // NGN is the settlement-truth corridor. Default source = Chainlink's on-chain
+  // NGN feed (decentralized, verifiable) times the parallel PREMIUM, since
+  // Chainlink reports the OFFICIAL rate (~1330) and we settle at the street
+  // rate (~1600). NGN_RATE_SOURCE overrides: chainlink | parallel | premium | official.
+  if (q === "NGN") {
+    const mode = (process.env.NGN_RATE_SOURCE || "chainlink").toLowerCase();
+    if (mode === "official") return fetchOfficialRate(q);
     if (mode === "premium") return fetchOfficialWithPremium(q);
-    // "parallel" (default): live P2P street rate, else premium-adjusted official.
-    try {
-      return await fetchP2pParallelRate(q);
-    } catch {
-      return fetchOfficialWithPremium(q);
+    if (mode === "parallel") {
+      try {
+        return await fetchP2pParallelRate(q);
+      } catch {
+        return fetchOfficialWithPremium(q);
+      }
     }
+    // "chainlink" (default): Chainlink NGN base × premium, else official × premium.
+    const usdPer = await chainlinkUsdPer("NGN");
+    if (usdPer && usdPer > 0) return withPremium(1 / usdPer, "chainlink", q);
+    return fetchOfficialWithPremium(q);
   }
 
+  // Every other currency: Chainlink-first where a Base feed exists (official =
+  // market for these), else the off-chain API.
+  if (hasChainlinkFeed(q)) {
+    const usdPer = await chainlinkUsdPer(q);
+    if (usdPer && usdPer > 0) {
+      return { quote: q, rate: 1 / usdPer, asOf: new Date().toISOString(), source: "chainlink" };
+    }
+  }
   return fetchOfficialRate(q);
 }
