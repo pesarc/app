@@ -1,15 +1,15 @@
-// Live FX source for the corridor oracle keeper. Exotic-market pairs like
-// USD/NGN and USD/GHS are NOT reliably published by any decentralized on-chain
-// feed (Chainlink has no NGN feed; Pyth lists FX.USD/NGN but it isn't actively
-// published on the free tier). So the reference RATE is sourced off-chain here
-// and pushed on-chain by the keeper — the classic "push oracle" pattern. On
-// mainnet, swap this for a licensed FX data provider (or a Pyth Pro feed).
+// Live FX source for the corridor oracle keeper. The reference RATE is sourced
+// here and pushed on-chain by the keeper — the classic "push oracle" pattern,
+// which also lets contract-less chains (e.g. Arc) get Chainlink-grade data.
 //
-// NGN is special: the OFFICIAL rate (~1330) diverges sharply from the
-// PARALLEL/street rate (~1600) that remittance actually settles at. For NGN we
-// therefore default to a parallel-market proxy — Binance P2P USDT/NGN, which is
-// where the street rate is discovered in real time — and fall back to the
-// official source only if that's unavailable. Flip back with NGN_RATE_SOURCE=official.
+// Priority: Chainlink Data Feeds (decentralized, on-chain) wherever a feed
+// exists (see ./chainlink), falling back to the off-chain API for the
+// currencies Chainlink doesn't cover (KES/GHS/EGP/…).
+//
+// NGN is special: Chainlink (and every official source) reports the OFFICIAL
+// rate (~1330), but remittance settles at the PARALLEL/street rate (~1600). So
+// for NGN we take the Chainlink base × NGN_PARALLEL_PREMIUM by default.
+// NGN_RATE_SOURCE overrides: chainlink | parallel (Binance P2P) | premium | official.
 
 import { chainlinkUsdPer, hasChainlinkFeed } from "./chainlink";
 
