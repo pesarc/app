@@ -50,7 +50,14 @@ export async function fetchP2pParallelRate(fiat: string): Promise<FxRate> {
   const tradeType = (process.env.NGN_P2P_TRADE_TYPE || "SELL").toUpperCase();
   const res = await fetch(BINANCE_P2P, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      // Binance's public P2P search expects browser-like headers.
+      "user-agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      accept: "*/*",
+      clienttype: "web",
+    },
     cache: "no-store",
     body: JSON.stringify({
       asset: "USDT",
@@ -73,6 +80,20 @@ export async function fetchP2pParallelRate(fiat: string): Promise<FxRate> {
   const rate = median(prices);
   if (rate <= 0) throw new Error(`No P2P ads for USD/${f}`);
   return { quote: f, rate, asOf: new Date().toISOString(), source: "binance-p2p" };
+}
+
+/**
+ * Official rate with a configurable parallel PREMIUM — the robust fallback when
+ * the live P2P source is unreachable (e.g. Binance is geo-blocked from the
+ * host). Set NGN_PARALLEL_PREMIUM to the gap between official and street (e.g.
+ * 0.2 ≈ +20%, turning ~1330 into ~1600) so NGN never silently reverts to the
+ * understated official rate. Premium 0 (default) = pure official.
+ */
+async function fetchOfficialWithPremium(quote: string): Promise<FxRate> {
+  const base = await fetchOfficialRate(quote);
+  const premium = Number(process.env.NGN_PARALLEL_PREMIUM || 0);
+  if (!Number.isFinite(premium) || premium <= 0) return base;
+  return { ...base, rate: base.rate * (1 + premium), source: `${base.source}+premium` };
 }
 
 /** Official USD→fiat rate: open.er-api.com, then frankfurter.app. */
@@ -120,13 +141,16 @@ async function fetchOfficialRate(quote: string): Promise<FxRate> {
  */
 export async function fetchUsdRate(quote: string): Promise<FxRate> {
   const q = quote.toUpperCase();
+  const mode = (process.env.NGN_RATE_SOURCE || "parallel").toLowerCase();
 
-  const useParallel = q === "NGN" && (process.env.NGN_RATE_SOURCE || "parallel") !== "official";
-  if (useParallel) {
+  if (q === "NGN" && mode !== "official") {
+    // "premium" mode: skip P2P, use official × premium directly.
+    if (mode === "premium") return fetchOfficialWithPremium(q);
+    // "parallel" (default): live P2P street rate, else premium-adjusted official.
     try {
       return await fetchP2pParallelRate(q);
     } catch {
-      // Parallel source unavailable — fall back to official rather than fail.
+      return fetchOfficialWithPremium(q);
     }
   }
 
