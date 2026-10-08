@@ -3,10 +3,15 @@ name: Build & push web image
 # Builds the amd64 container on every push to main and pushes it to GHCR, so a
 # deploy is one `git push`. Optionally SSHes into the droplet to pull + restart.
 #
-# Required repo secret:
-#   BUILD_DOTENV  — the NEXT_PUBLIC_* lines from app/.env (inlined into the client
-#                   bundle at build; keep it to NEXT_PUBLIC_* — server secrets are
-#                   NOT needed at build and belong on the droplet's env file).
+# Build-time client env (NEXT_PUBLIC_*, inlined into the client bundle):
+#   deploy/build.env  — PUBLIC config (addresses, URLs, chain IDs), version-
+#                       controlled. NEXT_PUBLIC_* ships to the browser, so it is
+#                       not secret; edit + commit to change it.
+#   Secrets appended at build (abuse-sensitive, not committed):
+#     NEXT_PUBLIC_PRIVY_APP_ID, NEXT_PUBLIC_ALCHEMY_API_KEY,
+#     NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID
+#   Legacy: BUILD_DOTENV (full blob) is still used as a fallback until the three
+#   secrets above are set — then delete it. Server secrets belong on the host.
 # Optional (enable the deploy job):
 #   repo variable DEPLOY_TO_DROPLET = "true"
 #   secrets DROPLET_HOST, DROPLET_USER, DROPLET_SSH_KEY
@@ -19,6 +24,7 @@ on:
       - "packages/**"
       - "Dockerfile"
       - "pnpm-lock.yaml"
+      - "deploy/build.env"
       - ".github/workflows/build-image.yml"
   workflow_dispatch:
 
@@ -48,7 +54,24 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Provide build-time .env (NEXT_PUBLIC_* only)
-        run: printf '%s' "${{ secrets.BUILD_DOTENV }}" > .env.ci
+        # Public NEXT_PUBLIC_* config is version-controlled in deploy/build.env;
+        # the few abuse-sensitive values come from individual secrets and are
+        # APPENDED here. Falls back to the legacy BUILD_DOTENV blob when the
+        # individual secrets aren't set yet, so migration is zero-downtime:
+        # set the three secrets, then delete BUILD_DOTENV to switch over.
+        run: |
+          if [ -n "${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}" ]; then
+            echo "env: deploy/build.env + individual secrets"
+            cat deploy/build.env > .env.ci
+            {
+              echo "NEXT_PUBLIC_PRIVY_APP_ID=${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}"
+              echo "NEXT_PUBLIC_ALCHEMY_API_KEY=${{ secrets.NEXT_PUBLIC_ALCHEMY_API_KEY }}"
+              echo "NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID=${{ secrets.NEXT_PUBLIC_ALCHEMY_GAS_POLICY_ID }}"
+            } >> .env.ci
+          else
+            echo "env: legacy BUILD_DOTENV secret"
+            printf '%s' "${{ secrets.BUILD_DOTENV }}" > .env.ci
+          fi
 
       - name: Build & push (linux/amd64)
         uses: docker/build-push-action@v6
