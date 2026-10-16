@@ -16,7 +16,7 @@
 
 import type { CurrencyCode } from "../money";
 
-export type StablecoinRegion = "usd" | "eur" | "africa";
+export type StablecoinRegion = "usd" | "eur" | "gbp" | "africa" | "asia" | "latam";
 
 export type StablecoinMeta = {
   symbol: string;
@@ -175,6 +175,44 @@ export const STABLECOIN_REGISTRY: Record<string, StablecoinEntry> = {
       },
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // Expanded set (24+ unique stablecoins). Addresses are TODO until verified
+  // from each issuer's docs — entries with no address are skipped by
+  // stablecoinsOnChain()/realStablecoinsForAppChain(), so they are safe to ship
+  // and light up per chain as addresses land. Oracle pricing for each fiat is
+  // handled by the aggregator (oracle/aggregate.ts: chainlink + pyth + api).
+  // ---------------------------------------------------------------------------
+
+  // --- USD (more issuers) ---
+  DAI:   { meta: { symbol: "DAI",   name: "Dai",              fiat: "USD", region: "usd", issuer: "Sky (Maker)" }, chains: { ethereum: { note: "TODO: fill DAI addresses" } } },
+  USDe:  { meta: { symbol: "USDe",  name: "Ethena USDe",      fiat: "USD", region: "usd", issuer: "Ethena" },      chains: { ethereum: { note: "TODO" } } },
+  RLUSD: { meta: { symbol: "RLUSD", name: "Ripple USD",       fiat: "USD", region: "usd", issuer: "Ripple" },      chains: { ethereum: { note: "TODO" } } },
+  USDG:  { meta: { symbol: "USDG",  name: "Global Dollar",    fiat: "USD", region: "usd", issuer: "Paxos (GDN)" }, chains: { ethereum: { note: "TODO" }, solana: { note: "TODO" } } },
+  USDP:  { meta: { symbol: "USDP",  name: "Pax Dollar",       fiat: "USD", region: "usd", issuer: "Paxos" },       chains: { ethereum: { note: "TODO" } } },
+
+  // --- EUR / GBP ---
+  EURe:  { meta: { symbol: "EURe",  name: "Monerium EUR",     fiat: "EUR", region: "eur", issuer: "Monerium" },    chains: { polygon: { note: "TODO" }, ethereum: { note: "TODO" } } },
+  EURA:  { meta: { symbol: "EURA",  name: "Angle agEUR",      fiat: "EUR", region: "eur", issuer: "Angle" },       chains: { ethereum: { note: "TODO" } } },
+  GBPe:  { meta: { symbol: "GBPe",  name: "Monerium GBP",     fiat: "GBP", region: "gbp", issuer: "Monerium" },    chains: { ethereum: { note: "TODO" } } },
+
+  // --- Africa (Mento + others) ---
+  cKES:  { meta: { symbol: "cKES",  name: "Celo Kenyan Shilling", fiat: "KES", region: "africa", issuer: "Mento" }, chains: { celo: { note: "TODO: Mento cKES" } } },
+  cGHS:  { meta: { symbol: "cGHS",  name: "Celo Ghanaian Cedi",   fiat: "GHS", region: "africa", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  cZAR:  { meta: { symbol: "cZAR",  name: "Celo South African Rand", fiat: "ZAR", region: "africa", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  eXOF:  { meta: { symbol: "eXOF",  name: "CFA Franc (eXOF)",     fiat: "XOF", region: "africa", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+
+  // --- Latin America ---
+  cREAL: { meta: { symbol: "cREAL", name: "Celo Brazilian Real",  fiat: "BRL", region: "latam", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  cCOP:  { meta: { symbol: "cCOP",  name: "Celo Colombian Peso",  fiat: "COP", region: "latam", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  MXNe:  { meta: { symbol: "MXNe",  name: "Mexican Peso (MXNe)",  fiat: "MXN", region: "latam", issuer: "Brale" }, chains: { base: { note: "TODO" } } },
+
+  // --- Asia ---
+  PUSO:  { meta: { symbol: "PUSO",  name: "Philippine Peso (PUSO)", fiat: "PHP", region: "asia", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  cJPY:  { meta: { symbol: "cJPY",  name: "Celo Japanese Yen",    fiat: "JPY", region: "asia", issuer: "Mento" }, chains: { celo: { note: "TODO" } } },
+  XSGD:  { meta: { symbol: "XSGD",  name: "StraitsX SGD",         fiat: "SGD", region: "asia", issuer: "StraitsX" }, chains: { ethereum: { note: "TODO" }, polygon: { note: "TODO" } } },
+  IDRX:  { meta: { symbol: "IDRX",  name: "IDRX Rupiah",          fiat: "IDR", region: "asia", issuer: "IDRX" },    chains: { base: { note: "TODO" } } },
+  TRYB:  { meta: { symbol: "TRYB",  name: "BiLira",               fiat: "TRY", region: "asia", issuer: "BiLira" },  chains: { ethereum: { note: "TODO" } } },
 };
 
 /** All stablecoins that have an address on `chainKey` for `network`. */

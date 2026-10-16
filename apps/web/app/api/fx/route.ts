@@ -9,7 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { ALL_CURRENCIES, CURRENCIES, type CurrencyCode } from "@pesarc/sdk/money";
-import { chainlinkCoveredCurrencies, chainlinkUsdPer } from "@pesarc/sdk/oracle/chainlink";
+import { aggregateUsdPer, hasOnchainOracle } from "@pesarc/sdk/oracle/aggregate";
 
 export const revalidate = 600; // 10 minutes
 
@@ -51,24 +51,30 @@ export async function GET() {
         code === "USD" ? 1 : perUsd && perUsd > 0 ? 1 / perUsd : CURRENCIES[code].usdPer;
     }
 
-    // Chainlink-first: for currencies with a Base feed (ZAR, GBP, EUR, …) prefer
-    // the decentralized on-chain rate over the off-chain API; fall back to the
-    // value already set above when a feed is stale/unreadable. NGN is excluded —
-    // it's the on-chain oracle's job (settlement truth), not the display feed.
+    // Aggregate on-chain oracles over the API value: for any currency a
+    // Chainlink or Pyth feed covers, take the MEDIAN of (chainlink, pyth, api)
+    // and flag disagreement. Uncovered currencies keep the API value above. NGN
+    // is excluded — it's the on-chain settlement oracle's job, not the display.
+    const flagged: Record<string, number> = {};
     await Promise.all(
-      chainlinkCoveredCurrencies()
-        .filter((c) => !ORACLE_TRUTH.has(c) && c !== "USD")
+      (ALL_CURRENCIES as CurrencyCode[])
+        .filter((c) => !ORACLE_TRUTH.has(c) && c !== "USD" && hasOnchainOracle(c))
         .map(async (c) => {
-          const v = await chainlinkUsdPer(c);
-          if (v && v > 0) usdPer[c] = v;
+          const r = await aggregateUsdPer(c, { seedUsdPer: usdPer[c], seedSource: "api" });
+          if (r && r.usdPer > 0) {
+            usdPer[c] = r.usdPer;
+            if (r.flagged) flagged[c] = r.deviationBps;
+          }
         }),
     );
 
     return NextResponse.json({
       live: true,
-      source: "open.er-api.com + chainlink",
+      source: "aggregate(chainlink + pyth + open.er-api)",
       asOf: data.time_last_update_unix ? data.time_last_update_unix * 1000 : Date.now(),
       usdPer,
+      // currencies whose sources disagreed beyond the threshold (bps), for monitoring
+      flagged: Object.keys(flagged).length ? flagged : undefined,
     });
   } catch {
     // Soft fallback — the app keeps working on the illustrative rates.
