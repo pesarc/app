@@ -12,9 +12,11 @@ export type CurrencyCode =
   // Western
   | "USD" | "GBP" | "EUR" | "CAD" | "AUD" | "CHF"
   // Asian / Gulf
-  | "INR" | "CNY" | "JPY" | "AED" | "SGD" | "PHP";
+  | "INR" | "CNY" | "JPY" | "AED" | "SGD" | "PHP" | "IDR" | "TRY"
+  // Latin America
+  | "BRL" | "MXN" | "COP";
 
-export type CurrencyRegion = "africa" | "western" | "asia";
+export type CurrencyRegion = "africa" | "western" | "asia" | "latam";
 
 export type Currency = {
   code: CurrencyCode;
@@ -57,6 +59,13 @@ export const CURRENCIES: Record<CurrencyCode, Currency> = {
   AED: { code: "AED", symbol: "AED ", name: "UAE Dirham", flag: "🇦🇪", region: "asia", locale: "ar-AE", decimals: 2, usdPer: 1 / 3.6725 },
   SGD: { code: "SGD", symbol: "S$", name: "Singapore Dollar", flag: "🇸🇬", region: "asia", locale: "en-SG", decimals: 2, usdPer: 1 / 1.34 },
   PHP: { code: "PHP", symbol: "₱", name: "Philippine Peso", flag: "🇵🇭", region: "asia", locale: "en-PH", decimals: 2, usdPer: 1 / 57 },
+  IDR: { code: "IDR", symbol: "Rp", name: "Indonesian Rupiah", flag: "🇮🇩", region: "asia", locale: "id-ID", decimals: 0, usdPer: 1 / 15800 },
+  TRY: { code: "TRY", symbol: "₺", name: "Turkish Lira", flag: "🇹🇷", region: "asia", locale: "tr-TR", decimals: 2, usdPer: 1 / 34 },
+
+  // --- Latin America ---
+  BRL: { code: "BRL", symbol: "R$", name: "Brazilian Real", flag: "🇧🇷", region: "latam", locale: "pt-BR", decimals: 2, usdPer: 1 / 5.4 },
+  MXN: { code: "MXN", symbol: "MX$", name: "Mexican Peso", flag: "🇲🇽", region: "latam", locale: "es-MX", decimals: 2, usdPer: 1 / 18.5 },
+  COP: { code: "COP", symbol: "COL$", name: "Colombian Peso", flag: "🇨🇴", region: "latam", locale: "es-CO", decimals: 0, usdPer: 1 / 4100 },
 };
 
 /**
@@ -74,7 +83,9 @@ export const CURRENCY_NAMES: Record<CurrencyCode, string> = {
   AUD: "Dollars", CHF: "Francs",
   // Asia / Gulf
   INR: "Rupees", CNY: "Yuan", JPY: "Yen", AED: "Dirhams",
-  SGD: "Dollars", PHP: "Pesos",
+  SGD: "Dollars", PHP: "Pesos", IDR: "Rupiah", TRY: "Lira",
+  // Latin America
+  BRL: "Reais", MXN: "Pesos", COP: "Pesos",
 };
 
 /**
@@ -102,11 +113,12 @@ export const ALL_CURRENCIES = Object.keys(CURRENCIES) as CurrencyCode[];
 export const AFRICAN_CURRENCIES = ALL_CURRENCIES.filter((c) => CURRENCIES[c].region === "africa");
 export const WESTERN_CURRENCIES = ALL_CURRENCIES.filter((c) => CURRENCIES[c].region === "western");
 export const ASIAN_CURRENCIES = ALL_CURRENCIES.filter((c) => CURRENCIES[c].region === "asia");
+export const LATAM_CURRENCIES = ALL_CURRENCIES.filter((c) => CURRENCIES[c].region === "latam");
 
 /** What the diaspora sends from (source currencies). */
 export const SEND_CURRENCIES: CurrencyCode[] = [...WESTERN_CURRENCIES, ...ASIAN_CURRENCIES];
 /** What lands locally (destination currencies). */
-export const RECEIVE_CURRENCIES: CurrencyCode[] = [...AFRICAN_CURRENCIES];
+export const RECEIVE_CURRENCIES: CurrencyCode[] = [...AFRICAN_CURRENCIES, ...LATAM_CURRENCIES];
 
 /** The currencies we ACTUALLY settle in — each backed by a stablecoin in the
  *  registry with a corridor rate. This is the true supported set the corridor
